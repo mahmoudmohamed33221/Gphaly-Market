@@ -366,7 +366,16 @@
         completed: { title: 'تم التوصيل بنجاح!', body: 'استلم العميل الأوردر', icon: 'fa-check-double', color: '#D4AF37', bg: 'rgba(212,175,55,0.15)' }
     };
 
-    function requestNotifPermission() {
+    async function requestNotifPermission() {
+        if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.LocalNotifications) {
+            try {
+                const status = await Capacitor.Plugins.LocalNotifications.checkPermissions();
+                if (status.display !== 'granted') {
+                    await Capacitor.Plugins.LocalNotifications.requestPermissions();
+                }
+            } catch (e) { console.log('LocalNotifications permission error', e); }
+            return;
+        }
         if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     }
 
