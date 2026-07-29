@@ -2,5 +2,14 @@
   "appId": "com.mgaper.gphalymarket",
   "appName": "جبهالي ماركت - Gphaly Market",
   "webDir": "www",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 300,
+      "launchAutoHide": true,
+      "backgroundColor": "#000000",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
+  }
 }
