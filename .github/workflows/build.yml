@@ -32,6 +32,16 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      # 🆕 بلجن @capacitor/geolocation مش بيضيف صلاحيات الموقع لملف الـ Manifest لوحده -
+      # ده موضّح رسميًا في توثيق Capacitor إن المطوّر لازم يضيفها يدويًا. وبما إننا بنعمل
+      # "cap add android" من الصفر في كل بيلد، بنضيف الصلاحيات هنا تلقائيًا بعد كل مرة.
+      - name: Add location permissions to AndroidManifest.xml
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />#' "$MANIFEST"
+          echo "----- AndroidManifest.xml بعد التعديل -----"
+          cat "$MANIFEST"
+
       - name: Generate app icons
         run: npx capacitor-assets generate --android
 
