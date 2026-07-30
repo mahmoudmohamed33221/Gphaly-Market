@@ -366,7 +366,7 @@
 
                 <div>  
                     <label class="text-[var(--gold)] text-sm font-semibold block mb-2">طلباتك بالعدد <span class="text-red-500">*</span></label>  
-                    <div id="items-container" class="space-y-4"><div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: علبة سمنة / نص كيلو لبن" oninput="clearError(this)"><div class="flex items-center bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl p-1 gap-2"><button type="button" onclick="changeQty(this, -1)" class="qty-btn">-</button><span class="qty-val font-bold text-lg w-8 text-center text-white">1</span><button type="button" onclick="changeQty(this, 1)" class="qty-btn">+</button></div></div><span class="error-msg item-error-msg"></span></div></div>  
+                    <div id="items-container" class="space-y-4"><div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div></div>  
                     <button type="button" onclick="addNewItemRow()" class="mt-4 w-full text-sm font-bold bg-amber-500 text-slate-950 px-4 py-3 rounded-xl hover:bg-amber-400 transition flex items-center justify-center gap-2 shadow-md"><i class="fas fa-plus"></i> أضف صنف آخر</button>  
                 </div>  
                 <div class="flex gap-3 pt-4"><button type="button" onclick="goToStep(2)" class="w-1/3 bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">السابق</button><button type="button" onclick="validateAndGoToStep(4)" class="w-2/3 bg-[var(--gold)] text-[#111827] font-bold py-3 rounded-xl">التالي</button></div>  
@@ -757,16 +757,19 @@
         }  
     }  
 
-    function changeQty(btn, c) { const r = btn.closest('.flex'); const q = r.querySelector('.qty-val'); let v = parseInt(q.textContent) + c; if (v < 1) v = 1; q.textContent = v; }  
-
     // =========================================================================
     // 🆕 نظام تحديد الموقع على الخريطة - بسيط جدًا لأي عمر: بيحاول ياخد موقعك
     // تلقائي أول ما يفتح (زي جوجل ماب بالظبط)، ومعاه مربع بحث بالاسم بيحرك
     // الخريطة لوحده، وزرار "ودّيني على موقعي" في أي وقت لو حصل فرق بسيط.
+    // 🆕 العلامة الزرقاء (موقعك الفعلي بالـ GPS) بقت مستقلة تمامًا عن العلامة الحمرا
+    // (نقطة التوصيل اللي بتحددها)، وبتتحدث بشكل مستمر (watchPosition) طول ما
+    // الخريطة مفتوحة، عشان تفضل دايمًا موقعك الحقيقي دلوقتي مهما حركت الخريطة
+    // أو أكدت مكان بعيد عن مكانك الفعلي.
     // =========================================================================
     let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
     let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
+    let lpWatchId = null; // 🆕 معرّف متابعة الموقع الحية (watchPosition) - شغالة طول ما مودال الخريطة مفتوح
     const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
 
     const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
@@ -801,14 +804,16 @@
             const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
             const savedLat = document.getElementById(latId).value, savedLng = document.getElementById(lngId).value;  
             if (savedLat && savedLng) {  
-                // 🆕 عندنا موقع محفوظ بالفعل (مكان بيتحدد تلقائيًا أول ما التطبيق يفتح) - نوريه على طول من غير أي تأخير
+                // 🆕 عندنا موقع (نقطة توصيل) محفوظ بالفعل - نعرضه كمركز للخريطة (العلامة الحمرا)
+                // لكن العلامة الزرقاء (موقعك الحقيقي الآن) هتتحدد لوحدها من الـ GPS الحي تحت،
+                // مش من القيمة المحفوظة دي، عشان منخلطش بين نقطة التوصيل وموقعك الفعلي
                 lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17);  
-                if (target === 'customer') {  
-                    showOrUpdateBlueDot(parseFloat(savedLat), parseFloat(savedLng)); // العلامة الزرقاء تظهر فورًا من نفس القيمة المحفوظة  
-                    silentlyRefreshBlueDot(); // وبعدين بنظبطها بهدوء في الخلفية من غير ما نأخر أو نزعج المستخدم  
-                }  
-            } else {  
-                // 🆕 مفيش موقع محفوظ لسه - نحاول نجيب الموقع الحالي تلقائي كبداية
+            }  
+            // 🆕 نبدأ متابعة حية ومستمرة لموقعك الحقيقي بالـ GPS طول ما الخريطة مفتوحة،
+            // فالعلامة الزرقاء دايمًا بتفضل هي مكانك الفعلي دلوقتي وبس
+            startLiveBlueDotWatch();  
+            if (!savedLat || !savedLng) {  
+                // مفيش نقطة توصيل محفوظة لسه - نحرك الخريطة لموقعك الحالي كبداية
                 locateMeInPicker();  
             }  
         }, 50);  
@@ -871,18 +876,29 @@
         else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
     }  
 
-    // 🆕 تحديث هادئ للعلامة الزرقاء في الخلفية - من غير رسائل أو تحريك للخريطة، عشان دقة الموقع
-    // تتحسن لوحدها من غير ما نأخر أو نزعج المستخدم بأي حاجة ظاهرة
-    async function silentlyRefreshBlueDot() {  
-        try {  
-            const permGranted = await ensureNativeLocationPermission();  
-            if (!permGranted) return;  
-            const { lat, lng } = await getFreshPositionPromise();  
-            showOrUpdateBlueDot(lat, lng);  
-        } catch (e) { /* تجاهل بصمت - العلامة الزرقاء هتفضل على آخر موقع معروف */ }  
+    // 🆕 بدء متابعة حية ومستمرة لموقعك الفعلي بالـ GPS (watchPosition) - بتفضل شغالة
+    // طول ما مودال اختيار الموقع مفتوح، وبتحدّث العلامة الزرقاء أول ما يوصل أي إحداثي
+    // جديد من الجهاز (كل ما الـ GPS يبعت تحديث، مش مرة واحدة وخلاص) من غير ما تلمس
+    // العلامة الحمرا أو مركز الخريطة إطلاقًا - العلامتين مستقلتين تمامًا عن بعض.
+    async function startLiveBlueDotWatch() {  
+        stopLiveBlueDotWatch();  
+        if (!navigator.geolocation) return;  
+        const permGranted = await ensureNativeLocationPermission();  
+        if (!permGranted) return;  
+        lpWatchId = navigator.geolocation.watchPosition(  
+            (pos) => { showOrUpdateBlueDot(pos.coords.latitude, pos.coords.longitude); },  
+            () => { /* أي خطأ عابر في المتابعة الحية - نتجاهله بصمت، العلامة الزرقاء هتفضل على آخر موقع معروف */ },  
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }  
+        );  
     }  
 
-    // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة بس، وبيسيب المودال مفتوح عشان يقدر يظبط بإيده
+    function stopLiveBlueDotWatch() {  
+        if (lpWatchId !== null && navigator.geolocation) { navigator.geolocation.clearWatch(lpWatchId); }  
+        lpWatchId = null;  
+    }  
+
+    // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة (العلامة الحمرا) لموقعك الفعلي بس،
+    // والعلامة الزرقاء مستمرة تتحدث لوحدها من المتابعة الحية أصلًا
     async function locateMeInPicker() {  
         setLpStatus('⏳ بنطلب صلاحية الموقع ونحدد مكانك... لو ظهرلك طلب صلاحية دوس "السماح".', null);  
         const permGranted = await ensureNativeLocationPermission();  
@@ -894,6 +910,7 @@
             const { lat, lng } = await getFreshPositionPromise();  
             if (lpMap) { lpMap.setView([lat, lng], 17); }  
             showOrUpdateBlueDot(lat, lng);  
+            if (!lpWatchId) startLiveBlueDotWatch();  
             setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
             setTimeout(() => setLpStatus(null), 3500);  
         } catch (e) { setLpStatus(e.msg, e.kind); }  
@@ -921,12 +938,18 @@
         document.getElementById('lp-search-clear').style.display = value ? 'block' : 'none';  
         clearTimeout(lpSearchTimer);  
         if (!value || value.trim().length < 2) { hideLpSearchResults(); return; }  
-        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 600);  
+        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 500);  
     }  
 
-    // 🆕 استعلام واحد لنوميناتيم - محايد على مصر شوية (من غير ما يمنع نتائج بره مصر) وبعدد نتائج أكبر
+    // 🆕 استعلام واحد لنوميناتيم (OpenStreetMap) - محايد على مصر شوية وبعدد نتائج أكبر.
+    // ملحوظة مهمة: نظام البحث ده مبني على نوميناتيم المجاني، ودقته وتغطيته لأسماء
+    // المحلات/العلامات التجارية أضعف بكتير من بحث خرائط جوجل الفعلي (Google Places)،
+    // لأن جوجل عندها قاعدة بيانات أماكن ضخمة ومدفوعة، ونوميناتيم بيعتمد بس على البيانات
+    // المجانية المتاحة في OpenStreetMap. تحت بنحاول نقرب من دقة جوجل قد الإمكان (بحث
+    // بديل، تبسيط تدريجي للكلمات، ترتيب حسب الأهمية)، لكن للوصول لنفس مستوى جوجل تمامًا
+    // محتاجين نوصّل التطبيق بـ Google Places API (محتاج مفتاح API مدفوع من جوجل).
     function fetchLpGeocode(query, signal) {  
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&accept-language=ar&viewbox=24.6,32.2,36.9,21.8&bounded=0&q=${encodeURIComponent(query)}`;  
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=10&accept-language=ar&viewbox=24.6,32.2,36.9,21.8&bounded=0&addressdetails=1&extratags=1&namedetails=1&q=${encodeURIComponent(query)}`;  
         return fetch(url, { signal }).then(r => r.json()).catch(() => []);  
     }  
 
@@ -936,8 +959,9 @@
         lpSearchAbort = myController;  
         const signal = myController.signal;  
         let results = await fetchLpGeocode(query, signal);  
-        // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة)
-        // ونجرب تاني كذا مرة، عشان نقرب من المكان حتى لو الاسم مكتوب مش بالظبط
+        // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة
+        // أول حاجة، وبعدين نجرب الكلمة الأخيرة بس لوحدها لو لسه مفيش نتيجة) ونجرب كذا مرة،
+        // عشان نقرب من المكان حتى لو الاسم مكتوب مش بالظبط أو فيه كلمات زيادة
         let simplified = query;  
         let attempts = 0;  
         while ((!results || results.length === 0) && attempts < 3) {  
@@ -948,6 +972,15 @@
             simplified = words.join(' ');  
             results = await fetchLpGeocode(simplified, signal);  
             attempts++;  
+        }  
+        if ((!results || results.length === 0)) {  
+            // 🆕 محاولة أخيرة: نجرب آخر كلمتين بس من النص الأصلي (غالبًا اسم المكان/المنطقة)
+            const origWords = query.trim().split(/\s+/);  
+            if (origWords.length > 2) {  
+                if (lpSearchAbort !== myController) return;  
+                const lastTwo = origWords.slice(-2).join(' ');  
+                results = await fetchLpGeocode(lastTwo, signal);  
+            }  
         }  
         if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
         renderLpSearchResults(results || []);  
@@ -1017,6 +1050,7 @@
         setLpStatus(null);  
         hideLpSearchResults();  
         if (lpSearchAbort) lpSearchAbort.abort();  
+        stopLiveBlueDotWatch();  
         lpAdvanceTo = null;  
     }  
 
@@ -1127,7 +1161,7 @@
 
     function addNewItemRow() {  
         const c = document.getElementById('items-container'); const r = document.createElement('div'); r.className = 'flex flex-col item-row-container';  
-        r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="الصنف الجديد..." oninput="clearError(this)"><div class="flex items-center bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl p-1 gap-2"><button type="button" onclick="changeQty(this,-1)" class="qty-btn">-</button><span class="qty-val font-bold text-lg w-8 text-center text-white">1</span><button type="button" onclick="changeQty(this,1)" class="qty-btn">+</button></div><button type="button" onclick="this.closest('.item-row-container').remove()" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
+        r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"><button type="button" onclick="this.closest('.item-row-container').remove()" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
         c.appendChild(r);  
     }  
 
@@ -1139,7 +1173,7 @@
         let fd = `[${st}]\n🏪 المحل المطلوب: ${storeNameVal}\n`;  
         if (storeAddrVal) fd += `📍 عنوان المحل: ${storeAddrVal}\n`;  
         fd += `----------------------\n`;  
-        document.querySelectorAll('.item-row').forEach(r => { fd += `- عدد ${r.querySelector('.qty-val').textContent} × ${r.querySelector('.item-name').value}\n`; });  
+        document.querySelectorAll('.item-name').forEach(el => { if (el.value.trim()) fd += `- ${el.value.trim()}\n`; });  
         const now = new Date(); const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];  
         let h = now.getHours(); const m = now.getMinutes().toString().padStart(2,'0'); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;  
         localStorage.setItem('gebhaly_name', document.getElementById('u_name').value); localStorage.setItem('gebhaly_phone', document.getElementById('u_phone').value); localStorage.setItem('gebhaly_ezba', document.getElementById('u_ezba').value); localStorage.setItem('gebhaly_street', document.getElementById('u_street').value); localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value);  
@@ -1186,7 +1220,7 @@
         document.getElementById('u_store_name').value = '';  
         document.getElementById('u_store_address').value = '';  
         document.getElementById('u_notes').value='';  
-        document.getElementById('items-container').innerHTML = `<div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: علبة سمنة..." oninput="clearError(this)"><div class="flex items-center bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl p-1 gap-2"><button type="button" onclick="changeQty(this,-1)" class="qty-btn">-</button><span class="qty-val font-bold text-lg w-8 text-center text-white">1</span><button type="button" onclick="changeQty(this,1)" class="qty-btn">+</button></div></div><span class="error-msg item-error-msg"></span></div>`;  
+        document.getElementById('items-container').innerHTML = `<div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div>`;  
         goToStep(1); switchPage('active-orders');  
     }  
 
