@@ -98,7 +98,7 @@
     .lp-title { color: var(--gold-light); font-weight: 800; font-size: 1.05rem; margin-bottom: 0.35rem; }
     .lp-hint { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
     #locationPickerMap { flex: 1; width: 100%; min-height: 0; position: relative; }
-    .lp-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 2.4rem; color: #EF4444; text-shadow: 0 4px 10px rgba(0,0,0,0.6); pointer-events: none; z-index: 500; }
+    .lp-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 1.7rem; color: #EF4444; text-shadow: 0 3px 8px rgba(0,0,0,0.6); pointer-events: none; z-index: 500; }
     .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
     .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
     .lp-btn-locate i { color: var(--gold); }
@@ -119,10 +119,11 @@
     .lp-search-result-item:active { background: rgba(212,175,55,0.1); }
     .lp-search-empty { padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; }
     /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
-    .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; width: 46px; height: 46px; border-radius: 50%; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 1.05rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
-    .lp-locate-fab:active { transform: scale(0.92); background: #262626; }
+    .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; height: 42px; padding: 0 15px; border-radius: 21px; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); white-space: nowrap; }
+    .lp-locate-fab i { font-size: 0.95rem; }
+    .lp-locate-fab:active { transform: scale(0.95); background: #262626; }
     /* 🆕 شريط حالة تحديد الموقع (بيطلب / بينجح / بيفشل) */
-    .lp-gps-status { position: absolute; bottom: 16px; right: 16px; left: 76px; z-index: 1200; background: rgba(10,10,10,0.95); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.6rem 0.85rem; font-size: 0.72rem; line-height: 1.5; color: var(--gold-light); text-align: center; }
+    .lp-gps-status { position: absolute; bottom: 68px; right: 12px; left: 12px; z-index: 1200; background: rgba(10,10,10,0.95); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.6rem 0.85rem; font-size: 0.72rem; line-height: 1.5; color: var(--gold-light); text-align: center; }
     .lp-gps-status.is-error { color: #FCA5A5; border-color: rgba(239,68,68,0.4); }
     .lp-gps-status.is-success { color: #A7F3D0; border-color: rgba(16,185,129,0.4); }
     /* 🆕 النقطة الزرقاء لموقع الجيبي إس الفعلي (زي جوجل ماب) */
@@ -341,14 +342,16 @@
                 </div>  
 
                 <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] space-y-3">  
-                    <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-store-alt ml-1"></i>تفاصيل المحل (اختياري)</span>  
+                    <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-store-alt ml-1"></i>تفاصيل المحل</span>  
                     <div class="input-container">  
-                        <label class="text-[var(--muted)] text-xs">هل تريد من محل معين؟</label>  
-                        <input type="text" id="u_store_name" class="modal-input" value="أي محل">  
+                        <label class="text-[var(--muted)] text-xs">اسم المحل <span class="text-red-500">*</span></label>  
+                        <input type="text" id="u_store_name" class="modal-input" placeholder="مثال: بقالة أبو علي" oninput="clearError(this)">  
+                        <span class="error-msg" id="err-u_store_name"></span>  
                     </div>  
                     <div class="input-container">  
-                        <label class="text-[var(--muted)] text-xs">عنوان المحل (اختياري)</label>  
-                        <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: بجوار محطة البنزين">  
+                        <label class="text-[var(--muted)] text-xs">عنوان المحل <span class="text-red-500">*</span></label>  
+                        <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: بجوار محطة البنزين" oninput="clearError(this)">  
+                        <span class="error-msg" id="err-u_store_address"></span>  
                     </div>  
                     <div class="location-picker-box" id="location-box-store">  
                         <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقع المحل على الخريطة <span class="text-red-500">*</span></label>  
@@ -428,17 +431,19 @@
             </div>  
             <div id="lp-search-results"></div>  
         </div>  
-        <div class="lp-center-pin"><i class="fas fa-map-pin"></i></div>  
+        <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
         <div class="lp-gps-status" id="lp-gps-status" style="display:none;"></div>  
-        <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()" title="ودّيني على موقعي الحالي">  
-            <i class="fas fa-location-crosshairs"></i>  
+        <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
+            <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
         </button>  
     </div>  
     <div class="lp-footer">  
-        <button type="button" class="lp-btn-locate" onclick="locateMeInPicker()"><i class="fas fa-location-crosshairs"></i><span>ودّيني على موقعي الحالي بالظبط</span></button>  
+        <div id="lp-auto-set-wrap">  
+            <button type="button" class="lp-btn-locate" onclick="autoSetCurrentLocationAndConfirm()"><i class="fas fa-house ml-1"></i><span>تحديد مكان التوصيل تلقائي لمكاني الحالي الآن</span></button>  
+        </div>  
         <div class="lp-btn-row">  
             <button type="button" class="lp-btn-cancel" onclick="closeLocationPicker()">إلغاء</button>  
-            <button type="button" class="lp-btn-confirm" onclick="confirmLocationPick()"><i class="fas fa-check ml-1"></i>تأكيد هذا الموقع</button>  
+            <button type="button" class="lp-btn-confirm" id="lp-confirm-btn" onclick="confirmLocationPick()"><i class="fas fa-check ml-1"></i>تأكيد هذا الموقع</button>  
         </div>  
     </div>  
 </div>  
@@ -744,6 +749,9 @@
             document.getElementById('err-shop-type').textContent = '';  
             if (!selectedShopType) { document.getElementById('err-shop-type').textContent = 'اختر نوع المحل أولاً!'; err = true; }  
             document.querySelectorAll('.item-name').forEach(el => { clearError(el); if (!el.value.trim()) { showError(el, 'اكتب الصنف أو احذفه!'); err = true; } });  
+            ['u_store_name','u_store_address'].forEach(id => clearError(document.getElementById(id)));  
+            if (!document.getElementById('u_store_name').value.trim()) { showError(document.getElementById('u_store_name'), 'اكتب اسم المحل!'); err = true; }  
+            if (!document.getElementById('u_store_address').value.trim()) { showError(document.getElementById('u_store_address'), 'اكتب عنوان المحل!'); err = true; }  
             const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
             if (!document.getElementById('u_store_lat').value) { if (errStoreLocEl) errStoreLocEl.textContent = 'لازم تحدد موقع المحل على الخريطة!'; err = true; }  
             if (err) return;  
@@ -766,12 +774,18 @@
 
     function openLocationPicker(target) {  
         lpTarget = target;  
+        const confirmBtn = document.getElementById('lp-confirm-btn');  
+        const autoWrap = document.getElementById('lp-auto-set-wrap');  
         if (target === 'store') {  
             document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد موقع المحل بدقة على الخريطة';  
-            document.getElementById('lp-hint').textContent = 'اكتب اسم المحل أو المنطقة في مربع البحث، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+            document.getElementById('lp-hint').textContent = 'اكتب اسم المحل أو المنطقة في مربع البحث، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+            confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان المحل';  
+            autoWrap.style.display = 'none';  
         } else {  
             document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>قم بتحديد موقع منزلك بشكل دقيق لسهولة وصول الطلب إلى منزلك';  
-            document.getElementById('lp-hint').textContent = 'هنجيبلك موقعك تلقائيًا دلوقتي، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
+            document.getElementById('lp-hint').textContent = 'هجبنالك موقعك الحالي تلقائيًا، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
+            confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان منزلي';  
+            autoWrap.style.display = 'block';  
         }  
         document.getElementById('lp-search-input').value = '';  
         hideLpSearchResults();  
@@ -786,9 +800,13 @@
             const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
             const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
             const savedLat = document.getElementById(latId).value, savedLng = document.getElementById(lngId).value;  
-            if (savedLat && savedLng) { lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17); }  
-            // 🆕 أول ما الخريطة تفتح، دايمًا بنحاول ناخد موقعك الحالي تلقائي فورًا (زي جوجل ماب)
-            locateMeInPicker(true);  
+            if (savedLat && savedLng) {  
+                // 🆕 عندنا موقع محفوظ بالفعل (مكان بيتحدد تلقائيًا أول ما التطبيق يفتح) - نوريه على طول من غير أي تأخير
+                lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17);  
+            } else {  
+                // 🆕 مفيش موقع محفوظ لسه - نحاول نجيب الموقع الحالي تلقائي كبداية
+                locateMeInPicker();  
+            }  
         }, 50);  
     }  
 
@@ -819,42 +837,62 @@
         } catch (e) { return true; /* أي مشكلة في الـ plugin نفسه، نسيب navigator.geolocation يحاول عادي */ }  
     }  
 
-    async function locateMeInPicker(isAutoOnOpen) {  
-        if (!navigator.geolocation) {  
-            setLpStatus('⚠️ المتصفح ده مش بيدعم تحديد الموقع التلقائي، تقدر تحدد مكانك بالبحث بالاسم أو بتحريك الخريطة بإيدك.', 'error');  
-            return;  
-        }  
+    // 🆕 جلب الموقع الحالي مرة واحدة - Promise موحّد يستخدمه أي كود محتاج موقع دقيق بسرعة
+    function getFreshPositionPromise() {  
+        return new Promise((resolve, reject) => {  
+            if (!navigator.geolocation) { reject({ msg: '⚠️ الجهاز ده مش بيدعم تحديد الموقع التلقائي، حدد مكانك بالبحث بالاسم أو بتحريك الخريطة بإيدك.', kind: 'error' }); return; }  
+            navigator.geolocation.getCurrentPosition(  
+                (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),  
+                (error) => {  
+                    let msg = '⚠️ مقدرناش نحدد موقعك تلقائيًا. حرك الخريطة بإيدك أو استخدم مربع البحث لحد ما توصل لمكانك.';  
+                    if (error.code === 1) {  
+                        msg = '🚫 لازم توافق على صلاحية الموقع عشان نحدد مكانك تلقائيًا. تقدر تسمح بيها من إعدادات الموقع، أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                        if (location.protocol === 'file:' && !isRunningInsideNativeApp()) { msg += ' (ملحوظة: خاصية الموقع التلقائي محتاجة الصفحة تكون متفتحة من رابط إنترنت آمن (https)، مش من ملف على الجهاز مباشرة)'; }  
+                    } else if (error.code === 2) {  
+                        msg = '⚠️ مقدرناش نوصل لموقعك دلوقتي (تأكد إن خاصية الـ GPS شغالة في التليفون)، حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                    } else if (error.code === 3) {  
+                        msg = '⏱️ تحديد موقعك ياخد وقت طويل، حاول تاني أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                    }  
+                    reject({ msg, kind: 'error' });  
+                },  
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }  
+            );  
+        });  
+    }  
+
+    // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة بس، وبيسيب المودال مفتوح عشان يقدر يظبط بإيده
+    async function locateMeInPicker() {  
         setLpStatus('⏳ بنطلب صلاحية الموقع ونحدد مكانك... لو ظهرلك طلب صلاحية دوس "السماح".', null);  
         const permGranted = await ensureNativeLocationPermission();  
         if (!permGranted) {  
             setLpStatus('🚫 لازم تسمح بصلاحية الموقع للتطبيق عشان نحدد مكانك تلقائيًا. تقدر تفعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع. أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.', 'error');  
             return;  
         }  
-        navigator.geolocation.getCurrentPosition(  
-            (pos) => {  
-                const lat = pos.coords.latitude, lng = pos.coords.longitude;  
-                if (lpMap) {  
-                    lpMap.setView([lat, lng], 17);  
-                    if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
-                    else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
-                }  
-                setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
-                setTimeout(() => setLpStatus(null), 3500);  
-            },  
-            (error) => {  
-                let msg = '⚠️ مقدرناش نحدد موقعك تلقائيًا. حرك الخريطة بإيدك أو استخدم مربع البحث لحد ما توصل لمكانك.';  
-                if (error.code === 1) {  
-                    msg = '🚫 لازم توافق على صلاحية الموقع عشان نحدد مكانك تلقائيًا. تقدر تسمح بيها من إعدادات الموقع، أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
-                    if (location.protocol === 'file:' && !isRunningInsideNativeApp()) { msg += ' (ملحوظة: خاصية الموقع التلقائي محتاجة الصفحة تكون متفتحة من رابط إنترنت آمن (https)، مش من ملف على الجهاز مباشرة)'; }  
-                } else if (error.code === 2) {  
-                    msg = '⚠️ مقدرناش نوصل لموقعك دلوقتي (تأكد إن خاصية الـ GPS شغالة في التليفون)، حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
-                } else if (error.code === 3) {  
-                    msg = '⏱️ تحديد موقعك ياخد وقت طويل، حاول تاني أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
-                }  
-                setLpStatus(msg, 'error');  
-            },  
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }  
-        );  
+        try {  
+            const { lat, lng } = await getFreshPositionPromise();  
+            if (lpMap) {  
+                lpMap.setView([lat, lng], 17);  
+                if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
+                else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
+            }  
+            setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
+            setTimeout(() => setLpStatus(null), 3500);  
+        } catch (e) { setLpStatus(e.msg, e.kind); }  
+    }  
+
+    // 🆕 زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" - بيجيب الموقع ويثبته ويقفل المودال في ضغطة واحدة
+    async function autoSetCurrentLocationAndConfirm() {  
+        setLpStatus('⏳ بنحدد موقعك الحالي بالظبط...', null);  
+        const permGranted = await ensureNativeLocationPermission();  
+        if (!permGranted) {  
+            setLpStatus('🚫 لازم تسمح بصلاحية الموقع للتطبيق الأول. تقدر تفعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع.', 'error');  
+            return;  
+        }  
+        try {  
+            const { lat, lng } = await getFreshPositionPromise();  
+            setPickedLocation(lpTarget, lat, lng);  
+            closeLocationPicker();  
+        } catch (e) { setLpStatus(e.msg, e.kind); }  
     }  
 
     // 🆕 البحث اللحظي بالاسم - بيحرك الخريطة لوحدها للمكان اللي بيتكتب أول ما المستخدم يسيب لوحة المفاتيح لحظة
@@ -980,7 +1018,7 @@
     }  
 
     async function runMandatoryPermissionGate() {  
-        if (!isRunningInsideNativeApp()) { hideMandatoryGate(); return; }  
+        if (!isRunningInsideNativeApp()) { hideMandatoryGate(); prefetchCustomerLocationInBackground(); return; }  
         if (mgRunning) return;  
         mgRunning = true;  
         showMandatoryGate('checking');  
@@ -993,7 +1031,7 @@
         } catch (e) { /* الإشعارات مش شرط أساسي لتشغيل البرنامج، نكمل عادي */ }  
 
         const geo = window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation;  
-        if (!geo) { hideMandatoryGate(); mgRunning = false; return; }  
+        if (!geo) { hideMandatoryGate(); prefetchCustomerLocationInBackground(); mgRunning = false; return; }  
         let locGranted = false;  
         try {  
             let ls = await geo.checkPermissions();  
@@ -1006,10 +1044,26 @@
         try {  
             await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });  
             hideMandatoryGate();  
+            prefetchCustomerLocationInBackground();  
         } catch (e) {  
             showMandatoryGate('gps-off');  
         }  
         mgRunning = false;  
+    }  
+
+    // 🆕 بمجرد ما نتأكد إن صلاحية الموقع والـ GPS شغالين، بنجيب موقع العميل الحالي في الخلفية
+    // فورًا من غير ما ننتظره يفتح خطوة العنوان - علشان لما يوصل لمربع "حدد موقعك" يلاقيه
+    // جاهز ومحدد بالظبط من غير أي تأخير في اللحظة اللي هو مستعجل فيها.
+    async function prefetchCustomerLocationInBackground() {  
+        if (document.getElementById('u_customer_lat').value) return; // عندنا موقع محفوظ بالفعل  
+        if (!navigator.geolocation) return;  
+        try {  
+            navigator.geolocation.getCurrentPosition(  
+                (pos) => { setPickedLocation('customer', pos.coords.latitude, pos.coords.longitude); },  
+                () => { /* هيحاول تاني لما يفتح الخريطة يدويًا بنفسه، مفيش داعي نزعجه دلوقتي */ },  
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }  
+            );  
+        } catch (e) {}  
     }  
 
     async function silentPermissionRecheck() {  
@@ -1088,7 +1142,7 @@
         let lh = JSON.parse(localStorage.getItem('gebhaly_history'))||[]; lh.unshift(p); localStorage.setItem('gebhaly_history', JSON.stringify(lh)); showSuccessToast();  
         selectedShopType = '';  
         document.querySelectorAll('.shop-type-btn').forEach(b => b.classList.remove('selected'));  
-        document.getElementById('u_store_name').value = 'أي محل';  
+        document.getElementById('u_store_name').value = '';  
         document.getElementById('u_store_address').value = '';  
         document.getElementById('u_notes').value='';  
         document.getElementById('items-container').innerHTML = `<div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: علبة سمنة..." oninput="clearError(this)"><div class="flex items-center bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl p-1 gap-2"><button type="button" onclick="changeQty(this,-1)" class="qty-btn">-</button><span class="qty-val font-bold text-lg w-8 text-center text-white">1</span><button type="button" onclick="changeQty(this,1)" class="qty-btn">+</button></div></div><span class="error-msg item-error-msg"></span></div>`;  
