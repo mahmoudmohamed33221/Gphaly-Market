@@ -1055,26 +1055,74 @@
     }  
 
     // 🆕 استعلام لنوميناتيم (OpenStreetMap) - بيرجع أكبر عدد ممكن من النتائج المطابقة في أي
-    // مكان في العالم (مش مقصور على مصر)، ومرتبة حسب الأهمية، عشان لو المستخدم كتب اسم فرع
-    // متكرر زي "كشري الامبراطور" يشوف كل الفروع المتاحة ويختار الأقرب لوصفه هو مش بس كام نتيجة.
-    // ملحوظة مهمة: نظام البحث ده مبني على نوميناتيم المجاني، ودقته وتغطيته لأسماء
-    // المحلات/العلامات التجارية أضعف بكتير من بحث خرائط جوجل الفعلي (Google Places)،
-    // لأن جوجل عندها قاعدة بيانات أماكن ضخمة ومدفوعة، ونوميناتيم بيعتمد بس على البيانات
-    // المجانية المتاحة في OpenStreetMap. تحت بنحاول نقرب من دقة جوجل قد الإمكان (عدد نتائج
-    // أكبر، بحث بديل، تبسيط تدريجي للكلمات، ترتيب حسب الأهمية)، لكن للوصول لنفس مستوى جوجل
-    // تمامًا محتاجين نوصّل التطبيق بـ Google Places API (محتاج مفتاح API مدفوع من جوجل).
+    // مكان في العالم (مش مقصور على مصر)، ومرتبة حسب الأهمية. مصدر عام (عناوين، مناطق، مدن).
     function fetchLpGeocode(query, signal) {  
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=30&accept-language=ar&addressdetails=1&extratags=1&namedetails=1&dedupe=1&q=${encodeURIComponent(query)}`;  
         return fetch(url, { signal }).then(r => r.json()).catch(() => []);  
     }  
 
+    // 🆕 نوميناتيم لوحده بيرجع غالبًا نتيجة أو اتنين بس لأسماء المحلات/العلامات التجارية
+    // المتكررة (زي فروع "كشري الامبراطور")، لأن خوارزمية البحث بتاعته بترتب حسب الأهمية
+    // وبتوقف عند أنسب نتيجة، مش بتدور على كل نقطة في الداتابيز باسم قريب من اللي اتكتب.
+    // عشان نقرب من سلوك جوجل ماب (يطلع كل الفروع اللي بنفس الاسم)، بنستخدم كمان Overpass API
+    // اللي بيدور مباشرة في كل نقاط/عناصر OpenStreetMap في مصر كلها على أي عنصر معاه tag
+    // اسمه (name أو name:ar أو brand) بيحتوي على النص اللي المستخدم كتبه، مش بس أفضل نتيجة.
+    function escapeOverpassRegex(str) {  
+        return String(str).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  
+    }  
+
+    function buildOverpassQuery(query) {  
+        const q = escapeOverpassRegex(query);  
+        if (!q) return null;  
+        return `[out:json][timeout:20];area["ISO3166-1"="EG"][admin_level=2]->.egypt;(nwr["name"~"${q}",i](area.egypt);nwr["name:ar"~"${q}",i](area.egypt);nwr["brand"~"${q}",i](area.egypt);nwr["brand:ar"~"${q}",i](area.egypt););out center 40;`;  
+    }  
+
+    // 🆕 بيحوّل نتيجة Overpass (اسم + وسوم عنوان لو موجودة) لنفس شكل نتيجة نوميناتيم
+    // (lat, lon, display_name) عشان نقدر نعرض الاتنين مع بعض بنفس الشكل بالظبط
+    function overpassElementToResult(el, fallbackName) {  
+        const lat = el.lat || (el.center && el.center.lat);  
+        const lon = el.lon || (el.center && el.center.lon);  
+        if (!lat || !lon) return null;  
+        const tags = el.tags || {};  
+        const name = tags['name:ar'] || tags.name || tags['brand:ar'] || tags.brand || fallbackName;  
+        const addrParts = [tags['addr:street'], tags['addr:city'] || tags['addr:district'] || tags['addr:suburb'], tags['addr:state'] || tags['addr:governorate']].filter(Boolean);  
+        const display_name = addrParts.length ? `${name}, ${addrParts.join(', ')}` : name;  
+        return { lat: String(lat), lon: String(lon), display_name };  
+    }  
+
+    function fetchOverpassPlaces(query, signal) {  
+        const q = buildOverpassQuery(query);  
+        if (!q) return Promise.resolve([]);  
+        return fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })  
+            .then(r => r.json())  
+            .then(data => (data.elements || []).map(el => overpassElementToResult(el, query)).filter(Boolean))  
+            .catch(() => []); // أي فشل أو تايم آوت في Overpass - منوقفش البحث، بنكمل بنتائج نوميناتيم بس  
+    }  
+
+    // 🆕 بيجيب من المصدرين مع بعض في نفس الوقت (Overpass لكل فروع المحلات في مصر + نوميناتيم
+    // للعناوين والمناطق في مصر والعالم كله)، ولو الاتنين رجعوا نتائج بنجمعهم مع بعض
+    async function fetchLpAllSources(query, signal) {  
+        const [overpassResults, nominatimResults] = await Promise.all([  
+            fetchOverpassPlaces(query, signal),  
+            fetchLpGeocode(query, signal)  
+        ]);  
+        return [...(overpassResults || []), ...(nominatimResults || [])];  
+    }  
+
+    // ملحوظة مهمة لازم تتقال بصراحة: حتى مع إضافة Overpass، البحث ده لسه مبني بالكامل على
+    // بيانات OpenStreetMap المجانية والمفتوحة (اللي بيضيفها متطوعين)، مش على قاعدة بيانات
+    // جوجل الخاصة والمدفوعة للأماكن (Google Places). فلو فرع معين مش متسجل خالص في
+    // OpenStreetMap (حتى لو مسجل في جوجل ماب)، مستحيل يظهر في البحث ده مهما حسّنا الكود،
+    // لأن المشكلة مش في طريقة البحث لوحدها لكن في إن البيانات نفسها مش موجودة في المصدر.
+    // الطريقة الوحيدة اللي بتضمن مطابقة جوجل ماب ١٠٠٪‏ هي ربط التطبيق بـ Google Places API
+    // (محتاج مفتاح API مدفوع من جوجل + إعداد فوترة على حساب جوجل كلاود).
     async function performLpSearch(query) {  
         if (lpSearchAbort) lpSearchAbort.abort();  
         const myController = new AbortController();  
         lpSearchAbort = myController;  
         const signal = myController.signal;  
         renderLpSearchLoading(query);  
-        let results = await fetchLpGeocode(query, signal);  
+        let results = await fetchLpAllSources(query, signal);  
         // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة
         // أول حاجة، وبعدين نجرب الكلمة الأخيرة بس لوحدها لو لسه مفيش نتيجة) ونجرب كذا مرة،
         // عشان نقرب من المكان حتى لو الاسم مكتوب مش بالظبط أو فيه كلمات زيادة
@@ -1086,7 +1134,7 @@
             if (words.length <= 1) break;  
             words.pop();  
             simplified = words.join(' ');  
-            results = await fetchLpGeocode(simplified, signal);  
+            results = await fetchLpAllSources(simplified, signal);  
             attempts++;  
         }  
         if ((!results || results.length === 0)) {  
@@ -1095,18 +1143,18 @@
             if (origWords.length > 2) {  
                 if (lpSearchAbort !== myController) return;  
                 const lastTwo = origWords.slice(-2).join(' ');  
-                results = await fetchLpGeocode(lastTwo, signal);  
+                results = await fetchLpAllSources(lastTwo, signal);  
             }  
         }  
         if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
-        // 🆕 إزالة أي نتائج مكررة تمامًا (نفس الاسم ونفس الإحداثيات تقريبًا)
+        // 🆕 إزالة أي نتائج مكررة أو قريبة جدًا من بعض (نفس النقطة تقريبًا جايه من المصدرين مع بعض)
         const seen = new Set();  
         const deduped = (results || []).filter(r => {  
-            const key = r.display_name + '|' + Math.round(parseFloat(r.lat) * 2000) + '|' + Math.round(parseFloat(r.lon) * 2000);  
+            const key = Math.round(parseFloat(r.lat) * 3000) + '|' + Math.round(parseFloat(r.lon) * 3000);  
             if (seen.has(key)) return false;  
             seen.add(key);  
             return true;  
-        });  
+        }).slice(0, 40);  
         renderLpSearchResults(deduped);  
         // أول ما توصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
         if (deduped.length > 0 && lpMap) {  
