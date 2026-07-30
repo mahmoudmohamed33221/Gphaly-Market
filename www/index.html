@@ -741,10 +741,9 @@
         } else if (next === 3) {  
             ['u_ezba','u_street','u_landmark'].forEach(id => clearError(document.getElementById(id)));  
             for (let i = 2; i >= 0; i--) { const el = document.getElementById(['u_ezba','u_street','u_landmark'][i]); if (!el.value.trim()) { showError(el, 'هذه الخانة مطلوبة!'); el.focus(); err = true; } }  
-            const errLocEl = document.getElementById('err-u_customer_location'); if (errLocEl) errLocEl.textContent = '';  
-            if (!document.getElementById('u_customer_lat').value) { if (errLocEl) errLocEl.textContent = 'لازم تحدد موقعك على الخريطة!'; err = true; }  
             if (err) return;  
-            goToStep(3);  
+            // 🆕 في كل أوردر جديد، لازم يأكد موقعه على الخريطة قبل ما يكمل - حتى لو كان محدده قبل كده
+            openLocationPicker('customer', 3);  
         } else if (next === 4) {  
             document.getElementById('err-shop-type').textContent = '';  
             if (!selectedShopType) { document.getElementById('err-shop-type').textContent = 'اختر نوع المحل أولاً!'; err = true; }  
@@ -752,10 +751,9 @@
             ['u_store_name','u_store_address'].forEach(id => clearError(document.getElementById(id)));  
             if (!document.getElementById('u_store_name').value.trim()) { showError(document.getElementById('u_store_name'), 'اكتب اسم المحل!'); err = true; }  
             if (!document.getElementById('u_store_address').value.trim()) { showError(document.getElementById('u_store_address'), 'اكتب عنوان المحل!'); err = true; }  
-            const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
-            if (!document.getElementById('u_store_lat').value) { if (errStoreLocEl) errStoreLocEl.textContent = 'لازم تحدد موقع المحل على الخريطة!'; err = true; }  
             if (err) return;  
-            goToStep(4);  
+            // 🆕 نفس الموضوع لموقع المحل - يفتحله الخريطة كل مرة عشان يأكد قبل ما يكمل
+            openLocationPicker('store', 4);  
         }  
     }  
 
@@ -767,23 +765,25 @@
     // الخريطة لوحده، وزرار "ودّيني على موقعي" في أي وقت لو حصل فرق بسيط.
     // =========================================================================
     let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
+    let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
     const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
 
     const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
 
-    function openLocationPicker(target) {  
+    function openLocationPicker(target, advanceTo) {  
         lpTarget = target;  
+        lpAdvanceTo = advanceTo || null;  
         const confirmBtn = document.getElementById('lp-confirm-btn');  
         const autoWrap = document.getElementById('lp-auto-set-wrap');  
         if (target === 'store') {  
             document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد موقع المحل بدقة على الخريطة';  
-            document.getElementById('lp-hint').textContent = 'اكتب اسم المحل أو المنطقة في مربع البحث، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقع المحل صحيح، وبعدين دوس "تأكيد مكان المحل" للمتابعة' : 'اكتب اسم المحل أو المنطقة في مربع البحث، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان المحل';  
             autoWrap.style.display = 'none';  
         } else {  
             document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>قم بتحديد موقع منزلك بشكل دقيق لسهولة وصول الطلب إلى منزلك';  
-            document.getElementById('lp-hint').textContent = 'هجبنالك موقعك الحالي تلقائيًا، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
+            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقعك الحالي صحيح، وبعدين دوس "تأكيد مكان منزلي" للمتابعة' : 'هجبنالك موقعك الحالي تلقائيًا، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان منزلي';  
             autoWrap.style.display = 'block';  
         }  
@@ -803,6 +803,10 @@
             if (savedLat && savedLng) {  
                 // 🆕 عندنا موقع محفوظ بالفعل (مكان بيتحدد تلقائيًا أول ما التطبيق يفتح) - نوريه على طول من غير أي تأخير
                 lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17);  
+                if (target === 'customer') {  
+                    showOrUpdateBlueDot(parseFloat(savedLat), parseFloat(savedLng)); // العلامة الزرقاء تظهر فورًا من نفس القيمة المحفوظة  
+                    silentlyRefreshBlueDot(); // وبعدين بنظبطها بهدوء في الخلفية من غير ما نأخر أو نزعج المستخدم  
+                }  
             } else {  
                 // 🆕 مفيش موقع محفوظ لسه - نحاول نجيب الموقع الحالي تلقائي كبداية
                 locateMeInPicker();  
@@ -860,6 +864,24 @@
         });  
     }  
 
+    // 🆕 رسم/تحديث العلامة الزرقاء (موقع الجيبي إس الفعلي) على الخريطة
+    function showOrUpdateBlueDot(lat, lng) {  
+        if (!lpMap) return;  
+        if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
+        else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
+    }  
+
+    // 🆕 تحديث هادئ للعلامة الزرقاء في الخلفية - من غير رسائل أو تحريك للخريطة، عشان دقة الموقع
+    // تتحسن لوحدها من غير ما نأخر أو نزعج المستخدم بأي حاجة ظاهرة
+    async function silentlyRefreshBlueDot() {  
+        try {  
+            const permGranted = await ensureNativeLocationPermission();  
+            if (!permGranted) return;  
+            const { lat, lng } = await getFreshPositionPromise();  
+            showOrUpdateBlueDot(lat, lng);  
+        } catch (e) { /* تجاهل بصمت - العلامة الزرقاء هتفضل على آخر موقع معروف */ }  
+    }  
+
     // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة بس، وبيسيب المودال مفتوح عشان يقدر يظبط بإيده
     async function locateMeInPicker() {  
         setLpStatus('⏳ بنطلب صلاحية الموقع ونحدد مكانك... لو ظهرلك طلب صلاحية دوس "السماح".', null);  
@@ -870,11 +892,8 @@
         }  
         try {  
             const { lat, lng } = await getFreshPositionPromise();  
-            if (lpMap) {  
-                lpMap.setView([lat, lng], 17);  
-                if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
-                else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
-            }  
+            if (lpMap) { lpMap.setView([lat, lng], 17); }  
+            showOrUpdateBlueDot(lat, lng);  
             setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
             setTimeout(() => setLpStatus(null), 3500);  
         } catch (e) { setLpStatus(e.msg, e.kind); }  
@@ -890,8 +909,10 @@
         }  
         try {  
             const { lat, lng } = await getFreshPositionPromise();  
+            const advanceTo = lpAdvanceTo;  
             setPickedLocation(lpTarget, lat, lng);  
             closeLocationPicker();  
+            if (advanceTo) { goToStep(advanceTo); }  
         } catch (e) { setLpStatus(e.msg, e.kind); }  
     }  
 
@@ -899,29 +920,46 @@
     function onLpSearchInput(value) {  
         document.getElementById('lp-search-clear').style.display = value ? 'block' : 'none';  
         clearTimeout(lpSearchTimer);  
-        if (!value || value.trim().length < 3) { hideLpSearchResults(); return; }  
-        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 700);  
+        if (!value || value.trim().length < 2) { hideLpSearchResults(); return; }  
+        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 600);  
     }  
 
-    function performLpSearch(query) {  
+    // 🆕 استعلام واحد لنوميناتيم - محايد على مصر شوية (من غير ما يمنع نتائج بره مصر) وبعدد نتائج أكبر
+    function fetchLpGeocode(query, signal) {  
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&accept-language=ar&viewbox=24.6,32.2,36.9,21.8&bounded=0&q=${encodeURIComponent(query)}`;  
+        return fetch(url, { signal }).then(r => r.json()).catch(() => []);  
+    }  
+
+    async function performLpSearch(query) {  
         if (lpSearchAbort) lpSearchAbort.abort();  
-        lpSearchAbort = new AbortController();  
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q=${encodeURIComponent(query)}`;  
-        fetch(url, { signal: lpSearchAbort.signal })  
-            .then(r => r.json())  
-            .then(results => {  
-                renderLpSearchResults(results || []);  
-                // أول ما يوصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
-                if (results && results.length > 0 && lpMap) {  
-                    lpMap.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 16);  
-                }  
-            })  
-            .catch(() => { /* البحث اتلغى أو فشل - مفيش داعي نزعج المستخدم، هو أصلًا بيقدر يحرك الخريطة بإيده */ });  
+        const myController = new AbortController();  
+        lpSearchAbort = myController;  
+        const signal = myController.signal;  
+        let results = await fetchLpGeocode(query, signal);  
+        // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة)
+        // ونجرب تاني كذا مرة، عشان نقرب من المكان حتى لو الاسم مكتوب مش بالظبط
+        let simplified = query;  
+        let attempts = 0;  
+        while ((!results || results.length === 0) && attempts < 3) {  
+            if (lpSearchAbort !== myController) return; // في بحث أحدث بدأ فعلًا - نسيبله المجال  
+            const words = simplified.trim().split(/\s+/);  
+            if (words.length <= 1) break;  
+            words.pop();  
+            simplified = words.join(' ');  
+            results = await fetchLpGeocode(simplified, signal);  
+            attempts++;  
+        }  
+        if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
+        renderLpSearchResults(results || []);  
+        // أول ما توصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
+        if (results && results.length > 0 && lpMap) {  
+            lpMap.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 16);  
+        }  
     }  
 
     function renderLpSearchResults(results) {  
         const box = document.getElementById('lp-search-results');  
-        if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مفيش نتائج، جرب تكتب اسم مكان مختلف أو حرك الخريطة بإيدك</div>`; box.style.display = 'block'; return; }  
+        if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مقدرناش نلاقي المكان بالظبط، جرب تكتب اسم منطقة أو مدينة أقرب، أو حرك الخريطة بإيدك لحد مكانك</div>`; box.style.display = 'block'; return; }  
         box.innerHTML = results.map((r, i) => `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span>${r.display_name}</span></div>`).join('');  
         box.style.display = 'block';  
         window._lpSearchResultsCache = results;  
@@ -949,8 +987,10 @@
     function confirmLocationPick() {  
         if (!lpMap) return;  
         const c = lpMap.getCenter();  
+        const advanceTo = lpAdvanceTo;  
         setPickedLocation(lpTarget, c.lat, c.lng);  
         closeLocationPicker();  
+        if (advanceTo) { goToStep(advanceTo); }  
     }  
 
     function setPickedLocation(target, lat, lng) {  
@@ -977,6 +1017,7 @@
         setLpStatus(null);  
         hideLpSearchResults();  
         if (lpSearchAbort) lpSearchAbort.abort();  
+        lpAdvanceTo = null;  
     }  
 
     // =========================================================================
