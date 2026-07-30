@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>  
 <style>  
     :root {  
         --bg-deep: #000000; --bg-card: #000000; --bg-elevated: #0a0a0a;  
@@ -81,6 +83,49 @@
     @keyframes supportTypingBounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-4px);opacity:1;}}
     .support-reply-bar { position: fixed; bottom: calc(70px + 12px); left: 16px; right: 16px; background: rgba(17,24,39,0.97); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 16px; padding: 8px; z-index: 1400; display: flex; gap: 8px; align-items: center; box-shadow: 0 10px 28px rgba(0,0,0,0.5); max-width: 480px; margin: 0 auto; }
     .support-reply-bar input { flex: 1; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 12px; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 14px; padding: 12px; outline: none; }
+    /* 🆕 مكوّن تحديد الموقع على الخريطة - بسيط جدًا لأي عمر وأي مستوى خبرة */
+    .location-picker-box { padding-top: 0.25rem; }
+    .location-pick-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(145deg, rgba(212,175,55,0.14), rgba(212,175,55,0.04)); border: 1.5px dashed var(--border); color: var(--gold-light); font-weight: 700; font-size: 0.95rem; padding: 0.95rem; border-radius: 0.9rem; transition: all 0.25s ease; }
+    .location-pick-btn i { font-size: 1.1rem; color: var(--gold); }
+    .location-pick-btn:active { transform: scale(0.97); }
+    .location-pick-btn.picked { border-style: solid; border-color: var(--success); background: linear-gradient(145deg, rgba(16,185,129,0.14), rgba(16,185,129,0.03)); color: #D9FFE6; }
+    .location-pick-btn.picked i { color: var(--success); }
+    .location-status { font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; text-align: center; }
+    #location-picker-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 6000; display: none; flex-direction: column; }
+    #location-picker-modal.show { display: flex; }
+    .lp-header { padding: 1rem 1.1rem 0.75rem; text-align: center; flex-shrink: 0; }
+    .lp-title { color: var(--gold-light); font-weight: 800; font-size: 1.05rem; margin-bottom: 0.35rem; }
+    .lp-hint { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+    #locationPickerMap { flex: 1; width: 100%; min-height: 0; position: relative; }
+    .lp-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 2.4rem; color: #EF4444; text-shadow: 0 4px 10px rgba(0,0,0,0.6); pointer-events: none; z-index: 500; }
+    .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
+    .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
+    .lp-btn-locate i { color: var(--gold); }
+    .lp-btn-row { display: flex; gap: 0.65rem; }
+    .lp-btn-cancel { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--muted); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
+    .lp-btn-confirm { flex: 2; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #111827; font-weight: 800; padding: 0.9rem; border-radius: 0.85rem; }
+    /* 🆕 مربع البحث فوق الخريطة + نتائج البحث اللحظي */
+    .lp-search-wrap { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1200; }
+    .lp-search-box { display: flex; align-items: center; gap: 10px; background: rgba(10,10,10,0.97); border: 1.5px solid var(--border); border-radius: 0.9rem; padding: 0.85rem 1rem; box-shadow: 0 8px 22px rgba(0,0,0,0.5); }
+    .lp-search-box i.fa-magnifying-glass { color: var(--gold); font-size: 0.95rem; }
+    .lp-search-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 0.85rem; }
+    .lp-search-box input::placeholder { color: var(--muted); }
+    .lp-search-clear { color: var(--muted); cursor: pointer; padding: 4px; }
+    #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,0.5); }
+    .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: center; gap: 8px; }
+    .lp-search-result-item:last-child { border-bottom: none; }
+    .lp-search-result-item i { color: var(--gold); flex-shrink: 0; }
+    .lp-search-result-item:active { background: rgba(212,175,55,0.1); }
+    .lp-search-empty { padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; }
+    /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
+    .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; width: 46px; height: 46px; border-radius: 50%; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 1.05rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+    .lp-locate-fab:active { transform: scale(0.92); background: #262626; }
+    /* 🆕 شريط حالة تحديد الموقع (بيطلب / بينجح / بيفشل) */
+    .lp-gps-status { position: absolute; bottom: 16px; right: 16px; left: 76px; z-index: 1200; background: rgba(10,10,10,0.95); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.6rem 0.85rem; font-size: 0.72rem; line-height: 1.5; color: var(--gold-light); text-align: center; }
+    .lp-gps-status.is-error { color: #FCA5A5; border-color: rgba(239,68,68,0.4); }
+    .lp-gps-status.is-success { color: #A7F3D0; border-color: rgba(16,185,129,0.4); }
+    /* 🆕 النقطة الزرقاء لموقع الجيبي إس الفعلي (زي جوجل ماب) */
+    .lp-blue-dot { width: 18px; height: 18px; border-radius: 50%; background: #4285F4; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(66,133,244,0.28); }
 </style>
 </head>  
 <body>  
@@ -246,11 +291,20 @@
 
             <div id="step-2" class="step-panel space-y-4">  
                 <h3 class="text-[var(--gold-light)] font-bold border-b border-[var(--border)] pb-2 mb-2"><i class="fas fa-map-marker-alt ml-2"></i>الخطوة 2: عنوان التوصيل</h3>  
-                <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] space-y-3">  
+                <div class="space-y-3">  
                     <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-map-marker-alt ml-1"></i>تفاصيل العنوان</span>  
                     <div class="input-container"><label class="text-[var(--muted)] text-xs">اسم العزبة / المنطقة <span class="text-red-500">*</span></label><input type="text" id="u_ezba" class="modal-input" placeholder="مثال: عزبة ايوب / عزبة العرب / عزبة مراد" oninput="clearError(this)"><span class="error-msg" id="err-u_ezba"></span></div>  
                     <div class="input-container"><label class="text-[var(--muted)] text-xs"> رقم الشارع او اسم الشارع <span class="text-red-500">*</span></label><input type="text" id="u_street" class="modal-input" placeholder="مثال: شارع 8 / شارع ابو ياسين" oninput="clearError(this)"><span class="error-msg" id="err-u_street"></span></div>  
                     <div class="input-container"><label class="text-[var(--muted)] text-xs"> علامه مميزه جمب بيتك <span class="text-red-500">*</span></label><input type="text" id="u_landmark" class="modal-input" placeholder="بجوار صيدلية / بجوار سوبر ماركت / بجوار رشاح" oninput="clearError(this)"><span class="error-msg" id="err-u_landmark"></span></div>  
+                    <div class="location-picker-box" id="location-box-customer">  
+                        <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقعك بالظبط على الخريطة <span class="text-red-500">*</span></label>  
+                        <button type="button" onclick="openLocationPicker('customer')" id="btn-location-customer" class="location-pick-btn">  
+                            <i class="fas fa-map-location-dot"></i><span>حدد موقعي على الخريطة</span>  
+                        </button>  
+                        <div id="location-status-customer" class="location-status"></div>  
+                        <span class="error-msg" id="err-u_customer_location"></span>  
+                        <input type="hidden" id="u_customer_lat"><input type="hidden" id="u_customer_lng">  
+                    </div>  
                 </div>  
                 <div class="flex gap-3 pt-4"><button type="button" onclick="goToStep(1)" class="w-1/3 bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">السابق</button><button type="button" onclick="validateAndGoToStep(3)" class="w-2/3 bg-[var(--gold)] text-[#111827] font-bold py-3 rounded-xl">التالي</button></div>  
             </div>  
@@ -284,6 +338,15 @@
                     <div class="input-container">  
                         <label class="text-[var(--muted)] text-xs">عنوان المحل (اختياري)</label>  
                         <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: بجوار محطة البنزين">  
+                    </div>  
+                    <div class="location-picker-box" id="location-box-store">  
+                        <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقع المحل على الخريطة <span class="text-red-500">*</span></label>  
+                        <button type="button" onclick="openLocationPicker('store')" id="btn-location-store" class="location-pick-btn">  
+                            <i class="fas fa-map-location-dot"></i><span>حدد موقع المحل على الخريطة</span>  
+                        </button>  
+                        <div id="location-status-store" class="location-status"></div>  
+                        <span class="error-msg" id="err-u_store_location"></span>  
+                        <input type="hidden" id="u_store_lat"><input type="hidden" id="u_store_lng">  
                     </div>  
                 </div>  
 
@@ -336,11 +399,40 @@
     <div class="nav-item" id="nav-contact" onclick="switchPage('contact')"><i class="fas fa-cog"></i><span>المساعده و الدعم</span></div>  
 </div>  
 
+<div id="location-picker-modal">  
+    <div class="lp-header">  
+        <div class="lp-title" id="lp-title"><i class="fas fa-map-location-dot ml-1"></i>حدد موقعك على الخريطة</div>  
+        <div class="lp-hint" id="lp-hint">حرك الخريطة لحد ما العلامة الحمرا تبقى فوق مكانك بالظبط</div>  
+    </div>  
+    <div id="locationPickerMap">  
+        <div class="lp-search-wrap">  
+            <div class="lp-search-box">  
+                <i class="fas fa-magnifying-glass"></i>  
+                <input type="text" id="lp-search-input" placeholder="هنا اكتب اللوكيشن وحدد موقع منزلك بدقة على الخريطة" oninput="onLpSearchInput(this.value)" autocomplete="off">  
+                <i class="fas fa-xmark lp-search-clear" id="lp-search-clear" onclick="clearLpSearch()" style="display:none;"></i>  
+            </div>  
+            <div id="lp-search-results"></div>  
+        </div>  
+        <div class="lp-center-pin"><i class="fas fa-map-pin"></i></div>  
+        <div class="lp-gps-status" id="lp-gps-status" style="display:none;"></div>  
+        <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()" title="ودّيني على موقعي الحالي">  
+            <i class="fas fa-location-crosshairs"></i>  
+        </button>  
+    </div>  
+    <div class="lp-footer">  
+        <button type="button" class="lp-btn-locate" onclick="locateMeInPicker()"><i class="fas fa-location-crosshairs"></i><span>ودّيني على موقعي الحالي بالظبط</span></button>  
+        <div class="lp-btn-row">  
+            <button type="button" class="lp-btn-cancel" onclick="closeLocationPicker()">إلغاء</button>  
+            <button type="button" class="lp-btn-confirm" onclick="confirmLocationPick()"><i class="fas fa-check ml-1"></i>تأكيد هذا الموقع</button>  
+        </div>  
+    </div>  
+</div>  
+
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby79gC1sgZJqiLzvZlpabHqro6YT_6dekroz2W3ltU-T26fXV8zmg_KioVU17sHj21BHw/exec";  
-    const CURRENT_APP_VERSION = "2.3.2"; 
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPfLcpgF8Eu_2iBh-j_QEW9EnQmYWwnXqwBQrSEw9c0EN7UxC2gvAVtj2iYkkEm6aWiQ/exec";  
+    const CURRENT_APP_VERSION = "2.4.0"; 
     const APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
     let currentPage = 'home';  
@@ -629,12 +721,16 @@
         } else if (next === 3) {  
             ['u_ezba','u_street','u_landmark'].forEach(id => clearError(document.getElementById(id)));  
             for (let i = 2; i >= 0; i--) { const el = document.getElementById(['u_ezba','u_street','u_landmark'][i]); if (!el.value.trim()) { showError(el, 'هذه الخانة مطلوبة!'); el.focus(); err = true; } }  
+            const errLocEl = document.getElementById('err-u_customer_location'); if (errLocEl) errLocEl.textContent = '';  
+            if (!document.getElementById('u_customer_lat').value) { if (errLocEl) errLocEl.textContent = 'لازم تحدد موقعك على الخريطة!'; err = true; }  
             if (err) return;  
             goToStep(3);  
         } else if (next === 4) {  
             document.getElementById('err-shop-type').textContent = '';  
             if (!selectedShopType) { document.getElementById('err-shop-type').textContent = 'اختر نوع المحل أولاً!'; err = true; }  
             document.querySelectorAll('.item-name').forEach(el => { clearError(el); if (!el.value.trim()) { showError(el, 'اكتب الصنف أو احذفه!'); err = true; } });  
+            const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
+            if (!document.getElementById('u_store_lat').value) { if (errStoreLocEl) errStoreLocEl.textContent = 'لازم تحدد موقع المحل على الخريطة!'; err = true; }  
             if (err) return;  
             goToStep(4);  
         }  
@@ -642,8 +738,173 @@
 
     function changeQty(btn, c) { const r = btn.closest('.flex'); const q = r.querySelector('.qty-val'); let v = parseInt(q.textContent) + c; if (v < 1) v = 1; q.textContent = v; }  
 
+    // =========================================================================
+    // 🆕 نظام تحديد الموقع على الخريطة - بسيط جدًا لأي عمر: بيحاول ياخد موقعك
+    // تلقائي أول ما يفتح (زي جوجل ماب بالظبط)، ومعاه مربع بحث بالاسم بيحرك
+    // الخريطة لوحده، وزرار "ودّيني على موقعي" في أي وقت لو حصل فرق بسيط.
+    // =========================================================================
+    let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
+    let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
+    const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
+
+    const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+
+    function openLocationPicker(target) {  
+        lpTarget = target;  
+        if (target === 'store') {  
+            document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد موقع المحل بدقة على الخريطة';  
+            document.getElementById('lp-hint').textContent = 'اكتب اسم المحل أو المنطقة في مربع البحث، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+        } else {  
+            document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>قم بتحديد موقع منزلك بشكل دقيق لسهولة وصول الطلب إلى منزلك';  
+            document.getElementById('lp-hint').textContent = 'هنجيبلك موقعك تلقائيًا دلوقتي، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
+        }  
+        document.getElementById('lp-search-input').value = '';  
+        hideLpSearchResults();  
+        document.getElementById('lp-search-clear').style.display = 'none';  
+        document.getElementById('location-picker-modal').classList.add('show');  
+        setTimeout(() => {  
+            if (!lpMap) {  
+                lpMap = L.map('locationPickerMap', { zoomControl: true, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lpMap);  
+            }  
+            lpMap.invalidateSize();  
+            const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
+            const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
+            const savedLat = document.getElementById(latId).value, savedLng = document.getElementById(lngId).value;  
+            if (savedLat && savedLng) { lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17); }  
+            // 🆕 أول ما الخريطة تفتح، دايمًا بنحاول ناخد موقعك الحالي تلقائي فورًا (زي جوجل ماب)
+            locateMeInPicker(true);  
+        }, 50);  
+    }  
+
+    function setLpStatus(text, kind) {  
+        const el = document.getElementById('lp-gps-status');  
+        if (!text) { el.style.display = 'none'; el.textContent = ''; el.className = 'lp-gps-status'; return; }  
+        el.style.display = 'block';  
+        el.textContent = text;  
+        el.className = 'lp-gps-status' + (kind ? ' is-' + kind : '');  
+    }  
+
+    function locateMeInPicker(isAutoOnOpen) {  
+        if (!navigator.geolocation) {  
+            setLpStatus('⚠️ المتصفح ده مش بيدعم تحديد الموقع التلقائي، تقدر تحدد مكانك بالبحث بالاسم أو بتحريك الخريطة بإيدك.', 'error');  
+            return;  
+        }  
+        setLpStatus('⏳ بنطلب صلاحية الموقع ونحدد مكانك... لو ظهرلك طلب صلاحية من المتصفح دوس "السماح".', null);  
+        navigator.geolocation.getCurrentPosition(  
+            (pos) => {  
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;  
+                if (lpMap) {  
+                    lpMap.setView([lat, lng], 17);  
+                    if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
+                    else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
+                }  
+                setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
+                setTimeout(() => setLpStatus(null), 3500);  
+            },  
+            (error) => {  
+                let msg = '⚠️ مقدرناش نحدد موقعك تلقائيًا. حرك الخريطة بإيدك أو استخدم مربع البحث لحد ما توصل لمكانك.';  
+                if (error.code === 1) {  
+                    msg = '🚫 لازم توافق على صلاحية الموقع من المتصفح عشان نحدد مكانك تلقائيًا. تقدر تسمح بيها من إعدادات الموقع في المتصفح، أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                    if (location.protocol === 'file:') { msg += ' (ملحوظة: خاصية الموقع التلقائي محتاجة الصفحة تكون متفتحة من رابط إنترنت آمن (https)، مش من ملف على الجهاز مباشرة)'; }  
+                } else if (error.code === 2) {  
+                    msg = '⚠️ مقدرناش نوصل لموقعك دلوقتي (تأكد إن خاصية الـ GPS شغالة في التليفون)، حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                } else if (error.code === 3) {  
+                    msg = '⏱️ تحديد موقعك ياخد وقت طويل، حاول تاني أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.';  
+                }  
+                setLpStatus(msg, 'error');  
+            },  
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }  
+        );  
+    }  
+
+    // 🆕 البحث اللحظي بالاسم - بيحرك الخريطة لوحدها للمكان اللي بيتكتب أول ما المستخدم يسيب لوحة المفاتيح لحظة
+    function onLpSearchInput(value) {  
+        document.getElementById('lp-search-clear').style.display = value ? 'block' : 'none';  
+        clearTimeout(lpSearchTimer);  
+        if (!value || value.trim().length < 3) { hideLpSearchResults(); return; }  
+        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 700);  
+    }  
+
+    function performLpSearch(query) {  
+        if (lpSearchAbort) lpSearchAbort.abort();  
+        lpSearchAbort = new AbortController();  
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q=${encodeURIComponent(query)}`;  
+        fetch(url, { signal: lpSearchAbort.signal })  
+            .then(r => r.json())  
+            .then(results => {  
+                renderLpSearchResults(results || []);  
+                // أول ما يوصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
+                if (results && results.length > 0 && lpMap) {  
+                    lpMap.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 16);  
+                }  
+            })  
+            .catch(() => { /* البحث اتلغى أو فشل - مفيش داعي نزعج المستخدم، هو أصلًا بيقدر يحرك الخريطة بإيده */ });  
+    }  
+
+    function renderLpSearchResults(results) {  
+        const box = document.getElementById('lp-search-results');  
+        if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مفيش نتائج، جرب تكتب اسم مكان مختلف أو حرك الخريطة بإيدك</div>`; box.style.display = 'block'; return; }  
+        box.innerHTML = results.map((r, i) => `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span>${r.display_name}</span></div>`).join('');  
+        box.style.display = 'block';  
+        window._lpSearchResultsCache = results;  
+    }  
+
+    function selectLpSearchResult(i) {  
+        const r = (window._lpSearchResultsCache || [])[i];  
+        if (!r || !lpMap) return;  
+        lpMap.setView([parseFloat(r.lat), parseFloat(r.lon)], 17);  
+        hideLpSearchResults();  
+    }  
+
+    function hideLpSearchResults() {  
+        const box = document.getElementById('lp-search-results');  
+        box.style.display = 'none';  
+        box.innerHTML = '';  
+    }  
+
+    function clearLpSearch() {  
+        document.getElementById('lp-search-input').value = '';  
+        document.getElementById('lp-search-clear').style.display = 'none';  
+        hideLpSearchResults();  
+    }  
+
+    function confirmLocationPick() {  
+        if (!lpMap) return;  
+        const c = lpMap.getCenter();  
+        setPickedLocation(lpTarget, c.lat, c.lng);  
+        closeLocationPicker();  
+    }  
+
+    function setPickedLocation(target, lat, lng) {  
+        const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
+        const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
+        const btnId = target === 'store' ? 'btn-location-store' : 'btn-location-customer';  
+        const statusId = target === 'store' ? 'location-status-store' : 'location-status-customer';  
+        document.getElementById(latId).value = lat;  
+        document.getElementById(lngId).value = lng;  
+        const btn = document.getElementById(btnId);  
+        btn.classList.add('picked');  
+        btn.querySelector('span').textContent = 'تم تحديد الموقع ✅ (اضغط للتعديل)';  
+        document.getElementById(statusId).textContent = `📍 الموقع محفوظ بدقة (${lat.toFixed(5)}, ${lng.toFixed(5)})`;  
+        if (target === 'customer') {  
+            const errLocEl = document.getElementById('err-u_customer_location'); if (errLocEl) errLocEl.textContent = '';  
+            localStorage.setItem('gebhaly_lat', lat); localStorage.setItem('gebhaly_lng', lng);  
+        } else if (target === 'store') {  
+            const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
+        }  
+    }  
+
+    function closeLocationPicker() {  
+        document.getElementById('location-picker-modal').classList.remove('show');  
+        setLpStatus(null);  
+        hideLpSearchResults();  
+        if (lpSearchAbort) lpSearchAbort.abort();  
+    }  
+
     document.addEventListener('DOMContentLoaded', () => {  
         if (localStorage.getItem('gebhaly_name')) { document.getElementById('u_name').value = localStorage.getItem('gebhaly_name'); document.getElementById('u_phone').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_phone_confirm').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_ezba').value = localStorage.getItem('gebhaly_ezba'); document.getElementById('u_street').value = localStorage.getItem('gebhaly_street'); document.getElementById('u_landmark').value = localStorage.getItem('gebhaly_landmark'); }  
+        if (localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng')) { setPickedLocation('customer', parseFloat(localStorage.getItem('gebhaly_lat')), parseFloat(localStorage.getItem('gebhaly_lng'))); }  
         manageIntervals(); 
         requestNotifPermission();
         startAutoVersionCheck();
@@ -668,7 +929,11 @@
         const now = new Date(); const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];  
         let h = now.getHours(); const m = now.getMinutes().toString().padStart(2,'0'); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;  
         localStorage.setItem('gebhaly_name', document.getElementById('u_name').value); localStorage.setItem('gebhaly_phone', document.getElementById('u_phone').value); localStorage.setItem('gebhaly_ezba', document.getElementById('u_ezba').value); localStorage.setItem('gebhaly_street', document.getElementById('u_street').value); localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value);  
-        const payload = { bon:0, name:document.getElementById('u_name').value, phone:document.getElementById('u_phone').value, ezba:document.getElementById('u_ezba').value, street:document.getElementById('u_street').value, landmark:document.getElementById('u_landmark').value, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
+        const custLat = document.getElementById('u_customer_lat').value, custLng = document.getElementById('u_customer_lng').value;  
+        const storeLat = document.getElementById('u_store_lat').value, storeLng = document.getElementById('u_store_lng').value;  
+        const customerLocationLink = (custLat && custLng) ? `https://www.google.com/maps?q=${custLat},${custLng}` : '';  
+        const storeLocationLink = (storeLat && storeLng) ? `https://www.google.com/maps?q=${storeLat},${storeLng}` : '';  
+        const payload = { bon:0, name:document.getElementById('u_name').value, phone:document.getElementById('u_phone').value, ezba:document.getElementById('u_ezba').value, street:document.getElementById('u_street').value, landmark:document.getElementById('u_landmark').value, customerLocation:customerLocationLink, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, storeLocation:storeLocationLink, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
         const sb = document.getElementById('submitBtn'); const ot = sb.innerHTML; sb.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i>جاري الإرسال...`; sb.disabled = true;  
         fetch(GOOGLE_SCRIPT_URL, { method:"POST", body:JSON.stringify(payload) })
     .then(r=>r.json())
