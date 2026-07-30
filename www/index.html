@@ -112,22 +112,35 @@
     .lp-search-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 0.85rem; }
     .lp-search-box input::placeholder { color: var(--muted); }
     .lp-search-clear { color: var(--muted); cursor: pointer; padding: 4px; }
-    #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,0.5); }
-    .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: center; gap: 8px; }
+    #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow-y: auto; max-height: 52vh; box-shadow: 0 8px 22px rgba(0,0,0,0.5); -webkit-overflow-scrolling: touch; }
+    .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: flex-start; gap: 8px; }
     .lp-search-result-item:last-child { border-bottom: none; }
-    .lp-search-result-item i { color: var(--gold); flex-shrink: 0; }
+    .lp-search-result-item i { color: var(--gold); flex-shrink: 0; margin-top: 2px; }
     .lp-search-result-item:active { background: rgba(212,175,55,0.1); }
-    .lp-search-empty { padding: 0.75rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; }
+    .lp-search-result-name { font-weight: 700; display: block; }
+    .lp-search-result-sub { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 2px; line-height: 1.4; }
+    .lp-search-empty { padding: 0.9rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
     /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
     .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; height: 42px; padding: 0 15px; border-radius: 21px; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); white-space: nowrap; }
     .lp-locate-fab i { font-size: 0.95rem; }
     .lp-locate-fab:active { transform: scale(0.95); background: #262626; }
-    /* 🆕 شريط حالة تحديد الموقع (بيطلب / بينجح / بيفشل) */
-    .lp-gps-status { position: absolute; bottom: 68px; right: 12px; left: 12px; z-index: 1200; background: rgba(10,10,10,0.95); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.6rem 0.85rem; font-size: 0.72rem; line-height: 1.5; color: var(--gold-light); text-align: center; }
-    .lp-gps-status.is-error { color: #FCA5A5; border-color: rgba(239,68,68,0.4); }
-    .lp-gps-status.is-success { color: #A7F3D0; border-color: rgba(16,185,129,0.4); }
     /* 🆕 النقطة الزرقاء لموقع الجيبي إس الفعلي (زي جوجل ماب) */
     .lp-blue-dot { width: 18px; height: 18px; border-radius: 50%; background: #4285F4; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(66,133,244,0.28); }
+    /* 🆕 شاشة حجب/تحميل مميزة في نص الشاشة - بتمنع أي تفاعل مع الخريطة أو الأزرار
+       لحد ما عملية تحديد الموقع (تلقائي أو بحث) تخلص خالص، بدل الرسالة الصغيرة اللي كانت تحت */
+    #lp-block-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.86); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 6200; display: none; align-items: center; justify-content: center; padding: 1.75rem; }
+    #lp-block-overlay.show { display: flex; }
+    #lp-block-card { background: linear-gradient(145deg, #0d0d0d, #000000); border: 1px solid var(--gold); border-radius: 1.25rem; padding: 2rem 1.6rem; text-align: center; max-width: 320px; width: 100%; box-shadow: 0 25px 60px rgba(0,0,0,0.75); animation: lpBlockPop 0.25s ease; }
+    @keyframes lpBlockPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #lp-block-icon { font-size: 2.4rem; color: var(--gold); margin-bottom: 1rem; }
+    #lp-block-icon.is-error { color: #EF4444; }
+    #lp-block-icon.is-success { color: var(--success); }
+    #lp-block-text { color: var(--gold-light); font-weight: 800; font-size: 0.98rem; line-height: 1.7; }
+    #lp-block-sub { color: var(--muted); font-size: 0.78rem; margin-top: 0.6rem; line-height: 1.6; }
+    #lp-block-actions { display: none; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
+    .lp-block-btn { padding: 0.8rem; border-radius: 0.85rem; font-weight: 700; font-size: 0.85rem; border: none; width: 100%; }
+    .lp-block-btn-primary { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #111827; }
+    .lp-block-btn-secondary { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); }
     /* 🆕 بوابة الأذونات الإجبارية - بتظهر أول ما التطبيق (الـ APK) يتفتح ولحد ما يوافق على الموقع */
     #mandatory-gate { position: fixed; inset: 0; background: #000000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1.5rem; }
     #mandatory-gate.show { display: flex; }
@@ -432,10 +445,20 @@
             <div id="lp-search-results"></div>  
         </div>  
         <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
-        <div class="lp-gps-status" id="lp-gps-status" style="display:none;"></div>  
         <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
             <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
         </button>  
+    </div>  
+    <div id="lp-block-overlay">  
+        <div id="lp-block-card">  
+            <div id="lp-block-icon" class="fas fa-spinner fa-spin"></div>  
+            <div id="lp-block-text">جاري تحديد موقعك الحالي الآن...</div>  
+            <div id="lp-block-sub" style="display:none;"></div>  
+            <div id="lp-block-actions">  
+                <button type="button" class="lp-block-btn lp-block-btn-primary" id="lp-block-retry-btn">إعادة المحاولة</button>  
+                <button type="button" class="lp-block-btn lp-block-btn-secondary" id="lp-block-manual-btn">تحديد يدوي على الخريطة</button>  
+            </div>  
+        </div>  
     </div>  
     <div class="lp-footer">  
         <div id="lp-auto-set-wrap">  
@@ -770,9 +793,49 @@
     let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
     let lpWatchId = null; // 🆕 معرّف متابعة الموقع الحية (watchPosition) - شغالة طول ما مودال الخريطة مفتوح
+    let lpFirstFixPending = false; // 🆕 لسه مستنيين أول تحديد فعلي لموقعك الحقيقي (العلامة الزرقاء) في الفتحة الحالية للمودال
+    let lpShouldCenterOnFirstFix = false; // 🆕 لو مفيش نقطة محفوظة، أول ما توصل العلامة الزرقاء نحرك الخريطة عليها تلقائيًا
+    let lpBlockFixTimeout = null; // 🆕 مؤقّت أمان: لو أول تحديد للموقع اتأخر جدًا نطلع رسالة خطأ بدل ما نفضل شاشة الحجب طول العمر
     const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
+    const LP_FIRST_FIX_TIMEOUT_MS = 15000;
 
     const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+
+    // =========================================================================
+    // 🆕 شاشة الحجب المركزية (بدل الرسالة الصغيرة اللي كانت تحت الخريطة) - بتظهر في
+    // نص الشاشة بشكل مميز بستايل البرنامج، وبتمنع أي تفاعل مع الخريطة أو الأزرار
+    // (البحث، تحريك الخريطة، الأزرار التانية) طول ما فيه عملية تحديد موقع شغالة،
+    // ومبتقفلش إلا لما العملية تخلص فعلًا (بنجاح أو بفشل واضح المستخدم ياخد قراره فيه).
+    // =========================================================================
+    function showLpBlock(text, opts) {  
+        opts = opts || {};  
+        const overlay = document.getElementById('lp-block-overlay');  
+        const icon = document.getElementById('lp-block-icon');  
+        const textEl = document.getElementById('lp-block-text');  
+        const subEl = document.getElementById('lp-block-sub');  
+        const actions = document.getElementById('lp-block-actions');  
+        icon.className = 'fas ' + (opts.kind === 'error' ? 'fa-triangle-exclamation is-error' : (opts.kind === 'success' ? 'fa-circle-check is-success' : 'fa-spinner fa-spin'));  
+        textEl.textContent = text;  
+        if (opts.sub) { subEl.textContent = opts.sub; subEl.style.display = 'block'; } else { subEl.style.display = 'none'; subEl.textContent = ''; }  
+        actions.style.display = opts.showActions ? 'flex' : 'none';  
+        overlay.classList.add('show');  
+    }  
+
+    function hideLpBlock() {  
+        document.getElementById('lp-block-overlay').classList.remove('show');  
+    }  
+
+    // 🆕 حالة خطأ نهائية جوه شاشة الحجب - بتفضل ظاهرة ومركزية لحد ما المستخدم ياخد قرار
+    // (يعيد المحاولة تاني، أو يقفلها ويكمل تحديد يدوي بالبحث/تحريك الخريطة بإيده)
+    function showLpBlockError(message, opts) {  
+        opts = opts || {};  
+        showLpBlock(message, { kind: 'error', sub: opts.sub, showActions: true });  
+        const retryBtn = document.getElementById('lp-block-retry-btn');  
+        const manualBtn = document.getElementById('lp-block-manual-btn');  
+        retryBtn.style.display = opts.onRetry ? 'block' : 'none';  
+        retryBtn.onclick = () => { if (opts.onRetry) opts.onRetry(); };  
+        manualBtn.onclick = () => { hideLpBlock(); if (opts.onManual) opts.onManual(); };  
+    }  
 
     function openLocationPicker(target, advanceTo) {  
         lpTarget = target;  
@@ -781,7 +844,7 @@
         const autoWrap = document.getElementById('lp-auto-set-wrap');  
         if (target === 'store') {  
             document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد موقع المحل بدقة على الخريطة';  
-            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقع المحل صحيح، وبعدين دوس "تأكيد مكان المحل" للمتابعة' : 'اكتب اسم المحل أو المنطقة في مربع البحث، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقع المحل صحيح، وبعدين دوس "تأكيد مكان المحل" للمتابعة' : 'اكتب اسم المحل أو المنطقة في مربع البحث (هيطلعلك كل الأماكن اللي بنفس الاسم في أي مكان)، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان المحل';  
             autoWrap.style.display = 'none';  
         } else {  
@@ -793,6 +856,7 @@
         document.getElementById('lp-search-input').value = '';  
         hideLpSearchResults();  
         document.getElementById('lp-search-clear').style.display = 'none';  
+        hideLpBlock();  
         document.getElementById('location-picker-modal').classList.add('show');  
         setTimeout(() => {  
             if (!lpMap) {  
@@ -809,22 +873,34 @@
                 // مش من القيمة المحفوظة دي، عشان منخلطش بين نقطة التوصيل وموقعك الفعلي
                 lpMap.setView([parseFloat(savedLat), parseFloat(savedLng)], 17);  
             }  
+            // 🆕 من لحظة فتح الخريطة (سواء لتحديد عنوان العميل أو موقع المحل)، لازم أول حاجة نعرف
+            // موقعك الحقيقي دلوقتي (العلامة الزرقاء). لحد ما دي تظهر فعليًا، بنمنع أي تفاعل
+            // بشاشة حجب مركزية واضحة بدل رسالة صغيرة تحت وخلاص.
+            lpShouldCenterOnFirstFix = !(savedLat && savedLng);  
+            lpFirstFixPending = true;  
+            showLpBlock('⏳ جاري تحديد موقعك الحالي الآن...', { sub: 'محتاجين نعرف مكانك بالظبط الأول عشان نورّيك موقعك الحقيقي على الخريطة' });  
+            clearTimeout(lpBlockFixTimeout);  
+            lpBlockFixTimeout = setTimeout(lpHandleFirstFixTimeout, LP_FIRST_FIX_TIMEOUT_MS);  
             // 🆕 نبدأ متابعة حية ومستمرة لموقعك الحقيقي بالـ GPS طول ما الخريطة مفتوحة،
             // فالعلامة الزرقاء دايمًا بتفضل هي مكانك الفعلي دلوقتي وبس
             startLiveBlueDotWatch();  
-            if (!savedLat || !savedLng) {  
-                // مفيش نقطة توصيل محفوظة لسه - نحرك الخريطة لموقعك الحالي كبداية
-                locateMeInPicker();  
-            }  
         }, 50);  
     }  
 
-    function setLpStatus(text, kind) {  
-        const el = document.getElementById('lp-gps-status');  
-        if (!text) { el.style.display = 'none'; el.textContent = ''; el.className = 'lp-gps-status'; return; }  
-        el.style.display = 'block';  
-        el.textContent = text;  
-        el.className = 'lp-gps-status' + (kind ? ' is-' + kind : '');  
+    function lpHandleFirstFixTimeout() {  
+        if (!lpFirstFixPending) return;  
+        lpFirstFixPending = false;  
+        showLpBlockError('⚠️ مقدرناش نحدد موقعك الحالي تلقائيًا (تأكد إن صلاحية الموقع والـ GPS شغالين في التليفون).', {  
+            sub: 'تقدر تعيد المحاولة، أو تكمل وتحدد مكانك بنفسك بالبحث بالاسم أو بتحريك الخريطة بإيدك.',  
+            onRetry: () => {  
+                lpFirstFixPending = true;  
+                showLpBlock('⏳ جاري تحديد موقعك الحالي الآن...', { sub: 'محتاجين نعرف مكانك بالظبط الأول عشان نورّيك موقعك الحقيقي على الخريطة' });  
+                clearTimeout(lpBlockFixTimeout);  
+                lpBlockFixTimeout = setTimeout(lpHandleFirstFixTimeout, LP_FIRST_FIX_TIMEOUT_MS);  
+                startLiveBlueDotWatch();  
+            },  
+            onManual: () => {}  
+        });  
     }  
 
     // 🆕 هل التطبيق شغال دلوقتي جوه تطبيق الأندرويد المبني بـ Capacitor (APK) ولا في متصفح عادي؟
@@ -880,14 +956,36 @@
     // طول ما مودال اختيار الموقع مفتوح، وبتحدّث العلامة الزرقاء أول ما يوصل أي إحداثي
     // جديد من الجهاز (كل ما الـ GPS يبعت تحديث، مش مرة واحدة وخلاص) من غير ما تلمس
     // العلامة الحمرا أو مركز الخريطة إطلاقًا - العلامتين مستقلتين تمامًا عن بعض.
+    // 🆕 أول تحديث فعلي بييجي هنا هو اللي بيقفل شاشة الحجب المركزية (lpFirstFixPending).
     async function startLiveBlueDotWatch() {  
         stopLiveBlueDotWatch();  
-        if (!navigator.geolocation) return;  
+        if (!navigator.geolocation) {  
+            if (lpFirstFixPending) { lpFirstFixPending = false; clearTimeout(lpBlockFixTimeout); showLpBlockError('⚠️ الجهاز ده مش بيدعم تحديد الموقع التلقائي، حدد مكانك بالبحث بالاسم أو بتحريك الخريطة بإيدك.', { onManual: () => {} }); }  
+            return;  
+        }  
         const permGranted = await ensureNativeLocationPermission();  
-        if (!permGranted) return;  
+        if (!permGranted) {  
+            if (lpFirstFixPending) {  
+                lpFirstFixPending = false;  
+                clearTimeout(lpBlockFixTimeout);  
+                showLpBlockError('🚫 لازم توافق على صلاحية الموقع عشان نحدد مكانك تلقائيًا. تقدر تفعّلها من إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع.', {  
+                    onRetry: () => { lpFirstFixPending = true; showLpBlock('⏳ جاري تحديد موقعك الحالي الآن...'); clearTimeout(lpBlockFixTimeout); lpBlockFixTimeout = setTimeout(lpHandleFirstFixTimeout, LP_FIRST_FIX_TIMEOUT_MS); startLiveBlueDotWatch(); },  
+                    onManual: () => {}  
+                });  
+            }  
+            return;  
+        }  
         lpWatchId = navigator.geolocation.watchPosition(  
-            (pos) => { showOrUpdateBlueDot(pos.coords.latitude, pos.coords.longitude); },  
-            () => { /* أي خطأ عابر في المتابعة الحية - نتجاهله بصمت، العلامة الزرقاء هتفضل على آخر موقع معروف */ },  
+            (pos) => {  
+                showOrUpdateBlueDot(pos.coords.latitude, pos.coords.longitude);  
+                if (lpFirstFixPending) {  
+                    lpFirstFixPending = false;  
+                    clearTimeout(lpBlockFixTimeout);  
+                    hideLpBlock();  
+                    if (lpShouldCenterOnFirstFix && lpMap) { lpMap.setView([pos.coords.latitude, pos.coords.longitude], 17); lpShouldCenterOnFirstFix = false; }  
+                }  
+            },  
+            () => { /* أي خطأ عابر في المتابعة الحية بعد أول تحديد - نتجاهله بصمت، العلامة الزرقاء هتفضل على آخر موقع معروف */ },  
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }  
         );  
     }  
@@ -897,40 +995,55 @@
         lpWatchId = null;  
     }  
 
-    // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة (العلامة الحمرا) لموقعك الفعلي بس،
-    // والعلامة الزرقاء مستمرة تتحدث لوحدها من المتابعة الحية أصلًا
+    // 🆕 زرار "اذهب لموقعك الحالي الآن" - بيحرّك الخريطة (العلامة الحمرا) لموقعك الفعلي، وبيبيّن
+    // شاشة الحجب المركزية طول ما بيحاول يحدد المكان، وميقفلهاش غير لما يخلص بنجاح أو بفشل واضح
     async function locateMeInPicker() {  
-        setLpStatus('⏳ بنطلب صلاحية الموقع ونحدد مكانك... لو ظهرلك طلب صلاحية دوس "السماح".', null);  
+        showLpBlock('⏳ جاري تحديد موقعك الحالي بدقة...', { sub: 'لو ظهرلك طلب صلاحية موقع، دوس "السماح"' });  
+        clearTimeout(lpBlockFixTimeout);  
         const permGranted = await ensureNativeLocationPermission();  
         if (!permGranted) {  
-            setLpStatus('🚫 لازم تسمح بصلاحية الموقع للتطبيق عشان نحدد مكانك تلقائيًا. تقدر تفعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع. أو حدد مكانك يدويًا بالبحث أو بتحريك الخريطة.', 'error');  
+            showLpBlockError('🚫 لازم تسمح بصلاحية الموقع للتطبيق عشان نحدد مكانك تلقائيًا.', {  
+                sub: 'فعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع، أو كمّل تحديد يدوي بالبحث أو بتحريك الخريطة.',  
+                onRetry: locateMeInPicker,  
+                onManual: () => {}  
+            });  
             return;  
         }  
         try {  
             const { lat, lng } = await getFreshPositionPromise();  
             if (lpMap) { lpMap.setView([lat, lng], 17); }  
             showOrUpdateBlueDot(lat, lng);  
+            lpFirstFixPending = false;  
             if (!lpWatchId) startLiveBlueDotWatch();  
-            setLpStatus('✅ تم تحديد موقعك تلقائيًا. لو مكانك مش مظبوط بالظبط، حرك الخريطة شوية لحد باب بيتك.', 'success');  
-            setTimeout(() => setLpStatus(null), 3500);  
-        } catch (e) { setLpStatus(e.msg, e.kind); }  
+            hideLpBlock();  
+        } catch (e) {  
+            showLpBlockError(e.msg, { onRetry: locateMeInPicker, onManual: () => {} });  
+        }  
     }  
 
     // 🆕 زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" - بيجيب الموقع ويثبته ويقفل المودال في ضغطة واحدة
     async function autoSetCurrentLocationAndConfirm() {  
-        setLpStatus('⏳ بنحدد موقعك الحالي بالظبط...', null);  
+        showLpBlock('⏳ جاري تحديد موقعك الحالي وتثبيت عنوان التوصيل...', { sub: 'من فضلك استنى شوية، من غير ما تقفل الشاشة' });  
+        clearTimeout(lpBlockFixTimeout);  
         const permGranted = await ensureNativeLocationPermission();  
         if (!permGranted) {  
-            setLpStatus('🚫 لازم تسمح بصلاحية الموقع للتطبيق الأول. تقدر تفعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع.', 'error');  
+            showLpBlockError('🚫 لازم تسمح بصلاحية الموقع للتطبيق الأول عشان نحدد مكانك تلقائيًا.', {  
+                sub: 'فعّلها من: إعدادات التليفون ← التطبيقات ← جبهالي ماركت ← الأذونات ← الموقع.',  
+                onRetry: autoSetCurrentLocationAndConfirm,  
+                onManual: () => {}  
+            });  
             return;  
         }  
         try {  
             const { lat, lng } = await getFreshPositionPromise();  
             const advanceTo = lpAdvanceTo;  
             setPickedLocation(lpTarget, lat, lng);  
+            hideLpBlock();  
             closeLocationPicker();  
             if (advanceTo) { goToStep(advanceTo); }  
-        } catch (e) { setLpStatus(e.msg, e.kind); }  
+        } catch (e) {  
+            showLpBlockError(e.msg, { onRetry: autoSetCurrentLocationAndConfirm, onManual: () => {} });  
+        }  
     }  
 
     // 🆕 البحث اللحظي بالاسم - بيحرك الخريطة لوحدها للمكان اللي بيتكتب أول ما المستخدم يسيب لوحة المفاتيح لحظة
@@ -938,18 +1051,20 @@
         document.getElementById('lp-search-clear').style.display = value ? 'block' : 'none';  
         clearTimeout(lpSearchTimer);  
         if (!value || value.trim().length < 2) { hideLpSearchResults(); return; }  
-        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 500);  
+        lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 450);  
     }  
 
-    // 🆕 استعلام واحد لنوميناتيم (OpenStreetMap) - محايد على مصر شوية وبعدد نتائج أكبر.
+    // 🆕 استعلام لنوميناتيم (OpenStreetMap) - بيرجع أكبر عدد ممكن من النتائج المطابقة في أي
+    // مكان في العالم (مش مقصور على مصر)، ومرتبة حسب الأهمية، عشان لو المستخدم كتب اسم فرع
+    // متكرر زي "كشري الامبراطور" يشوف كل الفروع المتاحة ويختار الأقرب لوصفه هو مش بس كام نتيجة.
     // ملحوظة مهمة: نظام البحث ده مبني على نوميناتيم المجاني، ودقته وتغطيته لأسماء
     // المحلات/العلامات التجارية أضعف بكتير من بحث خرائط جوجل الفعلي (Google Places)،
     // لأن جوجل عندها قاعدة بيانات أماكن ضخمة ومدفوعة، ونوميناتيم بيعتمد بس على البيانات
-    // المجانية المتاحة في OpenStreetMap. تحت بنحاول نقرب من دقة جوجل قد الإمكان (بحث
-    // بديل، تبسيط تدريجي للكلمات، ترتيب حسب الأهمية)، لكن للوصول لنفس مستوى جوجل تمامًا
-    // محتاجين نوصّل التطبيق بـ Google Places API (محتاج مفتاح API مدفوع من جوجل).
+    // المجانية المتاحة في OpenStreetMap. تحت بنحاول نقرب من دقة جوجل قد الإمكان (عدد نتائج
+    // أكبر، بحث بديل، تبسيط تدريجي للكلمات، ترتيب حسب الأهمية)، لكن للوصول لنفس مستوى جوجل
+    // تمامًا محتاجين نوصّل التطبيق بـ Google Places API (محتاج مفتاح API مدفوع من جوجل).
     function fetchLpGeocode(query, signal) {  
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=10&accept-language=ar&viewbox=24.6,32.2,36.9,21.8&bounded=0&addressdetails=1&extratags=1&namedetails=1&q=${encodeURIComponent(query)}`;  
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=30&accept-language=ar&addressdetails=1&extratags=1&namedetails=1&dedupe=1&q=${encodeURIComponent(query)}`;  
         return fetch(url, { signal }).then(r => r.json()).catch(() => []);  
     }  
 
@@ -958,6 +1073,7 @@
         const myController = new AbortController();  
         lpSearchAbort = myController;  
         const signal = myController.signal;  
+        renderLpSearchLoading(query);  
         let results = await fetchLpGeocode(query, signal);  
         // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة
         // أول حاجة، وبعدين نجرب الكلمة الأخيرة بس لوحدها لو لسه مفيش نتيجة) ونجرب كذا مرة،
@@ -983,25 +1099,51 @@
             }  
         }  
         if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
-        renderLpSearchResults(results || []);  
+        // 🆕 إزالة أي نتائج مكررة تمامًا (نفس الاسم ونفس الإحداثيات تقريبًا)
+        const seen = new Set();  
+        const deduped = (results || []).filter(r => {  
+            const key = r.display_name + '|' + Math.round(parseFloat(r.lat) * 2000) + '|' + Math.round(parseFloat(r.lon) * 2000);  
+            if (seen.has(key)) return false;  
+            seen.add(key);  
+            return true;  
+        });  
+        renderLpSearchResults(deduped);  
         // أول ما توصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
-        if (results && results.length > 0 && lpMap) {  
-            lpMap.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 16);  
+        if (deduped.length > 0 && lpMap) {  
+            lpMap.setView([parseFloat(deduped[0].lat), parseFloat(deduped[0].lon)], 16);  
         }  
+    }  
+
+    // 🆕 صف بسيط بيوضح إن البحث شغال دلوقتي (بدل ما القايمة تفضل فاضية من غير أي رد فعل)
+    function renderLpSearchLoading(query) {  
+        const box = document.getElementById('lp-search-results');  
+        box.innerHTML = `<div class="lp-search-empty"><i class="fas fa-spinner fa-spin"></i><span>جاري البحث عن كل الأماكن باسم "${escapeHtml(query)}"...</span></div>`;  
+        box.style.display = 'block';  
+    }  
+
+    function escapeHtml(str) {  
+        return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));  
     }  
 
     function renderLpSearchResults(results) {  
         const box = document.getElementById('lp-search-results');  
         if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مقدرناش نلاقي المكان بالظبط، جرب تكتب اسم منطقة أو مدينة أقرب، أو حرك الخريطة بإيدك لحد مكانك</div>`; box.style.display = 'block'; return; }  
-        box.innerHTML = results.map((r, i) => `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span>${r.display_name}</span></div>`).join('');  
+        box.innerHTML = results.map((r, i) => {  
+            const parts = String(r.display_name || '').split(',');  
+            const mainName = (parts[0] || r.display_name || '').trim();  
+            const subName = parts.slice(1).join(',').trim();  
+            return `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span><span class="lp-search-result-name">${escapeHtml(mainName)}</span>${subName ? `<span class="lp-search-result-sub">${escapeHtml(subName)}</span>` : ''}</span></div>`;  
+        }).join('');  
         box.style.display = 'block';  
         window._lpSearchResultsCache = results;  
     }  
 
+    // 🆕 لما تدوس على نتيجة من البحث، الخريطة "توسع" (تكبر/تقرب) على المكان مباشرة والعلامة
+    // الحمرا (نقطة التأكيد) بتبقى بالظبط فوقه، عشان تقدر تأكد إنه المكان الصح قبل ما تضغط "تأكيد"
     function selectLpSearchResult(i) {  
         const r = (window._lpSearchResultsCache || [])[i];  
         if (!r || !lpMap) return;  
-        lpMap.setView([parseFloat(r.lat), parseFloat(r.lon)], 17);  
+        lpMap.setView([parseFloat(r.lat), parseFloat(r.lon)], 18);  
         hideLpSearchResults();  
     }  
 
@@ -1047,7 +1189,9 @@
 
     function closeLocationPicker() {  
         document.getElementById('location-picker-modal').classList.remove('show');  
-        setLpStatus(null);  
+        hideLpBlock();  
+        clearTimeout(lpBlockFixTimeout);  
+        lpFirstFixPending = false;  
         hideLpSearchResults();  
         if (lpSearchAbort) lpSearchAbort.abort();  
         stopLiveBlueDotWatch();  
