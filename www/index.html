@@ -127,6 +127,16 @@
     .lp-gps-status.is-success { color: #A7F3D0; border-color: rgba(16,185,129,0.4); }
     /* 🆕 النقطة الزرقاء لموقع الجيبي إس الفعلي (زي جوجل ماب) */
     .lp-blue-dot { width: 18px; height: 18px; border-radius: 50%; background: #4285F4; border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(66,133,244,0.28); }
+    /* 🆕 بوابة الأذونات الإجبارية - بتظهر أول ما التطبيق (الـ APK) يتفتح ولحد ما يوافق على الموقع */
+    #mandatory-gate { position: fixed; inset: 0; background: #000000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1.5rem; }
+    #mandatory-gate.show { display: flex; }
+    .mg-icon { font-size: 3.2rem; color: var(--gold); margin-bottom: 1.1rem; }
+    .mg-icon.is-error { color: #EF4444; }
+    .mg-title { color: var(--gold-light); font-weight: 800; font-size: 1.15rem; margin-bottom: 0.6rem; }
+    .mg-text { color: var(--muted); font-size: 0.85rem; line-height: 1.7; max-width: 340px; margin-bottom: 1.6rem; }
+    .mg-btn { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #111827; font-weight: 800; padding: 0.9rem 2.2rem; border-radius: 0.9rem; font-size: 0.95rem; }
+    .mg-spinner { width: 34px; height: 34px; border: 3px solid rgba(212,175,55,0.25); border-top-color: var(--gold); border-radius: 50%; animation: mg-spin 0.8s linear infinite; margin-bottom: 1.1rem; }
+    @keyframes mg-spin { to { transform: rotate(360deg); } }
 </style>
 </head>  
 <body>  
@@ -398,6 +408,10 @@
     <div class="nav-item" id="nav-active-orders" onclick="switchPage('active-orders')"><i class="fas fa-spinner"></i><span>الحاليه</span></div>  
     <div class="nav-item" id="nav-history" onclick="switchPage('history')"><i class="fas fa-check-circle"></i><span>مستلمه</span></div>  
     <div class="nav-item" id="nav-contact" onclick="switchPage('contact')"><i class="fas fa-cog"></i><span>المساعده و الدعم</span></div>  
+</div>  
+
+<div id="mandatory-gate">  
+    <div id="mg-content"></div>  
 </div>  
 
 <div id="location-picker-modal">  
@@ -927,11 +941,91 @@
         if (lpSearchAbort) lpSearchAbort.abort();  
     }  
 
+    // =========================================================================
+    // 🆕 بوابة الأذونات الإجبارية - شغالة جوه الـ APK بس (مش في المتصفح/جت هاب بيدجز)
+    // أول ما التطبيق يتفتح: بيطلب صلاحية الإشعارات ثم صلاحية الموقع ورا بعض تلقائيًا،
+    // ومينفعش يستخدم البرنامج غير لو الموقع متسمح بيه والـ GPS شغال فعليًا. وطول ما
+    // التطبيق مفتوح، بيتعمل فحص دوري كل فترة، فلو المستخدم قفل صلاحية الموقع أو قفل
+    // الـ GPS من نص الاستخدام، هتظهرله البوابة تاني تطلب منه يرجع يفعّلها.
+    // =========================================================================
+    let mgRunning = false, mgIntervalId = null;
+
+    function showMandatoryGate(state) {  
+        const gate = document.getElementById('mandatory-gate');  
+        const content = document.getElementById('mg-content');  
+        if (state === 'checking') {  
+            content.innerHTML = `<div class="mg-spinner"></div><div class="mg-title">بنجهزلك التطبيق...</div><div class="mg-text">بنتأكد من صلاحيات الإشعارات والموقع، ثواني بسيطة 🙏</div>`;  
+        } else if (state === 'denied') {  
+            content.innerHTML = `<i class="fas fa-map-marker-alt mg-icon is-error"></i><div class="mg-title">لازم تسمح بصلاحية الموقع</div><div class="mg-text">التطبيق محتاج صلاحية الموقع عشان يقدر يوصّل طلبك بدقة لبيتك. لو دوست "لا تسمح" بالغلط، افتح: إعدادات الهاتف ← التطبيقات ← جبهالي ماركت ← الأذونات ← فعّل "الموقع"، وبعدين ارجع دوس الزرار تحت.</div><button type="button" class="mg-btn" onclick="runMandatoryPermissionGate()">حاول تاني</button>`;  
+        } else if (state === 'gps-off') {  
+            content.innerHTML = `<i class="fas fa-location-crosshairs mg-icon is-error"></i><div class="mg-title">خدمة الموقع (GPS) مقفولة</div><div class="mg-text">من فضلك فعّل خدمة تحديد الموقع (GPS) من هاتفك عشان تقدر تستخدم التطبيق: افتح شريط الإشعارات السريع من أعلى الشاشة ودوس على أيقونة "الموقع"، وبعدين ارجع دوس الزرار تحت.</div><button type="button" class="mg-btn" onclick="runMandatoryPermissionGate()">حاول تاني</button>`;  
+        }  
+        gate.classList.add('show');  
+    }  
+
+    function hideMandatoryGate() {  
+        document.getElementById('mandatory-gate').classList.remove('show');  
+    }  
+
+    async function checkGpsAndPermissionOk() {  
+        if (!isRunningInsideNativeApp()) return true;  
+        const geo = window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation;  
+        if (!geo) return true;  
+        try {  
+            const status = await geo.checkPermissions();  
+            if (status.location !== 'granted') return false;  
+            await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });  
+            return true;  
+        } catch (e) { return false; }  
+    }  
+
+    async function runMandatoryPermissionGate() {  
+        if (!isRunningInsideNativeApp()) { hideMandatoryGate(); return; }  
+        if (mgRunning) return;  
+        mgRunning = true;  
+        showMandatoryGate('checking');  
+        try {  
+            const notif = window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;  
+            if (notif) {  
+                let ns = await notif.checkPermissions();  
+                if (ns.display !== 'granted') { await notif.requestPermissions(); }  
+            }  
+        } catch (e) { /* الإشعارات مش شرط أساسي لتشغيل البرنامج، نكمل عادي */ }  
+
+        const geo = window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation;  
+        if (!geo) { hideMandatoryGate(); mgRunning = false; return; }  
+        let locGranted = false;  
+        try {  
+            let ls = await geo.checkPermissions();  
+            if (ls.location !== 'granted') { ls = await geo.requestPermissions(); }  
+            locGranted = (ls.location === 'granted');  
+        } catch (e) { locGranted = false; }  
+
+        if (!locGranted) { showMandatoryGate('denied'); mgRunning = false; return; }  
+
+        try {  
+            await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });  
+            hideMandatoryGate();  
+        } catch (e) {  
+            showMandatoryGate('gps-off');  
+        }  
+        mgRunning = false;  
+    }  
+
+    async function silentPermissionRecheck() {  
+        if (!isRunningInsideNativeApp() || document.visibilityState !== 'visible') return;  
+        const ok = await checkGpsAndPermissionOk();  
+        if (!ok) { runMandatoryPermissionGate(); }  
+    }  
+
     document.addEventListener('DOMContentLoaded', () => {  
         if (localStorage.getItem('gebhaly_name')) { document.getElementById('u_name').value = localStorage.getItem('gebhaly_name'); document.getElementById('u_phone').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_phone_confirm').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_ezba').value = localStorage.getItem('gebhaly_ezba'); document.getElementById('u_street').value = localStorage.getItem('gebhaly_street'); document.getElementById('u_landmark').value = localStorage.getItem('gebhaly_landmark'); }  
         if (localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng')) { setPickedLocation('customer', parseFloat(localStorage.getItem('gebhaly_lat')), parseFloat(localStorage.getItem('gebhaly_lng'))); }  
         manageIntervals(); 
-        requestNotifPermission();
+        runMandatoryPermissionGate();  
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { silentPermissionRecheck(); } });  
+        if (mgIntervalId) clearInterval(mgIntervalId);  
+        mgIntervalId = setInterval(silentPermissionRecheck, 20000);  
         startAutoVersionCheck();
         startAutoAvailabilityCheck();
     });  
