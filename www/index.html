@@ -480,7 +480,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-9mjp1RChM0-gExEaCORkz5OYnPs10t_U0IZJiI_UjPG9r6PtC8_y_GyBM36K-2nipA/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlWuBoKP_3nckqs2vfw6S4xA-kdWU5zGxz6kzOBN2UByTYSrSsh5Kt7WcGRncm3r3Fnw/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     const APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -1400,7 +1400,8 @@
             });
             const data = await res.json();
             if (!data || data.status !== 'success') {
-                showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: 'جرب تاني، أو دور بالاسم بدل اللينك، أو حرك الخريطة بإيدك.', onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
+                const debugSub = '(تفاصيل تقنية مؤقتة للتشخيص: ' + (data && data.message ? data.message : 'لا يوجد رد من السيرفر') + (data && data.debug ? ' | ' + data.debug : '') + ')';
+                showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: debugSub, onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
                 return;
             }
             if (data.lat && data.lng) {
@@ -1423,9 +1424,9 @@
                 showLpBlockError('⚠️ لقينا كود الموقع بس معرفناش نحدده بدقة كافية.', { sub: 'اكتب اسم المنطقة في صندوق البحث، أو حرك الخريطة بإيدك.', onManual: () => {} });
                 return;
             }
-            showLpBlockError('⚠️ اللينك ده مفيهوش موقع واضح.', { sub: 'جرب لينك تاني، أو حدد المكان يدويًا بالبحث أو بتحريك الخريطة.', onManual: () => {} });
+            showLpBlockError('⚠️ اللينك ده مفيهوش موقع واضح.', { sub: '(تشخيص: ' + (data.finalUrl || 'مفيش finalUrl') + (data.debug ? ' | ' + data.debug : '') + ')', onManual: () => {} });
         } catch (e) {
-            showLpBlockError('⚠️ حصلت مشكلة في الاتصال وإحنا بنجيب الموقع من اللينك.', { sub: 'تأكد إن النت شغال وحاول تاني.', onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
+            showLpBlockError('⚠️ حصلت مشكلة في الاتصال وإحنا بنجيب الموقع من اللينك.', { sub: '(تشخيص: ' + (e && e.message ? e.message : String(e)) + ')', onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
         }
     }
 
