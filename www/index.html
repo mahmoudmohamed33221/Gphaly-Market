@@ -130,10 +130,13 @@
     #lp-gmaps-import-toggle { margin-top: 6px; width: 100%; background: rgba(10,10,10,0.97); border: 1.5px dashed var(--border); border-radius: 0.9rem; padding: 0.65rem 0.85rem; color: var(--gold-light); font-size: 0.74rem; font-weight: 700; text-align: center; touch-action: manipulation; }
     #lp-gmaps-import-toggle:active { background: rgba(212,175,55,0.08); }
     #lp-gmaps-import-box { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; padding: 0.85rem; box-shadow: 0 8px 22px rgba(0,0,0,0.5); touch-action: pan-y; }
+    #lp-gmaps-open-app-btn { width: 100%; background: linear-gradient(135deg, #4285F4, #1a5fc4); border: none; border-radius: 0.75rem; padding: 0.8rem; color: #fff; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.7rem; touch-action: manipulation; }
+    #lp-gmaps-open-app-btn:active { filter: brightness(0.9); }
     .lp-gmaps-import-hint { color: var(--muted); font-size: 0.72rem; line-height: 1.6; margin-bottom: 0.6rem; }
     #lp-gmaps-import-input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.75rem; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 0.8rem; resize: none; outline: none; }
     .lp-gmaps-import-actions { display: flex; gap: 0.5rem; margin-top: 0.65rem; }
     .lp-gmaps-import-actions .lp-block-btn { width: auto; flex: 1; padding: 0.65rem; font-size: 0.78rem; }
+    .lp-gmaps-import-actions .lp-block-btn:disabled { opacity: 0.6; }
     /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
     .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; height: 42px; padding: 0 15px; border-radius: 21px; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); white-space: nowrap; }
     .lp-locate-fab i { font-size: 0.95rem; }
@@ -461,17 +464,19 @@
                 <i class="fab fa-google ml-1"></i>مش لاقي مكاني؟ دور عليه في تطبيق خرائط جوجل  
             </button>  
             <div id="lp-gmaps-import-box" style="display:none;">  
+                <button type="button" id="lp-gmaps-open-app-btn" onclick="openGoogleMapsApp()">  
+                    <i class="fab fa-google ml-1"></i>افتح تطبيق خرائط جوجل دلوقتي  
+                </button>  
                 <div class="lp-gmaps-import-hint">  
-                    <b>اعمل كده بالترتيب:</b><br>  
-                    ١) اخرج من هنا وافتح تطبيق اسمه (خرائط جوجل / Google Maps) في تليفونك<br>  
-                    ٢) دور فيه على مكانك بالاسم<br>  
-                    ٣) لما تلاقيه، اضغط عليه ضغطة طويلة لحد ما يظهر تحت كلام وأرقام (ده مكانك)، واضغط عليه "نسخ"<br>  
-                    ٤) ارجع للصفحة دي وألصق اللي نسخته في الصندوق تحت 👇  
+                    <b>بعد ما تفتح خرائط جوجل، اعمل كده بالترتيب:</b><br>  
+                    ١) دور فيه على مكانك بالاسم<br>  
+                    ٢) لما تلاقيه، اضغط عليه ضغطة طويلة لحد ما يظهر تحت كلام وأرقام (ده مكانك)، واضغط "نسخ" أو "مشاركة"<br>  
+                    ٣) ارجع للصفحة دي وألصق اللي نسخته في الصندوق تحت 👇 (أي شكل يوصل، رابط طويل أو قصير أو أرقام بس)  
                 </div>  
                 <textarea id="lp-gmaps-import-input" placeholder="ألصق هنا اللي نسخته من خرائط جوجل" rows="2"></textarea>  
                 <div class="lp-gmaps-import-actions">  
                     <button type="button" class="lp-block-btn lp-block-btn-secondary" onclick="toggleLpGmapsImport()">رجوع</button>  
-                    <button type="button" class="lp-block-btn lp-block-btn-primary" onclick="importFromGoogleMapsLink()">استخدم هذا المكان</button>  
+                    <button type="button" class="lp-block-btn lp-block-btn-primary" id="lp-gmaps-import-confirm-btn" onclick="importFromGoogleMapsLink()">استخدم هذا المكان</button>  
                 </div>  
             </div>  
         </div>  
@@ -1365,15 +1370,29 @@
         const box = document.getElementById('lp-gmaps-import-box');  
         const isOpen = box.style.display !== 'none';  
         box.style.display = isOpen ? 'none' : 'block';  
-        if (!isOpen) { hideLpSearchResults(); document.getElementById('lp-gmaps-import-input').focus(); }  
+        if (!isOpen) { hideLpSearchResults(); }  
         else { document.getElementById('lp-gmaps-import-input').value = ''; }  
+    }  
+
+    // 🆕 زرار "افتح تطبيق خرائط جوجل دلوقتي" - بيفتح تطبيق خرائط جوجل (أو المتصفح لو مش
+    // متثبت) على طول من غير ما المستخدم يدور عليه بنفسه في تليفونه
+    function openGoogleMapsApp() {  
+        const url = 'https://www.google.com/maps';  
+        try {  
+            if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) { window.open(url, '_system'); }  
+            else { window.open(url, '_blank'); }  
+        } catch (e) { window.location.href = url; }  
     }  
 
     function parseLatLngFromText(text) {  
         text = String(text || '').trim();  
         if (!text) return null;  
+        // 🆕 أدق نمط ممكن: العلامة المضبوطة بالظبط جوه رابط جوجل ماب الطويل (!3dخط_العرض!4dخط_الطول) -
+        // ده بيبقى فيه غالبًا لما تكون شايل "مكان" (Place) معين، مش مجرد نقطة على الخريطة
+        let m = text.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/);  
+        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };  
         // نمط رابط فيه "@lat,lng,zoom" (أشهر شكل لروابط جوجل ماب الكاملة)
-        let m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
+        m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
         if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };  
         // نمط "?q=lat,lng" أو "&q=lat,lng"
         m = text.match(/[?&]q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
@@ -1390,13 +1409,59 @@
         return null;  
     }  
 
-    function importFromGoogleMapsLink() {  
+    // =========================================================================
+    // 🆕 فهم الروابط المختصرة (زي https://maps.app.goo.gl/xxxxxxx) تلقائيًا. المشكلة إن
+    // الرابط المختصر ده جوّاه معلومة "روح لرابط تاني أطول فيه الإحداثيات" (بيسموها إعادة
+    // توجيه/Redirect)، لكن المتصفح بتاعنا ممنوع (لأسباب أمان من جوجل نفسها) إنه يقرا الرابط
+    // الطويل ده مباشرة بنفسه. الحل: بنستخدم خدمة وسيطة مجانية اسمها AllOrigins، وظيفتها
+    // إنها هي اللي تفتح الرابط المختصر نيابة عننا، وترجعلنا هي الرابط الطويل النهائي اللي
+    // وصلت له (واللي فيه الإحداثيات)، وساعتها بنقدر نقرا الإحداثيات منه عادي.
+    // =========================================================================
+    function isShortGoogleMapsLink(text) {  
+        return /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i.test(text);  
+    }  
+
+    async function resolveShortGoogleMapsLink(text) {  
+        const m = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i);  
+        const url = m ? m[0] : text.trim();  
+        try {  
+            const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);  
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 9000));  
+            const res = await Promise.race([fetch(proxyUrl), timeoutPromise]);  
+            if (!res.ok) return null;  
+            const data = await res.json();  
+            const finalUrl = (data && data.status && data.status.url) ? data.status.url : '';  
+            const fromUrl = finalUrl ? parseLatLngFromText(decodeURIComponent(finalUrl)) : null;  
+            if (fromUrl) return fromUrl;  
+            // 🆕 لو الرابط النهائي (نادرًا) مفيهوش إحداثيات واضحة، ندور جوه محتوى الصفحة نفسها
+            if (data && data.contents) { return parseLatLngFromText(data.contents); }  
+            return null;  
+        } catch (e) { return null; }  
+    }  
+
+    async function importFromGoogleMapsLink() {  
         const input = document.getElementById('lp-gmaps-import-input');  
         const text = input.value.trim();  
         if (!text) return;  
-        if (/goo\.gl|maps\.app\.goo\.gl/i.test(text) && !/@-?\d/.test(text) && !/[?&](q|ll)=-?\d/.test(text)) {  
-            showLpBlockError('⚠️ اللي لصقته ده مختصر وناقص، مش عارفين نلاقي فيه المكان.', {  
-                sub: 'جرب كده: في تطبيق خرائط جوجل، اضغط ضغطة طويلة على مكانك بالظبط لحد ما يظهر تحت أرقام كتير (خط العرض وخط الطول)، اضغط عليها "نسخ"، وارجع هنا وألصقها تاني.',  
+        const confirmBtnEl = document.getElementById('lp-gmaps-import-confirm-btn');  
+        if (isShortGoogleMapsLink(text)) {  
+            // 🆕 رابط مختصر - نحاول نفهمه تلقائيًا بدل ما نطلب من المستخدم يعمل حاجة تانية
+            const originalLabel = confirmBtnEl.innerHTML;  
+            confirmBtnEl.innerHTML = '⏳ جاري فهم الرابط...';  
+            confirmBtnEl.disabled = true;  
+            const resolved = await resolveShortGoogleMapsLink(text);  
+            confirmBtnEl.innerHTML = originalLabel;  
+            confirmBtnEl.disabled = false;  
+            if (resolved) {  
+                if (lpMap) { lpMap.setView([resolved.lat, resolved.lng], 18); }  
+                document.getElementById('lp-gmaps-import-box').style.display = 'none';  
+                input.value = '';  
+                flashLpConfirmGuidance();  
+                return;  
+            }  
+            showLpBlockError('⚠️ معلش، حصلت مشكلة اتصال مؤقتة ومقدرناش نفهم الرابط ده دلوقتي.', {  
+                sub: 'جرب تدوس "استخدم هذا المكان" تاني كمان مرة، أو في خرائط جوجل اضغط ضغطة طويلة على مكانك وانسخ الأرقام اللي هتظهر تحت بدل الرابط.',  
+                onRetry: importFromGoogleMapsLink,  
                 onManual: () => {}  
             });  
             return;  
