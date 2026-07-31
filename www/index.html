@@ -1412,20 +1412,29 @@
 
     // =========================================================================
     // 🆕 فهم الروابط المختصرة (زي https://maps.app.goo.gl/xxxxxxx) تلقائيًا.
-    // اكتشفنا سبب حقيقي مهم بعد الفحص: بعض روابط جوجل ماب (خصوصًا لما تكون بتاعة "مكان"
-    // له اسم، مش مجرد نقطة على الخريطة) بترجع لرابط طويل من غير إحداثيات صريحة خالص جواه -
-    // بيكون بس فيه "رقم تعريف المكان" (زي 0x145815bb45491cad:0x7bd3e3ddfaba3812). المصادر
-    // اللي بنستخدمها (نوميناتيم، Overpass) معندهاش وصول لقاعدة بيانات جوجل عشان تفك الرقم ده.
-    // الحل: جوجل نفسها بتوفر رابط رسمي قديم (maps?cid=) بيحول الرقم ده (بعد تحويله لرقم عشري)
-    // لنفس صفحة المكان لكن الأول (بيبقى فيها الإحداثيات صريحة هذه المرة) - فبنعمل "قفزة تانية"
-    // ونحل الرابط الجديد ده بنفس الطريقة. الخدمات الوسيطة (بروكسي) مجانية وعامة برا سيطرتنا
-    // ومش مضمون تفضل شغالة ١٠٠٪ من الوقت، فبنجرب أكتر من واحدة بالترتيب في كل قفزة
+    // اكتشفنا سببين حقيقيين للمشكلة بعد الفحص:
+    // ١) بعض روابط "الأماكن" (اللي ليها اسم، مش مجرد نقطة) بترجع لرابط طويل من غير
+    //    إحداثيات صريحة خالص جواه - بس فيه "رقم تعريف المكان" (زي 0xHEX1:0xHEX2). بنحلها
+    //    بقفزة تانية لرابط جوجل الرسمي "maps?cid=" اللي بيرجع الإحداثيات صراحة.
+    // ٢) الأهم: جوجل بتراقب وبتحجب/تبطئ الطلبات الجاية من الخدمات الوسيطة (بروكسي) المجانية
+    //    المشهورة زي AllOrigins، لأنها معروفة ومستخدمة بكثرة فبتتصنف "بوت" بسهولة عندها.
+    //    عشان كده لما جربنا نفس الرابط بأداة تانية (مش خدمة بروكسي عامة مشهورة) نجحت على طول.
+    //    كحل: ضفنا خدمة "قراءة" بتحاكي متصفح حقيقي كامل (بتنفذ جافاسكريبت زي المتصفح
+    //    بالظبط) كأول محاولة، لأنها أقل عرضة للحجب. وضفنا كمان خيار متقدم (اختياري) تحت
+    //    بتقدر تفعّله لو حابب ضمان أعلى: تشغيل خدمة وسيطة خاصة بيك بدل ما تعتمد على
+    //    خدمات عامة كل الدنيا بتستخدمها.
     // =========================================================================
     function isShortGoogleMapsLink(text) {  
         return /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i.test(text);  
     }  
 
+    // 🆕 خيار متقدم اختياري: لو عملت خدمة وسيطة خاصة بيك (Cloudflare Worker مجاني، خطوات
+    // إنشائها في الرسالة اللي معاك)، حط رابطها هنا وهتتجرب هي الأول قبل أي حاجة تانية،
+    // لأنها بتكون تحت سيطرتك بالكامل ومش معروفة/محجوبة زي الخدمات العامة المشهورة
+    const LP_RESOLVER_WORKER_URL = 'https://yellow-wildflower-6131.mahmoudmohamed3322111.workers.dev';  
+
     const LP_LINK_RESOLVE_PROXIES = [  
+        { name: 'jina-reader', build: (url) => 'https://r.jina.ai/' + url, kind: 'raw' },  
         { name: 'allorigins', build: (url) => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), kind: 'json' },  
         { name: 'codetabs', build: (url) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), kind: 'raw' },  
         { name: 'corsproxy.io', build: (url) => 'https://corsproxy.io/?url=' + encodeURIComponent(url), kind: 'raw' }  
@@ -1446,7 +1455,7 @@
     }  
 
     async function tryResolveViaOneProxy(proxy, targetUrl) {  
-        const res = await fetchWithTimeout(proxy.build(targetUrl), 8000);  
+        const res = await fetchWithTimeout(proxy.build(targetUrl), 9000);  
         if (!res.ok) return { coords: null, combinedText: '' };  
         let finalUrl = '', contents = '';  
         if (proxy.kind === 'json') {  
@@ -1460,12 +1469,33 @@
         return { coords: parseLatLngFromText(combinedText), combinedText };  
     }  
 
-    // 🆕 بيحل رابط جوجل ماب لإحداثيات، وبيجرب كل خدمة وسيطة في القائمة واحدة ورا التانية
-    // (مش مع بعض)، وبيوري تقدمه في شاشة الحجب عشان المستخدم يشوف إن فيه حركة حقيقية بتحصل.
-    // لو لقى "رقم تعريف مكان" (CID) بدل إحداثيات صريحة، بيعمل قفزة تانية تلقائيًا لحل الرابط
-    // الرسمي المختصر بتاع الرقم ده (depth بيمنع أي حلقة لا نهائية، أقصى قفزتين بس)
+    async function tryResolveViaWorker(targetUrl) {  
+        if (!LP_RESOLVER_WORKER_URL) return { coords: null, combinedText: '' };  
+        const res = await fetchWithTimeout(LP_RESOLVER_WORKER_URL + '?url=' + encodeURIComponent(targetUrl), 9000);  
+        if (!res.ok) return { coords: null, combinedText: '' };  
+        const data = await res.json();  
+        const combinedText = (data.finalUrl || '') + ' ' + (data.contents || '');  
+        return { coords: parseLatLngFromText(combinedText), combinedText };  
+    }  
+
+    // 🆕 بيحل رابط جوجل ماب لإحداثيات - بيجرب (بالترتيب): الخدمة الخاصة بيك لو مفعّلة،
+    // وبعدين كل خدمة عامة في القائمة واحدة ورا التانية، وبيوري تقدمه في شاشة الحجب عشان
+    // المستخدم يشوف إن فيه حركة حقيقية بتحصل. لو لقى "رقم تعريف مكان" (CID) بدل إحداثيات
+    // صريحة، بيعمل قفزة تانية تلقائيًا لحل الرابط الرسمي بتاع الرقم ده (depth بيمنع أي
+    // حلقة لا نهائية، أقصى قفزتين بس)
     async function resolveGoogleMapsUrlToCoords(url, depth) {  
         depth = depth || 0;  
+        if (LP_RESOLVER_WORKER_URL) {  
+            showLpBlock('⏳ جاري تحديد مكانك بالظبط...', { sub: 'من فضلك استنى شوية' });  
+            try {  
+                const { coords, combinedText } = await tryResolveViaWorker(url);  
+                if (coords) return coords;  
+                if (depth < 1) {  
+                    const cid = extractCidFromText(combinedText);  
+                    if (cid) { const hop = await resolveGoogleMapsUrlToCoords('https://www.google.com/maps?cid=' + cid, depth + 1); if (hop) return hop; }  
+                }  
+            } catch (e) { /* الخدمة الخاصة فشلت - نكمل على الخدمات العامة تحت */ }  
+        }  
         for (let i = 0; i < LP_LINK_RESOLVE_PROXIES.length; i++) {  
             showLpBlock(`⏳ جاري تحديد مكانك بالظبط... (بنجرب طريقة ${i + 1} من ${LP_LINK_RESOLVE_PROXIES.length})`, { sub: 'من فضلك استنى شوية' });  
             try {  
@@ -1478,7 +1508,7 @@
                         if (secondHop) return secondHop;  
                     }  
                 }  
-            } catch (e) { /* الخدمة دي فشلت أو واقفة دلوقتي - نجرب اللي بعدها */ }  
+            } catch (e) { /* الخدمة دي فشلت أو واقفة أو محجوبة دلوقتي - نجرب اللي بعدها */ }  
         }  
         return null;  
     }  
