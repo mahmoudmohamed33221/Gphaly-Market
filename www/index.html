@@ -105,6 +105,10 @@
     .lp-btn-row { display: flex; gap: 0.65rem; }
     .lp-btn-cancel { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--muted); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
     .lp-btn-confirm { flex: 2; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #111827; font-weight: 800; padding: 0.9rem; border-radius: 0.85rem; }
+    /* 🆕 وميض واضح على زرار التأكيد بعد ما المستخدم يختار مكان من القايمة، عشان يبان له
+       بوضوح الخطوة الجاية - مفيد جدًا لكبار السن ولأي حد مش متعود على تطبيقات الخرايط */
+    @keyframes lpConfirmPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.65); } 50% { box-shadow: 0 0 0 12px rgba(212,175,55,0); } }
+    .lp-btn-confirm.lp-pulse { animation: lpConfirmPulse 1s ease-in-out 4; }
     /* 🆕 مربع البحث فوق الخريطة + نتائج البحث اللحظي */
     .lp-search-wrap { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1200; }
     .lp-search-box { display: flex; align-items: center; gap: 10px; background: rgba(10,10,10,0.97); border: 1.5px solid var(--border); border-radius: 0.9rem; padding: 0.85rem 1rem; box-shadow: 0 8px 22px rgba(0,0,0,0.5); }
@@ -113,12 +117,14 @@
     .lp-search-box input::placeholder { color: var(--muted); }
     .lp-search-clear { color: var(--muted); cursor: pointer; padding: 4px; }
     #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow-y: auto; max-height: 52vh; box-shadow: 0 8px 22px rgba(0,0,0,0.5); -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; }
-    .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: flex-start; gap: 8px; }
+    .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: center; gap: 8px; }
     .lp-search-result-item:last-child { border-bottom: none; }
-    .lp-search-result-item i { color: var(--gold); flex-shrink: 0; margin-top: 2px; }
+    .lp-search-result-item i.fa-location-dot { color: var(--gold); flex-shrink: 0; }
     .lp-search-result-item:active { background: rgba(212,175,55,0.1); }
+    .lp-search-result-text { flex: 1; min-width: 0; }
     .lp-search-result-name { font-weight: 700; display: block; }
     .lp-search-result-sub { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 2px; line-height: 1.4; }
+    .lp-search-result-pick { flex-shrink: 0; background: rgba(212,175,55,0.14); border: 1px solid rgba(212,175,55,0.4); color: var(--gold-light); font-size: 0.7rem; font-weight: 800; padding: 6px 10px; border-radius: 0.6rem; white-space: nowrap; }
     .lp-search-empty { padding: 0.9rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
     /* 🆕 زرار + صندوق استيراد مكان بلصق رابط/إحداثيات من تطبيق جوجل ماب نفسه */
     #lp-gmaps-import-toggle { margin-top: 6px; width: 100%; background: rgba(10,10,10,0.97); border: 1.5px dashed var(--border); border-radius: 0.9rem; padding: 0.65rem 0.85rem; color: var(--gold-light); font-size: 0.74rem; font-weight: 700; text-align: center; touch-action: manipulation; }
@@ -452,14 +458,20 @@
             </div>  
             <div id="lp-search-results"></div>  
             <button type="button" id="lp-gmaps-import-toggle" onclick="toggleLpGmapsImport()">  
-                <i class="fab fa-google ml-1"></i>حدد المكان من جوجل ماب نفسها والصق الرابط هنا  
+                <i class="fab fa-google ml-1"></i>مش لاقي مكاني؟ دور عليه في تطبيق خرائط جوجل  
             </button>  
             <div id="lp-gmaps-import-box" style="display:none;">  
-                <div class="lp-gmaps-import-hint">افتح جوجل ماب، دور على المكان، اضغط مطولًا على النقطة لحد ما تظهر الإحداثيات أو دوس "مشاركة"، وانسخ الرابط/الإحداثيات، وألصقها هنا 👇</div>  
-                <textarea id="lp-gmaps-import-input" placeholder="الصق هنا رابط جوجل ماب أو الإحداثيات (مثال: 30.123456, 31.123456)" rows="2"></textarea>  
+                <div class="lp-gmaps-import-hint">  
+                    <b>اعمل كده بالترتيب:</b><br>  
+                    ١) اخرج من هنا وافتح تطبيق اسمه (خرائط جوجل / Google Maps) في تليفونك<br>  
+                    ٢) دور فيه على مكانك بالاسم<br>  
+                    ٣) لما تلاقيه، اضغط عليه ضغطة طويلة لحد ما يظهر تحت كلام وأرقام (ده مكانك)، واضغط عليه "نسخ"<br>  
+                    ٤) ارجع للصفحة دي وألصق اللي نسخته في الصندوق تحت 👇  
+                </div>  
+                <textarea id="lp-gmaps-import-input" placeholder="ألصق هنا اللي نسخته من خرائط جوجل" rows="2"></textarea>  
                 <div class="lp-gmaps-import-actions">  
-                    <button type="button" class="lp-block-btn lp-block-btn-secondary" onclick="toggleLpGmapsImport()">إلغاء</button>  
-                    <button type="button" class="lp-block-btn lp-block-btn-primary" onclick="importFromGoogleMapsLink()">تأكيد واستخدام هذا المكان</button>  
+                    <button type="button" class="lp-block-btn lp-block-btn-secondary" onclick="toggleLpGmapsImport()">رجوع</button>  
+                    <button type="button" class="lp-block-btn lp-block-btn-primary" onclick="importFromGoogleMapsLink()">استخدم هذا المكان</button>  
                 </div>  
             </div>  
         </div>  
@@ -815,6 +827,8 @@
     let lpFirstFixPending = false; // 🆕 لسه مستنيين أول تحديد فعلي لموقعك الحقيقي (العلامة الزرقاء) في الفتحة الحالية للمودال
     let lpShouldCenterOnFirstFix = false; // 🆕 لو مفيش نقطة محفوظة، أول ما توصل العلامة الزرقاء نحرك الخريطة عليها تلقائيًا
     let lpBlockFixTimeout = null; // 🆕 مؤقّت أمان: لو أول تحديد للموقع اتأخر جدًا نطلع رسالة خطأ بدل ما نفضل شاشة الحجب طول العمر
+    let lpBaseHintText = ''; // 🆕 نص الإرشاد الأساسي لكل خطوة (بيترجعله الكلام بعد ما نعرض إرشاد مؤقت لما يختار مكان)
+    let lpHintResetTimer = null;
     const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
     const LP_FIRST_FIX_TIMEOUT_MS = 15000;
 
@@ -875,17 +889,21 @@
         lpAdvanceTo = advanceTo || null;  
         const confirmBtn = document.getElementById('lp-confirm-btn');  
         const autoWrap = document.getElementById('lp-auto-set-wrap');  
+        let baseHint;  
         if (target === 'store') {  
-            document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد موقع المحل بدقة على الخريطة';  
-            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقع المحل صحيح، وبعدين دوس "تأكيد مكان المحل" للمتابعة' : 'اكتب اسم المحل أو المنطقة في مربع البحث (هيطلعلك كل الأماكن اللي بنفس الاسم في أي مكان)، أو دوس زرار "اذهب لموقعك الحالي الآن" لو المحل جمب مكانك، أو حرك الخريطة لحد ما توصل لمكان المحل بالظبط';  
+            document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد مكان المحل على الخريطة';  
+            baseHint = advanceTo ? 'شوف العلامة الحمرا 🔴 لو هي فوق المحل بالظبط، دوس على الزرار الدهبي تحت "تأكيد مكان المحل"' : 'اكتب اسم المحل أو اسم المنطقة في الصندوق فوق ✍️، هيطلعلك قائمة بكل الأماكن، دوس على المكان الصح منها، وبعدين دوس الزرار الدهبي تحت "تأكيد"';  
+            document.getElementById('lp-hint').textContent = baseHint;  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان المحل';  
             autoWrap.style.display = 'none';  
         } else {  
-            document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>قم بتحديد موقع منزلك بشكل دقيق لسهولة وصول الطلب إلى منزلك';  
-            document.getElementById('lp-hint').textContent = advanceTo ? 'قم بالتأكد من أن موقعك الحالي صحيح، وبعدين دوس "تأكيد مكان منزلي" للمتابعة' : 'هجبنالك موقعك الحالي تلقائيًا، وتقدر تظبطه بحرية الخريطة أو بالبحث عن اسم منطقتك';  
+            document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>حدد مكان بيتك على الخريطة عشان الطلب يوصلك بسهولة';  
+            baseHint = advanceTo ? 'شوف العلامة الحمرا 🔴 لو هي فوق بيتك بالظبط، دوس على الزرار الدهبي تحت "تأكيد مكان منزلي"' : 'جبنالك مكانك تلقائي. لو مش مظبوط، اكتب اسم منطقتك في الصندوق فوق ✍️ ودوس على المكان الصح من القائمة، وبعدين دوس الزرار الدهبي تحت "تأكيد"';  
+            document.getElementById('lp-hint').textContent = baseHint;  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان منزلي';  
             autoWrap.style.display = 'block';  
         }  
+        lpBaseHintText = baseHint;  
         document.getElementById('lp-search-input').value = '';  
         hideLpSearchResults();  
         document.getElementById('lp-search-clear').style.display = 'none';  
@@ -1283,24 +1301,40 @@
 
     function renderLpSearchResults(results) {  
         const box = document.getElementById('lp-search-results');  
-        if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مقدرناش نلاقي المكان بالظبط، جرب تكتب اسم منطقة أو مدينة أقرب، أو حرك الخريطة بإيدك لحد مكانك</div>`; box.style.display = 'block'; return; }  
+        if (!results.length) { box.innerHTML = `<div class="lp-search-empty">مقدرناش نلاقي المكان. جرب تكتب اسم المنطقة أو الشارع بس (من غير اسم المحل)، أو دوس على الخريطة بإصبعك في مكانك</div>`; box.style.display = 'block'; return; }  
         box.innerHTML = results.map((r, i) => {  
             const parts = String(r.display_name || '').split(',');  
             const mainName = (parts[0] || r.display_name || '').trim();  
             const subName = parts.slice(1).join(',').trim();  
-            return `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span><span class="lp-search-result-name">${escapeHtml(mainName)}</span>${subName ? `<span class="lp-search-result-sub">${escapeHtml(subName)}</span>` : ''}</span></div>`;  
+            return `<div class="lp-search-result-item" onclick="selectLpSearchResult(${i})"><i class="fas fa-location-dot"></i><span class="lp-search-result-text"><span class="lp-search-result-name">${escapeHtml(mainName)}</span>${subName ? `<span class="lp-search-result-sub">${escapeHtml(subName)}</span>` : ''}</span><span class="lp-search-result-pick">اختيار ✓</span></div>`;  
         }).join('');  
         box.style.display = 'block';  
         window._lpSearchResultsCache = results;  
     }  
 
     // 🆕 لما تدوس على نتيجة من البحث، الخريطة "توسع" (تكبر/تقرب) على المكان مباشرة والعلامة
-    // الحمرا (نقطة التأكيد) بتبقى بالظبط فوقه، عشان تقدر تأكد إنه المكان الصح قبل ما تضغط "تأكيد"
+    // الحمرا (نقطة التأكيد) بتبقى بالظبط فوقه، عشان تقدر تأكد إنه المكان الصح قبل ما تضغط "تأكيد".
+    // وبعدين بنوريه إرشاد واضح + وميض على زرار التأكيد عشان يعرف الخطوة الجاية بسهولة
     function selectLpSearchResult(i) {  
         const r = (window._lpSearchResultsCache || [])[i];  
         if (!r || !lpMap) return;  
         lpMap.setView([parseFloat(r.lat), parseFloat(r.lon)], 18);  
         hideLpSearchResults();  
+        const mainName = String(r.display_name || '').split(',')[0].trim();  
+        flashLpConfirmGuidance(mainName);  
+    }  
+
+    // 🆕 إرشاد مؤقت + وميض على زرار التأكيد، بيظهر لمدة كام ثانية بعد ما المستخدم يختار
+    // مكان (من البحث أو من لصق جوجل ماب)، وبعدين يرجع النص الأصلي تاني لوحده
+    function flashLpConfirmGuidance(placeName) {  
+        const hintEl = document.getElementById('lp-hint');  
+        hintEl.innerHTML = `👈 كويس! دلوقتي بص للعلامة الحمرا 🔴 فوق${placeName ? ' - "' + escapeHtml(placeName) + '"' : ''}، لو هي فوق مكانك صح، دوس الزرار الدهبي تحت وخلاص`;  
+        const confirmBtn = document.getElementById('lp-confirm-btn');  
+        confirmBtn.classList.remove('lp-pulse');  
+        void confirmBtn.offsetWidth; // 🆕 نجبر المتصفح يعيد حساب الأنيميشن من الأول لو كانت شغالة قبل كده  
+        confirmBtn.classList.add('lp-pulse');  
+        clearTimeout(lpHintResetTimer);  
+        lpHintResetTimer = setTimeout(() => { hintEl.textContent = lpBaseHintText; confirmBtn.classList.remove('lp-pulse'); }, 6000);  
     }  
 
     function hideLpSearchResults() {  
@@ -1361,20 +1395,21 @@
         const text = input.value.trim();  
         if (!text) return;  
         if (/goo\.gl|maps\.app\.goo\.gl/i.test(text) && !/@-?\d/.test(text) && !/[?&](q|ll)=-?\d/.test(text)) {  
-            showLpBlockError('⚠️ الرابط ده رابط مختصر من جوجل ماب، ومينفعش نفكه تلقائيًا جوه التطبيق (قيود تقنية من جوجل نفسها).', {  
-                sub: 'الحل: افتح الرابط في متصفح الموبايل لحد ما يتحول لرابط طويل، وانسخه من شريط العنوان بعد كده. أو الأسهل: في جوجل ماب دوس مطولًا على المكان لحد ما تظهر الإحداثيات، وانسخها بزرار "نسخ الإحداثيات" وحطها هنا.',  
+            showLpBlockError('⚠️ اللي لصقته ده مختصر وناقص، مش عارفين نلاقي فيه المكان.', {  
+                sub: 'جرب كده: في تطبيق خرائط جوجل، اضغط ضغطة طويلة على مكانك بالظبط لحد ما يظهر تحت أرقام كتير (خط العرض وخط الطول)، اضغط عليها "نسخ"، وارجع هنا وألصقها تاني.',  
                 onManual: () => {}  
             });  
             return;  
         }  
         const coords = parseLatLngFromText(text);  
         if (!coords) {  
-            showLpBlockError('⚠️ مقدرناش نلاقي إحداثيات في اللي لصقته.', { sub: 'تأكد إنه رابط جوجل ماب كامل فيه "@خط العرض,خط الطول"، أو إحداثيات منسوخة بصيغة "خط العرض, خط الطول".', onManual: () => {} });  
+            showLpBlockError('⚠️ معلش، مقدرناش نفهم مكانك من اللي لصقته.', { sub: 'جرب تاني: في خرائط جوجل اضغط ضغطة طويلة على مكانك، وانسخ الأرقام اللي هتظهر تحت، وألصقها هنا. أو استخدم صندوق البحث فوق واكتب اسم منطقتك بدل كده.', onManual: () => {} });  
             return;  
         }  
         if (lpMap) { lpMap.setView([coords.lat, coords.lng], 18); }  
         document.getElementById('lp-gmaps-import-box').style.display = 'none';  
         input.value = '';  
+        flashLpConfirmGuidance();  
     }  
 
     function confirmLocationPick() {  
