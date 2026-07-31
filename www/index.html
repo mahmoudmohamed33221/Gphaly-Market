@@ -1411,14 +1411,15 @@
     }  
 
     // =========================================================================
-    // 🆕 فهم الروابط المختصرة (زي https://maps.app.goo.gl/xxxxxxx) تلقائيًا. المشكلة إن
-    // الرابط المختصر ده جوّاه معلومة "روح لرابط تاني أطول فيه الإحداثيات" (بيسموها إعادة
-    // توجيه/Redirect)، لكن المتصفح بتاعنا ممنوع (لأسباب أمان من جوجل نفسها) إنه يقرا الرابط
-    // الطويل ده مباشرة بنفسه. الحل: بنستخدم خدمات وسيطة مجانية، وظيفتها إنها هي اللي تفتح
-    // الرابط المختصر نيابة عننا، وترجعلنا هي الرابط الطويل النهائي (أو محتواه) اللي فيه
-    // الإحداثيات. الخدمات دي مجانية وعامة ومش مضمون تفضل شغالة ١٠٠٪ من الوقت (زي أي خدمة
-    // مجانية برا سيطرتنا)، فبنجرب أكتر من واحدة بالترتيب - لو الأولى وقفت أو بطيئة، نجرب
-    // اللي بعدها على طول من غير ما نوقف، عشان نرفع فرصة النجاح قد الإمكان
+    // 🆕 فهم الروابط المختصرة (زي https://maps.app.goo.gl/xxxxxxx) تلقائيًا.
+    // اكتشفنا سبب حقيقي مهم بعد الفحص: بعض روابط جوجل ماب (خصوصًا لما تكون بتاعة "مكان"
+    // له اسم، مش مجرد نقطة على الخريطة) بترجع لرابط طويل من غير إحداثيات صريحة خالص جواه -
+    // بيكون بس فيه "رقم تعريف المكان" (زي 0x145815bb45491cad:0x7bd3e3ddfaba3812). المصادر
+    // اللي بنستخدمها (نوميناتيم، Overpass) معندهاش وصول لقاعدة بيانات جوجل عشان تفك الرقم ده.
+    // الحل: جوجل نفسها بتوفر رابط رسمي قديم (maps?cid=) بيحول الرقم ده (بعد تحويله لرقم عشري)
+    // لنفس صفحة المكان لكن الأول (بيبقى فيها الإحداثيات صريحة هذه المرة) - فبنعمل "قفزة تانية"
+    // ونحل الرابط الجديد ده بنفس الطريقة. الخدمات الوسيطة (بروكسي) مجانية وعامة برا سيطرتنا
+    // ومش مضمون تفضل شغالة ١٠٠٪ من الوقت، فبنجرب أكتر من واحدة بالترتيب في كل قفزة
     // =========================================================================
     function isShortGoogleMapsLink(text) {  
         return /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i.test(text);  
@@ -1435,34 +1436,57 @@
         return Promise.race([fetch(url), timeoutPromise]);  
     }  
 
-    async function tryResolveViaOneProxy(proxy, targetUrl) {  
-        const res = await fetchWithTimeout(proxy.build(targetUrl), 8000);  
-        if (!res.ok) return null;  
-        if (proxy.kind === 'json') {  
-            const data = await res.json();  
-            const finalUrl = (data && data.status && data.status.url) ? data.status.url : '';  
-            const fromUrl = finalUrl ? parseLatLngFromText(decodeURIComponent(finalUrl)) : null;  
-            if (fromUrl) return fromUrl;  
-            if (data && data.contents) { return parseLatLngFromText(data.contents); }  
-            return null;  
-        }  
-        const text = await res.text();  
-        return parseLatLngFromText(text);  
+    // 🆕 رقم تعريف المكان الفريد عند جوجل (CID) - بيظهر جوه الرابط الطويل بالشكل ده
+    // "!1s0xHEX1:0xHEX2" والجزء التاني (HEX2) هو الـ CID بالنظام الست عشري، وجوجل بتقبله
+    // كمان كرقم عشري عادي في رابط "maps?cid=" الرسمي بتاعها
+    function extractCidFromText(text) {  
+        const m = String(text || '').match(/!1s0x[0-9a-fA-F]+:(0x[0-9a-fA-F]+)/);  
+        if (!m) return null;  
+        try { return BigInt(m[1]).toString(); } catch (e) { return null; }  
     }  
 
-    // 🆕 بيجرب كل خدمة في القائمة واحدة ورا التانية (مش مع بعض)، وبيوري تقدمه في شاشة الحجب
-    // عشان المستخدم يشوف إن فيه حركة حقيقية بتحصل، مش شاشة واقفة ومعملة حاجة زي ما كان بيحصل
-    async function resolveShortGoogleMapsLink(text) {  
-        const m = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i);  
-        const url = m ? m[0] : text.trim();  
+    async function tryResolveViaOneProxy(proxy, targetUrl) {  
+        const res = await fetchWithTimeout(proxy.build(targetUrl), 8000);  
+        if (!res.ok) return { coords: null, combinedText: '' };  
+        let finalUrl = '', contents = '';  
+        if (proxy.kind === 'json') {  
+            const data = await res.json();  
+            finalUrl = (data && data.status && data.status.url) ? decodeURIComponent(data.status.url) : '';  
+            contents = (data && data.contents) ? data.contents : '';  
+        } else {  
+            contents = await res.text();  
+        }  
+        const combinedText = finalUrl + ' ' + contents;  
+        return { coords: parseLatLngFromText(combinedText), combinedText };  
+    }  
+
+    // 🆕 بيحل رابط جوجل ماب لإحداثيات، وبيجرب كل خدمة وسيطة في القائمة واحدة ورا التانية
+    // (مش مع بعض)، وبيوري تقدمه في شاشة الحجب عشان المستخدم يشوف إن فيه حركة حقيقية بتحصل.
+    // لو لقى "رقم تعريف مكان" (CID) بدل إحداثيات صريحة، بيعمل قفزة تانية تلقائيًا لحل الرابط
+    // الرسمي المختصر بتاع الرقم ده (depth بيمنع أي حلقة لا نهائية، أقصى قفزتين بس)
+    async function resolveGoogleMapsUrlToCoords(url, depth) {  
+        depth = depth || 0;  
         for (let i = 0; i < LP_LINK_RESOLVE_PROXIES.length; i++) {  
-            showLpBlock(`⏳ جاري فهم الرابط... (بنجرب طريقة ${i + 1} من ${LP_LINK_RESOLVE_PROXIES.length})`, { sub: 'من فضلك استنى شوية' });  
+            showLpBlock(`⏳ جاري تحديد مكانك بالظبط... (بنجرب طريقة ${i + 1} من ${LP_LINK_RESOLVE_PROXIES.length})`, { sub: 'من فضلك استنى شوية' });  
             try {  
-                const result = await tryResolveViaOneProxy(LP_LINK_RESOLVE_PROXIES[i], url);  
-                if (result) return result;  
+                const { coords, combinedText } = await tryResolveViaOneProxy(LP_LINK_RESOLVE_PROXIES[i], url);  
+                if (coords) return coords;  
+                if (depth < 1) {  
+                    const cid = extractCidFromText(combinedText);  
+                    if (cid) {  
+                        const secondHop = await resolveGoogleMapsUrlToCoords('https://www.google.com/maps?cid=' + cid, depth + 1);  
+                        if (secondHop) return secondHop;  
+                    }  
+                }  
             } catch (e) { /* الخدمة دي فشلت أو واقفة دلوقتي - نجرب اللي بعدها */ }  
         }  
         return null;  
+    }  
+
+    async function resolveShortGoogleMapsLink(text) {  
+        const m = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i);  
+        const url = m ? m[0] : text.trim();  
+        return await resolveGoogleMapsUrlToCoords(url, 0);  
     }  
 
     async function importFromGoogleMapsLink() {  
