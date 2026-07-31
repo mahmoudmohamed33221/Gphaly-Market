@@ -1061,20 +1061,75 @@
         return fetch(url, { signal }).then(r => r.json()).catch(() => []);  
     }  
 
+    // =========================================================================
+    // 🆕 خيار Google Places (اختياري، متقفل افتراضيًا) - ده المصدر الوحيد اللي فعليًا
+    // بيدي نفس نتائج جوجل ماب بالظبط (نفس عدد الفروع ونفس الترتيب)، لأنه حرفيًا نفس
+    // قاعدة بيانات جوجل اللي طالعة في السكرين شوت بتاعك. لو عايز تفعّله:
+    //   ١) اعمل مشروع في Google Cloud Console وفعّل "Maps JavaScript API" + "Places API"
+    //   ٢) فعّل الفوترة (جوجل بتدي رصيد مجاني شهري بيغطي استخدام تطبيق صغير غالبًا)
+    //   ٣) حط الـ API Key بتاعك في المتغير GOOGLE_PLACES_API_KEY تحت
+    // من غير ما تحط مفتاح، البحث هيفضل شغال عادي بالمصادر المجانية (نوميناتيم + Overpass)
+    // زي دلوقتي بالظبط، من غير أي كسر أو خطأ.
+    // =========================================================================
+    const GOOGLE_PLACES_API_KEY = '';  
+
+    let googlePlacesReadyPromise = null, googlePlacesService = null;  
+
+    function loadGooglePlacesApi() {  
+        if (!GOOGLE_PLACES_API_KEY) return Promise.resolve(false);  
+        if (googlePlacesReadyPromise) return googlePlacesReadyPromise;  
+        googlePlacesReadyPromise = new Promise((resolve) => {  
+            if (window.google && window.google.maps && window.google.maps.places) { resolve(true); return; }  
+            const script = document.createElement('script');  
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_PLACES_API_KEY)}&libraries=places&language=ar&region=EG`;  
+            script.async = true;  
+            script.onload = () => resolve(true);  
+            script.onerror = () => resolve(false);  
+            document.head.appendChild(script);  
+        });  
+        return googlePlacesReadyPromise;  
+    }  
+
+    // 🆕 بحث نصي حقيقي في قاعدة بيانات جوجل بلايسز (Text Search) - بيرجع كل الفروع
+    // اللي بنفس الاسم بالظبط زي ما بتشوف في تطبيق جوجل ماب نفسه
+    function fetchGooglePlacesResults(query) {  
+        return loadGooglePlacesApi().then(ready => {  
+            if (!ready || !window.google || !window.google.maps || !window.google.maps.places) return [];  
+            return new Promise((resolve) => {  
+                try {  
+                    if (!googlePlacesService) { googlePlacesService = new google.maps.places.PlacesService(document.createElement('div')); }  
+                    googlePlacesService.textSearch({ query, region: 'eg' }, (results, status) => {  
+                        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) { resolve([]); return; }  
+                        resolve(results.map(r => ({  
+                            lat: String(r.geometry.location.lat()),  
+                            lon: String(r.geometry.location.lng()),  
+                            display_name: r.formatted_address ? `${r.name}, ${r.formatted_address}` : r.name  
+                        })));  
+                    });  
+                } catch (e) { resolve([]); }  
+            });  
+        }).catch(() => []);  
+    }  
+
     // 🆕 نوميناتيم لوحده بيرجع غالبًا نتيجة أو اتنين بس لأسماء المحلات/العلامات التجارية
     // المتكررة (زي فروع "كشري الامبراطور")، لأن خوارزمية البحث بتاعته بترتب حسب الأهمية
     // وبتوقف عند أنسب نتيجة، مش بتدور على كل نقطة في الداتابيز باسم قريب من اللي اتكتب.
-    // عشان نقرب من سلوك جوجل ماب (يطلع كل الفروع اللي بنفس الاسم)، بنستخدم كمان Overpass API
-    // اللي بيدور مباشرة في كل نقاط/عناصر OpenStreetMap في مصر كلها على أي عنصر معاه tag
-    // اسمه (name أو name:ar أو brand) بيحتوي على النص اللي المستخدم كتبه، مش بس أفضل نتيجة.
+    // كمصدر مجاني إضافي (لحد ما تفعّل Google Places فوق)، بنستخدم Overpass API اللي
+    // بيدور مباشرة على أي عنصر في OpenStreetMap معاه tag اسمه (name أو name:ar) بيحتوي
+    // على النص المكتوب - لكن لازم يكون البحث محدود بمربع جغرافي (bbox) مش بمنطقة إدارية
+    // كاملة (زي "مصر" كمنطقة)، لأن بناء منطقة إدارية كاملة كخطوة أولى قبل البحث فيها
+    // عملية تقيلة جدًا على السيرفر المجاني وغالبًا بتفشل بالـ timeout من غير أي رسالة خطأ
+    // واضحة - وده اللي كان بيحصل قبل كده. البحث بمربع إحداثيات (bbox) أسرع بكتير ومستقر.
     function escapeOverpassRegex(str) {  
         return String(str).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  
     }  
 
+    const LP_EGYPT_BBOX = '21.5,24.5,32,37'; // جنوب,غرب,شمال,شرق - مربع بيغطي حدود مصر كلها تقريبًا  
+
     function buildOverpassQuery(query) {  
         const q = escapeOverpassRegex(query);  
         if (!q) return null;  
-        return `[out:json][timeout:20];area["ISO3166-1"="EG"][admin_level=2]->.egypt;(nwr["name"~"${q}",i](area.egypt);nwr["name:ar"~"${q}",i](area.egypt);nwr["brand"~"${q}",i](area.egypt);nwr["brand:ar"~"${q}",i](area.egypt););out center 40;`;  
+        return `[out:json][timeout:12];(nwr["name"~"${q}",i](${LP_EGYPT_BBOX});nwr["name:ar"~"${q}",i](${LP_EGYPT_BBOX}););out center 40;`;  
     }  
 
     // 🆕 بيحوّل نتيجة Overpass (اسم + وسوم عنوان لو موجودة) لنفس شكل نتيجة نوميناتيم
@@ -1084,38 +1139,43 @@
         const lon = el.lon || (el.center && el.center.lon);  
         if (!lat || !lon) return null;  
         const tags = el.tags || {};  
-        const name = tags['name:ar'] || tags.name || tags['brand:ar'] || tags.brand || fallbackName;  
+        const name = tags['name:ar'] || tags.name || fallbackName;  
         const addrParts = [tags['addr:street'], tags['addr:city'] || tags['addr:district'] || tags['addr:suburb'], tags['addr:state'] || tags['addr:governorate']].filter(Boolean);  
         const display_name = addrParts.length ? `${name}, ${addrParts.join(', ')}` : name;  
         return { lat: String(lat), lon: String(lon), display_name };  
     }  
 
+    // 🆕 لو Overpass اتأخر أكتر من ١٠ ثواني (السيرفر المجاني مزدحم أحيانًا)، منستناهوش أكتر
+    // من كده ومنكملش عليه - بنرجع نتيجة فاضية بس ومنكمل بباقي المصادر عادي، عشان البحث
+    // مايفضلش عالق لو مصدر واحد بس بطيء
     function fetchOverpassPlaces(query, signal) {  
         const q = buildOverpassQuery(query);  
         if (!q) return Promise.resolve([]);  
-        return fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })  
-            .then(r => r.json())  
+        const fetchPromise = fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } })  
+            .then(r => r.ok ? r.json() : { elements: [] })  
             .then(data => (data.elements || []).map(el => overpassElementToResult(el, query)).filter(Boolean))  
-            .catch(() => []); // أي فشل أو تايم آوت في Overpass - منوقفش البحث، بنكمل بنتائج نوميناتيم بس  
+            .catch(() => []);  
+        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([]), 10000));  
+        return Promise.race([fetchPromise, timeoutPromise]);  
     }  
 
-    // 🆕 بيجيب من المصدرين مع بعض في نفس الوقت (Overpass لكل فروع المحلات في مصر + نوميناتيم
-    // للعناوين والمناطق في مصر والعالم كله)، ولو الاتنين رجعوا نتائج بنجمعهم مع بعض
+    // 🆕 بيجيب من كل المصادر مع بعض في نفس الوقت: Google Places (لو المفتاح متفعّل - أدق مصدر
+    // وأقرب حاجة لجوجل ماب)، وOverpass (فروع من OpenStreetMap)، ونوميناتيم (عناوين ومناطق) -
+    // ولو أي مصدر رجع نتائج بنجمعهم مع بعض ونشيل أي تكرار
     async function fetchLpAllSources(query, signal) {  
-        const [overpassResults, nominatimResults] = await Promise.all([  
+        const [googleResults, overpassResults, nominatimResults] = await Promise.all([  
+            fetchGooglePlacesResults(query),  
             fetchOverpassPlaces(query, signal),  
             fetchLpGeocode(query, signal)  
         ]);  
-        return [...(overpassResults || []), ...(nominatimResults || [])];  
+        return [...(googleResults || []), ...(overpassResults || []), ...(nominatimResults || [])];  
     }  
 
-    // ملحوظة مهمة لازم تتقال بصراحة: حتى مع إضافة Overpass، البحث ده لسه مبني بالكامل على
-    // بيانات OpenStreetMap المجانية والمفتوحة (اللي بيضيفها متطوعين)، مش على قاعدة بيانات
-    // جوجل الخاصة والمدفوعة للأماكن (Google Places). فلو فرع معين مش متسجل خالص في
-    // OpenStreetMap (حتى لو مسجل في جوجل ماب)، مستحيل يظهر في البحث ده مهما حسّنا الكود،
-    // لأن المشكلة مش في طريقة البحث لوحدها لكن في إن البيانات نفسها مش موجودة في المصدر.
-    // الطريقة الوحيدة اللي بتضمن مطابقة جوجل ماب ١٠٠٪‏ هي ربط التطبيق بـ Google Places API
-    // (محتاج مفتاح API مدفوع من جوجل + إعداد فوترة على حساب جوجل كلاود).
+    // ملحوظة مهمة لازم تتقال بصراحة: من غير تفعيل Google Places بمفتاح، البحث لسه شغال
+    // بالكامل على بيانات OpenStreetMap المجانية (اللي بيضيفها متطوعين)، مش قاعدة بيانات
+    // جوجل الخاصة. فلو فرع معين مش متسجل خالص في OpenStreetMap (حتى لو مسجل في جوجل ماب)،
+    // مستحيل يظهر مهما حسّنا الكود، لأن المشكلة في المصدر نفسه مش في طريقة البحث. تفعيل
+    // GOOGLE_PLACES_API_KEY فوق هو الحل الوحيد اللي بيضمن مطابقة جوجل ماب ١٠٠٪‏.
     async function performLpSearch(query) {  
         if (lpSearchAbort) lpSearchAbort.abort();  
         const myController = new AbortController();  
@@ -1147,7 +1207,7 @@
             }  
         }  
         if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
-        // 🆕 إزالة أي نتائج مكررة أو قريبة جدًا من بعض (نفس النقطة تقريبًا جايه من المصدرين مع بعض)
+        // 🆕 إزالة أي نتائج مكررة أو قريبة جدًا من بعض (نفس النقطة تقريبًا جايه من أكتر من مصدر)
         const seen = new Set();  
         const deduped = (results || []).filter(r => {  
             const key = Math.round(parseFloat(r.lat) * 3000) + '|' + Math.round(parseFloat(r.lon) * 3000);  
