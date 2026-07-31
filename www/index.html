@@ -112,7 +112,7 @@
     .lp-search-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 0.85rem; }
     .lp-search-box input::placeholder { color: var(--muted); }
     .lp-search-clear { color: var(--muted); cursor: pointer; padding: 4px; }
-    #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow-y: auto; max-height: 52vh; box-shadow: 0 8px 22px rgba(0,0,0,0.5); -webkit-overflow-scrolling: touch; }
+    #lp-search-results { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; overflow-y: auto; max-height: 52vh; box-shadow: 0 8px 22px rgba(0,0,0,0.5); -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; }
     .lp-search-result-item { padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--cream); border-bottom: 1px solid rgba(212,175,55,0.12); display: flex; align-items: flex-start; gap: 8px; }
     .lp-search-result-item:last-child { border-bottom: none; }
     .lp-search-result-item i { color: var(--gold); flex-shrink: 0; margin-top: 2px; }
@@ -120,6 +120,14 @@
     .lp-search-result-name { font-weight: 700; display: block; }
     .lp-search-result-sub { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 2px; line-height: 1.4; }
     .lp-search-empty { padding: 0.9rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    /* 🆕 زرار + صندوق استيراد مكان بلصق رابط/إحداثيات من تطبيق جوجل ماب نفسه */
+    #lp-gmaps-import-toggle { margin-top: 6px; width: 100%; background: rgba(10,10,10,0.97); border: 1.5px dashed var(--border); border-radius: 0.9rem; padding: 0.65rem 0.85rem; color: var(--gold-light); font-size: 0.74rem; font-weight: 700; text-align: center; touch-action: manipulation; }
+    #lp-gmaps-import-toggle:active { background: rgba(212,175,55,0.08); }
+    #lp-gmaps-import-box { margin-top: 6px; background: rgba(10,10,10,0.98); border: 1px solid var(--border); border-radius: 0.9rem; padding: 0.85rem; box-shadow: 0 8px 22px rgba(0,0,0,0.5); touch-action: pan-y; }
+    .lp-gmaps-import-hint { color: var(--muted); font-size: 0.72rem; line-height: 1.6; margin-bottom: 0.6rem; }
+    #lp-gmaps-import-input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.6rem 0.75rem; color: var(--cream); font-family: 'Tajawal', sans-serif; font-size: 0.8rem; resize: none; outline: none; }
+    .lp-gmaps-import-actions { display: flex; gap: 0.5rem; margin-top: 0.65rem; }
+    .lp-gmaps-import-actions .lp-block-btn { width: auto; flex: 1; padding: 0.65rem; font-size: 0.78rem; }
     /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
     .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; height: 42px; padding: 0 15px; border-radius: 21px; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); white-space: nowrap; }
     .lp-locate-fab i { font-size: 0.95rem; }
@@ -443,6 +451,17 @@
                 <i class="fas fa-xmark lp-search-clear" id="lp-search-clear" onclick="clearLpSearch()" style="display:none;"></i>  
             </div>  
             <div id="lp-search-results"></div>  
+            <button type="button" id="lp-gmaps-import-toggle" onclick="toggleLpGmapsImport()">  
+                <i class="fab fa-google ml-1"></i>حدد المكان من جوجل ماب نفسها والصق الرابط هنا  
+            </button>  
+            <div id="lp-gmaps-import-box" style="display:none;">  
+                <div class="lp-gmaps-import-hint">افتح جوجل ماب، دور على المكان، اضغط مطولًا على النقطة لحد ما تظهر الإحداثيات أو دوس "مشاركة"، وانسخ الرابط/الإحداثيات، وألصقها هنا 👇</div>  
+                <textarea id="lp-gmaps-import-input" placeholder="الصق هنا رابط جوجل ماب أو الإحداثيات (مثال: 30.123456, 31.123456)" rows="2"></textarea>  
+                <div class="lp-gmaps-import-actions">  
+                    <button type="button" class="lp-block-btn lp-block-btn-secondary" onclick="toggleLpGmapsImport()">إلغاء</button>  
+                    <button type="button" class="lp-block-btn lp-block-btn-primary" onclick="importFromGoogleMapsLink()">تأكيد واستخدام هذا المكان</button>  
+                </div>  
+            </div>  
         </div>  
         <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
         <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
@@ -801,6 +820,20 @@
 
     const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
 
+    // 🆕 مشكلة كانت موجودة: لما قايمة نتائج البحث بتبقى فيها أماكن كتير وتحاول تنزل فيها
+    // (تسكرول)، اللمسة كانت بتوصل للخريطة اللي تحتها وتحركها هي بدل ما تسكرول في القايمة،
+    // لأن Leaflet بيسمع للمس على الصفحة كلها عشان يسحب الخريطة. الحل: نمنع أي لمسة/سحب/زوم
+    // بتبدأ من جوه قايمة النتائج أو صندوق استيراد جوجل ماب من إنها توصل لطبقة الخريطة خالص
+    function setupLpOverlayEventIsolation() {  
+        const elements = [document.getElementById('lp-search-results'), document.getElementById('lp-gmaps-import-box'), document.querySelector('.lp-search-box')];  
+        elements.forEach(el => {  
+            if (!el) return;  
+            L.DomEvent.disableClickPropagation(el);  
+            L.DomEvent.disableScrollPropagation(el);  
+            L.DomEvent.on(el, 'touchstart touchmove touchend', L.DomEvent.stopPropagation);  
+        });  
+    }  
+
     // =========================================================================
     // 🆕 شاشة الحجب المركزية (بدل الرسالة الصغيرة اللي كانت تحت الخريطة) - بتظهر في
     // نص الشاشة بشكل مميز بستايل البرنامج، وبتمنع أي تفاعل مع الخريطة أو الأزرار
@@ -856,12 +889,14 @@
         document.getElementById('lp-search-input').value = '';  
         hideLpSearchResults();  
         document.getElementById('lp-search-clear').style.display = 'none';  
+        document.getElementById('lp-gmaps-import-box').style.display = 'none';  
         hideLpBlock();  
         document.getElementById('location-picker-modal').classList.add('show');  
         setTimeout(() => {  
             if (!lpMap) {  
                 lpMap = L.map('locationPickerMap', { zoomControl: true, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lpMap);  
+                setupLpOverlayEventIsolation();  
             }  
             lpMap.invalidateSize();  
             const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
@@ -1147,7 +1182,7 @@
 
     // 🆕 لو Overpass اتأخر أكتر من ١٠ ثواني (السيرفر المجاني مزدحم أحيانًا)، منستناهوش أكتر
     // من كده ومنكملش عليه - بنرجع نتيجة فاضية بس ومنكمل بباقي المصادر عادي، عشان البحث
-    // مايفضلش عالق لو مصدر واحد بس بطيء
+    // مايفضلش عالق لو مصدر واحد بس بطيء. قللنا الانتظار من ١٠ ثواني لـ ٥ عشان يبقى أسرع
     function fetchOverpassPlaces(query, signal) {  
         const q = buildOverpassQuery(query);  
         if (!q) return Promise.resolve([]);  
@@ -1155,20 +1190,30 @@
             .then(r => r.ok ? r.json() : { elements: [] })  
             .then(data => (data.elements || []).map(el => overpassElementToResult(el, query)).filter(Boolean))  
             .catch(() => []);  
-        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([]), 10000));  
+        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([]), 5000));  
         return Promise.race([fetchPromise, timeoutPromise]);  
     }  
 
-    // 🆕 بيجيب من كل المصادر مع بعض في نفس الوقت: Google Places (لو المفتاح متفعّل - أدق مصدر
-    // وأقرب حاجة لجوجل ماب)، وOverpass (فروع من OpenStreetMap)، ونوميناتيم (عناوين ومناطق) -
-    // ولو أي مصدر رجع نتائج بنجمعهم مع بعض ونشيل أي تكرار
-    async function fetchLpAllSources(query, signal) {  
-        const [googleResults, overpassResults, nominatimResults] = await Promise.all([  
+    // 🆕 المصادر "السريعة" (نوميناتيم بيرد عادة في أقل من ثانية أو اتنين، وجوجل بلايسز لو
+    // مفعّل كمان سريع) - هي اللي بتتحكم في قرار تبسيط الجملة وإعادة المحاولة، عشان مستنيش
+    // على Overpass (اللي ممكن ياخد لحد ٥ ثواني) قبل ما نوريك أي حاجة على الإطلاق
+    async function fetchLpFastSources(query, signal) {  
+        const [googleResults, nominatimResults] = await Promise.all([  
             fetchGooglePlacesResults(query),  
-            fetchOverpassPlaces(query, signal),  
             fetchLpGeocode(query, signal)  
         ]);  
-        return [...(googleResults || []), ...(overpassResults || []), ...(nominatimResults || [])];  
+        return [...(googleResults || []), ...(nominatimResults || [])];  
+    }  
+
+    // 🆕 إزالة أي نتائج مكررة أو قريبة جدًا من بعض (نفس النقطة تقريبًا جايه من أكتر من مصدر)
+    function dedupeLpResults(results) {  
+        const seen = new Set();  
+        return (results || []).filter(r => {  
+            const key = Math.round(parseFloat(r.lat) * 3000) + '|' + Math.round(parseFloat(r.lon) * 3000);  
+            if (seen.has(key)) return false;  
+            seen.add(key);  
+            return true;  
+        }).slice(0, 40);  
     }  
 
     // ملحوظة مهمة لازم تتقال بصراحة: من غير تفعيل Google Places بمفتاح، البحث لسه شغال
@@ -1176,50 +1221,53 @@
     // جوجل الخاصة. فلو فرع معين مش متسجل خالص في OpenStreetMap (حتى لو مسجل في جوجل ماب)،
     // مستحيل يظهر مهما حسّنا الكود، لأن المشكلة في المصدر نفسه مش في طريقة البحث. تفعيل
     // GOOGLE_PLACES_API_KEY فوق هو الحل الوحيد اللي بيضمن مطابقة جوجل ماب ١٠٠٪‏.
+    // 🆕 دلوقتي البحث بقى تدريجي (زي جوجل بالظبط): أول ما نوميناتيم يرد (بسرعة عادة)، بنعرض
+    // نتيجته على طول من غير ما نستنى Overpass، وأول ما Overpass يخلص (لو خلص) بنضيف نتايجه
+    // فوق اللي ظاهرة بالفعل من غير ما نمسح حاجة - بدل ما تستنى المصدر الأبطأ الأول
     async function performLpSearch(query) {  
         if (lpSearchAbort) lpSearchAbort.abort();  
         const myController = new AbortController();  
         lpSearchAbort = myController;  
         const signal = myController.signal;  
         renderLpSearchLoading(query);  
-        let results = await fetchLpAllSources(query, signal);  
+        let fastResults = await fetchLpFastSources(query, signal);  
         // 🆕 لو مفيش نتائج مطابقة تمامًا، منقولش "مش موجود" على طول - بنبسط الجملة (نشيل آخر كلمة
         // أول حاجة، وبعدين نجرب الكلمة الأخيرة بس لوحدها لو لسه مفيش نتيجة) ونجرب كذا مرة،
         // عشان نقرب من المكان حتى لو الاسم مكتوب مش بالظبط أو فيه كلمات زيادة
         let simplified = query;  
         let attempts = 0;  
-        while ((!results || results.length === 0) && attempts < 3) {  
+        while ((!fastResults || fastResults.length === 0) && attempts < 3) {  
             if (lpSearchAbort !== myController) return; // في بحث أحدث بدأ فعلًا - نسيبله المجال  
             const words = simplified.trim().split(/\s+/);  
             if (words.length <= 1) break;  
             words.pop();  
             simplified = words.join(' ');  
-            results = await fetchLpAllSources(simplified, signal);  
+            fastResults = await fetchLpFastSources(simplified, signal);  
             attempts++;  
         }  
-        if ((!results || results.length === 0)) {  
+        if ((!fastResults || fastResults.length === 0)) {  
             // 🆕 محاولة أخيرة: نجرب آخر كلمتين بس من النص الأصلي (غالبًا اسم المكان/المنطقة)
             const origWords = query.trim().split(/\s+/);  
             if (origWords.length > 2) {  
                 if (lpSearchAbort !== myController) return;  
-                const lastTwo = origWords.slice(-2).join(' ');  
-                results = await fetchLpAllSources(lastTwo, signal);  
+                simplified = origWords.slice(-2).join(' ');  
+                fastResults = await fetchLpFastSources(simplified, signal);  
             }  
         }  
         if (lpSearchAbort !== myController) return; // النتيجة دي بقت قديمة، مبنعرضهاش  
-        // 🆕 إزالة أي نتائج مكررة أو قريبة جدًا من بعض (نفس النقطة تقريبًا جايه من أكتر من مصدر)
-        const seen = new Set();  
-        const deduped = (results || []).filter(r => {  
-            const key = Math.round(parseFloat(r.lat) * 3000) + '|' + Math.round(parseFloat(r.lon) * 3000);  
-            if (seen.has(key)) return false;  
-            seen.add(key);  
-            return true;  
-        }).slice(0, 40);  
-        renderLpSearchResults(deduped);  
-        // أول ما توصلنا نتيجة، بنحرك الخريطة لوحدها لأقرب نتيجة تلقائيًا
-        if (deduped.length > 0 && lpMap) {  
-            lpMap.setView([parseFloat(deduped[0].lat), parseFloat(deduped[0].lon)], 16);  
+        let combined = dedupeLpResults(fastResults);  
+        if (combined.length === 0 && (!fastResults || fastResults.length === 0)) {  
+            renderLpSearchResults([]);  
+        } else {  
+            renderLpSearchResults(combined);  
+            if (combined.length > 0 && lpMap) { lpMap.setView([parseFloat(combined[0].lat), parseFloat(combined[0].lon)], 16); }  
         }  
+        // 🆕 Overpass بطيء أحيانًا - منستناهوش يعطل ظهور النتائج السريعة اللي فوق، وأول ما
+        // يخلص (لو لسه إحنا في نفس البحث ومحدش كتب حاجة جديدة) بنضيف نتايجه من غير ما نمسح حاجة
+        const overpassResults = await fetchOverpassPlaces(simplified, signal);  
+        if (lpSearchAbort !== myController || !overpassResults || overpassResults.length === 0) return;  
+        combined = dedupeLpResults([...combined, ...overpassResults]);  
+        renderLpSearchResults(combined);  
     }  
 
     // 🆕 صف بسيط بيوضح إن البحث شغال دلوقتي (بدل ما القايمة تفضل فاضية من غير أي رد فعل)
@@ -1265,6 +1313,68 @@
         document.getElementById('lp-search-input').value = '';  
         document.getElementById('lp-search-clear').style.display = 'none';  
         hideLpSearchResults();  
+    }  
+
+    // =========================================================================
+    // 🆕 استيراد مكان بلصق رابط أو إحداثيات من تطبيق جوجل ماب نفسه (زي إرفاق ملف/صورة
+    // بالظبط، بس المصدر هنا هو بحث جوجل ماب الحقيقي - مجاني تمامًا، من غير أي مفتاح API)
+    // إزاي المستخدم بيستخدمها: يفتح جوجل ماب، يدور على المكان، وبعدين إما:
+    //  ١) يدوس مطولًا على النقطة لحد ما يشوف الإحداثيات في الكارت اللي تحت ويدوس عليها
+    //     تنسخ (زي "30.123456, 31.123456")، أو
+    //  ٢) يدوس "مشاركة" وينسخ الرابط اللي بيطلع (لازم يكون رابط كامل فيه @خط العرض,خط الطول،
+    //     مش رابط مختصر زي maps.app.goo.gl - الروابط المختصرة دي مينفعش نفكها من جوه المتصفح
+    //     لسبب تقني (Google بيمنع قراءة وجهة إعادة التوجيه بتاعها من كود خارجي - CORS)
+    // وبعدين يلصقها هنا وتتثبت في التطبيق فورًا بنفس دقة جوجل ماب ١٠٠٪‏، لأن الإحداثيات
+    // جايه من جوجل ماب نفسها مباشرة، مش من أي بحث بديل.
+    // =========================================================================
+    function toggleLpGmapsImport() {  
+        const box = document.getElementById('lp-gmaps-import-box');  
+        const isOpen = box.style.display !== 'none';  
+        box.style.display = isOpen ? 'none' : 'block';  
+        if (!isOpen) { hideLpSearchResults(); document.getElementById('lp-gmaps-import-input').focus(); }  
+        else { document.getElementById('lp-gmaps-import-input').value = ''; }  
+    }  
+
+    function parseLatLngFromText(text) {  
+        text = String(text || '').trim();  
+        if (!text) return null;  
+        // نمط رابط فيه "@lat,lng,zoom" (أشهر شكل لروابط جوجل ماب الكاملة)
+        let m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
+        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };  
+        // نمط "?q=lat,lng" أو "&q=lat,lng"
+        m = text.match(/[?&]q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
+        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };  
+        // نمط "ll=lat,lng"
+        m = text.match(/[?&]ll=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);  
+        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };  
+        // زوج إحداثيات منسوخ مباشر بصيغة "خط العرض, خط الطول" (زرار "نسخ الإحداثيات" في جوجل ماب)
+        m = text.match(/(-?\d{1,3}\.\d{4,}),\s*(-?\d{1,3}\.\d{4,})/);  
+        if (m) {  
+            const lat = parseFloat(m[1]), lng = parseFloat(m[2]);  
+            if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };  
+        }  
+        return null;  
+    }  
+
+    function importFromGoogleMapsLink() {  
+        const input = document.getElementById('lp-gmaps-import-input');  
+        const text = input.value.trim();  
+        if (!text) return;  
+        if (/goo\.gl|maps\.app\.goo\.gl/i.test(text) && !/@-?\d/.test(text) && !/[?&](q|ll)=-?\d/.test(text)) {  
+            showLpBlockError('⚠️ الرابط ده رابط مختصر من جوجل ماب، ومينفعش نفكه تلقائيًا جوه التطبيق (قيود تقنية من جوجل نفسها).', {  
+                sub: 'الحل: افتح الرابط في متصفح الموبايل لحد ما يتحول لرابط طويل، وانسخه من شريط العنوان بعد كده. أو الأسهل: في جوجل ماب دوس مطولًا على المكان لحد ما تظهر الإحداثيات، وانسخها بزرار "نسخ الإحداثيات" وحطها هنا.',  
+                onManual: () => {}  
+            });  
+            return;  
+        }  
+        const coords = parseLatLngFromText(text);  
+        if (!coords) {  
+            showLpBlockError('⚠️ مقدرناش نلاقي إحداثيات في اللي لصقته.', { sub: 'تأكد إنه رابط جوجل ماب كامل فيه "@خط العرض,خط الطول"، أو إحداثيات منسوخة بصيغة "خط العرض, خط الطول".', onManual: () => {} });  
+            return;  
+        }  
+        if (lpMap) { lpMap.setView([coords.lat, coords.lng], 18); }  
+        document.getElementById('lp-gmaps-import-box').style.display = 'none';  
+        input.value = '';  
     }  
 
     function confirmLocationPick() {  
