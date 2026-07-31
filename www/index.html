@@ -470,8 +470,9 @@
                 <div class="lp-gmaps-import-hint">  
                     <b>بعد ما تفتح خرائط جوجل، اعمل كده بالترتيب:</b><br>  
                     ١) دور فيه على مكانك بالاسم<br>  
-                    ٢) لما تلاقيه، اضغط عليه ضغطة طويلة لحد ما يظهر تحت كلام وأرقام (ده مكانك)، واضغط "نسخ" أو "مشاركة"<br>  
-                    ٣) ارجع للصفحة دي وألصق اللي نسخته في الصندوق تحت 👇 (أي شكل يوصل، رابط طويل أو قصير أو أرقام بس)  
+                    ٢) لما تلاقيه، اضغط عليه ضغطة طويلة لحد ما يظهر تحت كلام وأرقام (ده مكانك)، واضغط على الأرقام دي لينسخها<br>  
+                    ٣) ارجع للصفحة دي وألصق اللي نسخته في الصندوق تحت 👇  
+                    <br><span style="color: var(--gold-light);">💡 نصيحة: نسخ "الأرقام" بيشتغل دايمًا ١٠٠٪. لو نسخت "رابط" بدل الأرقام هنحاول نفهمه برضو، بس مش مضمون كل مرة.</span>  
                 </div>  
                 <textarea id="lp-gmaps-import-input" placeholder="ألصق هنا اللي نسخته من خرائط جوجل" rows="2"></textarea>  
                 <div class="lp-gmaps-import-actions">  
@@ -1413,54 +1414,74 @@
     // 🆕 فهم الروابط المختصرة (زي https://maps.app.goo.gl/xxxxxxx) تلقائيًا. المشكلة إن
     // الرابط المختصر ده جوّاه معلومة "روح لرابط تاني أطول فيه الإحداثيات" (بيسموها إعادة
     // توجيه/Redirect)، لكن المتصفح بتاعنا ممنوع (لأسباب أمان من جوجل نفسها) إنه يقرا الرابط
-    // الطويل ده مباشرة بنفسه. الحل: بنستخدم خدمة وسيطة مجانية اسمها AllOrigins، وظيفتها
-    // إنها هي اللي تفتح الرابط المختصر نيابة عننا، وترجعلنا هي الرابط الطويل النهائي اللي
-    // وصلت له (واللي فيه الإحداثيات)، وساعتها بنقدر نقرا الإحداثيات منه عادي.
+    // الطويل ده مباشرة بنفسه. الحل: بنستخدم خدمات وسيطة مجانية، وظيفتها إنها هي اللي تفتح
+    // الرابط المختصر نيابة عننا، وترجعلنا هي الرابط الطويل النهائي (أو محتواه) اللي فيه
+    // الإحداثيات. الخدمات دي مجانية وعامة ومش مضمون تفضل شغالة ١٠٠٪ من الوقت (زي أي خدمة
+    // مجانية برا سيطرتنا)، فبنجرب أكتر من واحدة بالترتيب - لو الأولى وقفت أو بطيئة، نجرب
+    // اللي بعدها على طول من غير ما نوقف، عشان نرفع فرصة النجاح قد الإمكان
     // =========================================================================
     function isShortGoogleMapsLink(text) {  
         return /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i.test(text);  
     }  
 
-    async function resolveShortGoogleMapsLink(text) {  
-        const m = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i);  
-        const url = m ? m[0] : text.trim();  
-        try {  
-            const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);  
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 9000));  
-            const res = await Promise.race([fetch(proxyUrl), timeoutPromise]);  
-            if (!res.ok) return null;  
+    const LP_LINK_RESOLVE_PROXIES = [  
+        { name: 'allorigins', build: (url) => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url), kind: 'json' },  
+        { name: 'codetabs', build: (url) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), kind: 'raw' },  
+        { name: 'corsproxy.io', build: (url) => 'https://corsproxy.io/?url=' + encodeURIComponent(url), kind: 'raw' }  
+    ];  
+
+    function fetchWithTimeout(url, ms) {  
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));  
+        return Promise.race([fetch(url), timeoutPromise]);  
+    }  
+
+    async function tryResolveViaOneProxy(proxy, targetUrl) {  
+        const res = await fetchWithTimeout(proxy.build(targetUrl), 8000);  
+        if (!res.ok) return null;  
+        if (proxy.kind === 'json') {  
             const data = await res.json();  
             const finalUrl = (data && data.status && data.status.url) ? data.status.url : '';  
             const fromUrl = finalUrl ? parseLatLngFromText(decodeURIComponent(finalUrl)) : null;  
             if (fromUrl) return fromUrl;  
-            // 🆕 لو الرابط النهائي (نادرًا) مفيهوش إحداثيات واضحة، ندور جوه محتوى الصفحة نفسها
             if (data && data.contents) { return parseLatLngFromText(data.contents); }  
             return null;  
-        } catch (e) { return null; }  
+        }  
+        const text = await res.text();  
+        return parseLatLngFromText(text);  
+    }  
+
+    // 🆕 بيجرب كل خدمة في القائمة واحدة ورا التانية (مش مع بعض)، وبيوري تقدمه في شاشة الحجب
+    // عشان المستخدم يشوف إن فيه حركة حقيقية بتحصل، مش شاشة واقفة ومعملة حاجة زي ما كان بيحصل
+    async function resolveShortGoogleMapsLink(text) {  
+        const m = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps)\/[A-Za-z0-9_-]+/i);  
+        const url = m ? m[0] : text.trim();  
+        for (let i = 0; i < LP_LINK_RESOLVE_PROXIES.length; i++) {  
+            showLpBlock(`⏳ جاري فهم الرابط... (بنجرب طريقة ${i + 1} من ${LP_LINK_RESOLVE_PROXIES.length})`, { sub: 'من فضلك استنى شوية' });  
+            try {  
+                const result = await tryResolveViaOneProxy(LP_LINK_RESOLVE_PROXIES[i], url);  
+                if (result) return result;  
+            } catch (e) { /* الخدمة دي فشلت أو واقفة دلوقتي - نجرب اللي بعدها */ }  
+        }  
+        return null;  
     }  
 
     async function importFromGoogleMapsLink() {  
         const input = document.getElementById('lp-gmaps-import-input');  
         const text = input.value.trim();  
         if (!text) return;  
-        const confirmBtnEl = document.getElementById('lp-gmaps-import-confirm-btn');  
         if (isShortGoogleMapsLink(text)) {  
-            // 🆕 رابط مختصر - نحاول نفهمه تلقائيًا بدل ما نطلب من المستخدم يعمل حاجة تانية
-            const originalLabel = confirmBtnEl.innerHTML;  
-            confirmBtnEl.innerHTML = '⏳ جاري فهم الرابط...';  
-            confirmBtnEl.disabled = true;  
+            // 🆕 رابط مختصر - نحاول نفهمه تلقائيًا بأكتر من طريقة قبل ما نستسلم
             const resolved = await resolveShortGoogleMapsLink(text);  
-            confirmBtnEl.innerHTML = originalLabel;  
-            confirmBtnEl.disabled = false;  
             if (resolved) {  
+                hideLpBlock();  
                 if (lpMap) { lpMap.setView([resolved.lat, resolved.lng], 18); }  
                 document.getElementById('lp-gmaps-import-box').style.display = 'none';  
                 input.value = '';  
                 flashLpConfirmGuidance();  
                 return;  
             }  
-            showLpBlockError('⚠️ معلش، حصلت مشكلة اتصال مؤقتة ومقدرناش نفهم الرابط ده دلوقتي.', {  
-                sub: 'جرب تدوس "استخدم هذا المكان" تاني كمان مرة، أو في خرائط جوجل اضغط ضغطة طويلة على مكانك وانسخ الأرقام اللي هتظهر تحت بدل الرابط.',  
+            showLpBlockError('⚠️ معلش، جربنا أكتر من طريقة ومقدرناش نفهم الرابط ده دلوقتي (الخدمات المجانية اللي بنستخدمها ممكن تكون واقفة مؤقتًا).', {  
+                sub: '🌟 الطريقة اللي بتشتغل دايمًا ١٠٠٪: في خرائط جوجل، اضغط ضغطة طويلة بإصبعك على مكانك بالظبط لحد ما يظهر تحت أرقام (زي 30.123, 31.235)، اضغط عليها لينسخها، وارجع هنا وألصقها في الصندوق بدل الرابط.',  
                 onRetry: importFromGoogleMapsLink,  
                 onManual: () => {}  
             });  
