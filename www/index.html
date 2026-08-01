@@ -1436,34 +1436,42 @@
         const plugins = window.Capacitor && window.Capacitor.Plugins;
         if (!plugins || !plugins.InAppBrowser) return null;
         const { InAppBrowser } = plugins;
-        let webviewId = null, capturedHref = null, msgListener = null;
+        let webviewId = null, capturedHref = null, msgListener = null, pageLoadListener = null, pageLoaded = false;
         try {
             msgListener = await InAppBrowser.addListener('messageFromWebview', (event) => {
                 if (event && event.detail && event.detail.gephalyHref) { capturedHref = event.detail.gephalyHref; }
             });
-            // 1000×1000 وبرة حدود الشاشة تمامًا (x/y سالبة كبيرة) - مخفي ١٠٠٪ برضو، لكن
-            // بحجم كافي عشان أندرويد ميوقفش تشغيل الجافاسكريبت جواه توفيرًا للطاقة زي ما
-            // بيحصل أحيانًا مع نوافذ 1×1. وpreventDeeplink يمنع محاولة فتح تطبيق جوجل ماب
-            // الحقيقي (اللي كان بيظهر كنافذة "هل تريد فتح Google Maps؟" وبيوقف كل حاجة)
+            pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => { pageLoaded = true; });
+            // 🆕 النسخة القديمة من البلجن (المتوافقة مع Capacitor 6) معندهاش خاصية إخفاء
+            // بالموضع (width/height/x/y) - دي ميزة جديدة بس في إصدار أحدث. بدالها بنستخدم
+            // isPresentAfterPageLoad: المتصفح مايتفتحش للعميل خالص لحد ما الصفحة تخلص
+            // تحميل، وإحنا هنقفله فورًا أول ما ناخد الإحداثيات - قبل ما يظهر أصلاً غالبًا
             const opened = await InAppBrowser.openWebView({
-                url: url, width: 1000, height: 1000, x: -3000, y: -3000,
-                toolbarType: 'blank', isAnimated: false, preventDeeplink: true
+                url: url, toolbarType: 'blank', isAnimated: false,
+                preventDeeplink: true, isPresentAfterPageLoad: true
             });
             webviewId = opened && opened.id;
-            // نستنى شوية عشان جافاسكريبت جوجل تخلص تجيب الإحداثيات وتحدّث شريط العنوان
-            await new Promise((resolve) => setTimeout(resolve, 2500));
+            // نستنى لحد ما الصفحة تخلص تحميل (أو حد أقصى ٦ ثواني احتياطي لو الحدث اتأخر)
+            const start = Date.now();
+            while (!pageLoaded && Date.now() - start < 6000) {
+                await new Promise((resolve) => setTimeout(resolve, 150));
+            }
+            // بافر بسيط إضافي عشان جافاسكريبت جوجل تخلص تجيب الإحداثيات وتحدّث شريط العنوان
+            await new Promise((resolve) => setTimeout(resolve, 1500));
             try {
                 await InAppBrowser.executeScript({
                     id: webviewId,
                     code: "window.mobileApp && window.mobileApp.postMessage({ detail: { gephalyHref: window.location.href } });"
                 });
             } catch (e) { /* هنكمل بأي رابط اتقفل عليه، أو نرجع للسيرفر لو مفيش حاجة خالص */ }
-            await new Promise((resolve) => setTimeout(resolve, 400));
+            await new Promise((resolve) => setTimeout(resolve, 300));
             return parseGmapsUrlClientSide(capturedHref || url);
         } catch (e) {
             return null;
         } finally {
             try { if (msgListener && msgListener.remove) await msgListener.remove(); } catch (e2) {}
+            try { if (pageLoadListener && pageLoadListener.remove) await pageLoadListener.remove(); } catch (e2) {}
+            // نقفل فورًا - ده أهم سطر عشان المتصفح ميظهرش للعميل خالص لو الوقت اتظبط
             try { if (webviewId) await InAppBrowser.close({ id: webviewId }); } catch (e2) {}
         }
     }
