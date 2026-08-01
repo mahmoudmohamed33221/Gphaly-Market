@@ -1480,107 +1480,86 @@
         hideLpSearchResults();
         showLpBlock('⏳ بنجيب الموقع من اللينك...', { sub: 'من فضلك استنى شوية' });
 
-        // 🆕 نجرب المتصفح المخفي الأول (أدق طريقة، بلا أي حد استخدام) قبل السيرفر
-        try {
-            const nativeResult = await resolveViaHiddenBrowser(url);
-            if (nativeResult && nativeResult.lat && nativeResult.lng) {
-                hideLpBlock();
-                lpMap.setView([nativeResult.lat, nativeResult.lng], 18);
-                flashLpConfirmGuidance(nativeResult.addressText || '');
-                return;
-            }
-            if (nativeResult && nativeResult.plusCode) {
-                let refLat = null, refLon = null;
-                const areaQuery = nativeResult.addressText || nativeResult.plusCode;
-                try {
-                    const geo = await fetchLpGeocode(areaQuery);
-                    if (geo && geo.length > 0) { refLat = parseFloat(geo[0].lat); refLon = parseFloat(geo[0].lon); }
-                } catch (e) { /* هنستخدم مركز الخريطة تحت */ }
-                if (refLat === null && lpMap) { const c = lpMap.getCenter(); refLat = c.lat; refLon = c.lng; }
-                if (refLat !== null && refLon !== null) {
-                    const precise = olcRecoverNearest(nativeResult.plusCode, refLat, refLon);
-                    hideLpBlock();
-                    lpMap.setView([precise.lat, precise.lon], 18);
-                    flashLpConfirmGuidance(nativeResult.addressText || '');
-                    return;
-                }
-            }
-        } catch (nativeErr) { /* هنكمل على طريقة السيرفر الاحتياطية تحت */ }
-
-        // 🆕 المحاولة الثانية (احتياطية): السيرفر (Apps Script) لو المتصفح المخفي مش متاح
-        // أو فشل لأي سبب
+        // 🆕 المحاولة الأولى: السيرفر (Apps Script) - آمنة وسريعة ومفيهاش أي مشكلة "رابط تطبيق"
+        // لأنها بتتم من عند السيرفر مش من متصفح حقيقي على الموبايل
+        let data = null;
         try {
             const res = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: 'resolveMapsLink', link: url })
             });
-            const data = await res.json();
-            // 🆕🔍 مؤقت للتشخيص بس: يوري اللينك الحقيقي اللي السيرفر فتحه فعليًا (finalUrl)
-            // في شريط تحت الشاشة تقدر تحدد منه النص بإيدك وتنسخه (window.prompt مش موثوق
-            // في كل أنواع المتصفحات/الويب فيو)
-            (function showDebugFinalUrl(url) {
-                let el = document.getElementById('lp-debug-finalurl');
-                if (!el) {
-                    el = document.createElement('div');
-                    el.id = 'lp-debug-finalurl';
-                    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#d4af37;font-size:12px;padding:12px;z-index:999999;max-height:35vh;overflow:auto;direction:ltr;text-align:left;border-top:2px solid #d4af37;user-select:text;-webkit-user-select:text;font-family:monospace;';
-                    document.body.appendChild(el);
+            data = await res.json();
+        } catch (e) {
+            showLpBlockError('⚠️ حصلت مشكلة في الاتصال وإحنا بنجيب الموقع من اللينك.', { sub: '(تشخيص: ' + (e && e.message ? e.message : String(e)) + ')', onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
+            return;
+        }
+        if (!data || data.status !== 'success') {
+            const debugSub = '(تفاصيل تقنية مؤقتة للتشخيص: ' + (data && data.message ? data.message : 'لا يوجد رد من السيرفر') + (data && data.debug ? ' | ' + data.debug : '') + ')';
+            showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: debugSub, onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
+            return;
+        }
+        if (data.lat && data.lng) {
+            hideLpBlock();
+            lpMap.setView([parseFloat(data.lat), parseFloat(data.lng)], 18);
+            flashLpConfirmGuidance(data.addressText || '');
+            return;
+        }
+
+        // 🆕 المحاولة الثانية: لو السيرفر مالقاش إحداثيات صريحة، نجرب المتصفح المخفي - بس
+        // على "اللينك الكامل" اللي السيرفر رجّعه (data.finalUrl) مش اللينك المختصر الأصلي،
+        // عشان نتجنب نافذة "هل تريد فتح تطبيق Google Maps؟" اللي بتظهر بس للينكات المختصرة
+        if (data.finalUrl && /^https?:\/\/(www\.)?google\.[a-z.]+\/maps/i.test(data.finalUrl)) {
+            try {
+                const nativeResult = await resolveViaHiddenBrowser(data.finalUrl);
+                if (nativeResult && nativeResult.lat && nativeResult.lng) {
+                    hideLpBlock();
+                    lpMap.setView([nativeResult.lat, nativeResult.lng], 18);
+                    flashLpConfirmGuidance(nativeResult.addressText || data.addressText || '');
+                    return;
                 }
-                el.innerHTML = '<b>finalUrl (دوس مطولًا على النص وحدده وانسخه):</b><br>' + (url ? url.replace(/</g, '&lt;') : '(فاضي - مفيش finalUrl راجع)') + '<br><button onclick="this.parentElement.remove()" style="margin-top:8px;padding:6px 14px;background:#d4af37;color:#000;border:none;border-radius:6px;">إغلاق</button>';
-            })(data && data.finalUrl);
-            if (!data || data.status !== 'success') {
-                const debugSub = '(تفاصيل تقنية مؤقتة للتشخيص: ' + (data && data.message ? data.message : 'لا يوجد رد من السيرفر') + (data && data.debug ? ' | ' + data.debug : '') + ')';
-                showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: debugSub, onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
-                return;
+                if (nativeResult && nativeResult.plusCode && !data.plusCode) { data.plusCode = nativeResult.plusCode; }
+            } catch (nativeErr) { /* هنكمل على باقي طرق السيرفر تحت */ }
+        }
+
+        if (data.plusCode) {
+            let refLat = null, refLon = null;
+            const areaQuery = data.addressText || data.plusCode;
+            try {
+                const geo = await fetchLpGeocode(areaQuery);
+                if (geo && geo.length > 0) { refLat = parseFloat(geo[0].lat); refLon = parseFloat(geo[0].lon); }
+            } catch (geoErr) { /* هنستخدم مركز الخريطة الحالي بدل ما نوقف هنا */ }
+            if (refLat === null && lpMap) {
+                // 🆕 لو نوميناتيم معرفش يلاقي المنطقة، نستخدم مركز الخريطة المفتوحة حاليًا
+                // كنقطة تقريبية بدل ما نوقف - غالبًا هي أصلاً قريبة من منطقة العميل
+                const center = lpMap.getCenter();
+                refLat = center.lat; refLon = center.lng;
             }
-            if (data.lat && data.lng) {
+            if (refLat !== null && refLon !== null) {
+                const precise = olcRecoverNearest(data.plusCode, refLat, refLon);
                 hideLpBlock();
-                lpMap.setView([parseFloat(data.lat), parseFloat(data.lng)], 18);
+                lpMap.setView([precise.lat, precise.lon], 18);
                 flashLpConfirmGuidance(data.addressText || '');
                 return;
             }
-            if (data.plusCode) {
-                let refLat = null, refLon = null;
-                const areaQuery = data.addressText || data.plusCode;
-                try {
-                    const geo = await fetchLpGeocode(areaQuery);
-                    if (geo && geo.length > 0) { refLat = parseFloat(geo[0].lat); refLon = parseFloat(geo[0].lon); }
-                } catch (geoErr) { /* هنستخدم مركز الخريطة الحالي بدل ما نوقف هنا */ }
-                if (refLat === null && lpMap) {
-                    // 🆕 لو نوميناتيم معرفش يلاقي المنطقة، نستخدم مركز الخريطة المفتوحة حاليًا
-                    // كنقطة تقريبية بدل ما نوقف - غالبًا هي أصلاً قريبة من منطقة العميل
-                    const center = lpMap.getCenter();
-                    refLat = center.lat; refLon = center.lng;
-                }
-                if (refLat !== null && refLon !== null) {
-                    const precise = olcRecoverNearest(data.plusCode, refLat, refLon);
+            showLpBlockError('⚠️ لقينا كود الموقع بس معرفناش نحدده بدقة كافية.', { sub: 'اكتب اسم المنطقة في صندوق البحث، أو حرك الخريطة بإيدك.', onManual: () => {} });
+            return;
+        }
+        // 🆕 مفيش لا إحداثيات صريحة ولا Plus Code، لكن عندنا اسم/عنوان المكان الكامل من
+        // اللينك نفسه (دقيق فعلاً زي ما جوجل بترجعه) - نحاول ندور بيه في نوميناتيم كمحاولة
+        // أخيرة قبل ما نستسلم، لأنه أدق بكتير من مجرد اسم منطقة عام
+        if (data.addressText) {
+            try {
+                const geo2 = await fetchLpGeocode(data.addressText);
+                if (geo2 && geo2.length > 0) {
                     hideLpBlock();
-                    lpMap.setView([precise.lat, precise.lon], 18);
-                    flashLpConfirmGuidance(data.addressText || '');
+                    lpMap.setView([parseFloat(geo2[0].lat), parseFloat(geo2[0].lon)], 18);
+                    flashLpConfirmGuidance(data.addressText);
                     return;
                 }
-                showLpBlockError('⚠️ لقينا كود الموقع بس معرفناش نحدده بدقة كافية.', { sub: 'اكتب اسم المنطقة في صندوق البحث، أو حرك الخريطة بإيدك.', onManual: () => {} });
-                return;
-            }
-            // 🆕 مفيش لا إحداثيات صريحة ولا Plus Code، لكن عندنا اسم/عنوان المكان الكامل من
-            // اللينك نفسه (دقيق فعلاً زي ما جوجل بترجعه) - نحاول ندور بيه في نوميناتيم كمحاولة
-            // أخيرة قبل ما نستسلم، لأنه أدق بكتير من مجرد اسم منطقة عام
-            if (data.addressText) {
-                try {
-                    const geo2 = await fetchLpGeocode(data.addressText);
-                    if (geo2 && geo2.length > 0) {
-                        hideLpBlock();
-                        lpMap.setView([parseFloat(geo2[0].lat), parseFloat(geo2[0].lon)], 18);
-                        flashLpConfirmGuidance(data.addressText);
-                        return;
-                    }
-                } catch (geoErr2) { /* هنكمل لرسالة الخطأ تحت لو فشلت المحاولة دي كمان */ }
-            }
-            showLpBlockError('⚠️ اللينك ده مفيهوش موقع واضح.', { sub: '(تشخيص: ' + (data.finalUrl || 'مفيش finalUrl') + (data.debug ? ' | ' + data.debug : '') + ')', onManual: () => {} });
-        } catch (e) {
-            showLpBlockError('⚠️ حصلت مشكلة في الاتصال وإحنا بنجيب الموقع من اللينك.', { sub: '(تشخيص: ' + (e && e.message ? e.message : String(e)) + ')', onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
+            } catch (geoErr2) { /* هنكمل لرسالة الخطأ تحت لو فشلت المحاولة دي كمان */ }
         }
+        showLpBlockError('⚠️ اللينك ده مفيهوش موقع واضح.', { sub: '(تشخيص: ' + (data.finalUrl || 'مفيش finalUrl') + (data.debug ? ' | ' + data.debug : '') + ')', onManual: () => {} });
     }
 
     function confirmLocationPick() {  
