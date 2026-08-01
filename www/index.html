@@ -1399,6 +1399,9 @@
                 body: JSON.stringify({ action: 'resolveMapsLink', link: url })
             });
             const data = await res.json();
+            // 🆕🔍 مؤقت للتشخيص بس: يوري اللينك الحقيقي اللي السيرفر فتحه فعليًا (finalUrl)
+            // عشان تقدر تنسخه وتفتحه بنفسك في متصفحك وتشوف السيرفر شاف إيه بالظبط
+            window.prompt('اللينك الحقيقي اللي السيرفر فتحه (انسخه بضغطة طويلة أو Ctrl+C):', (data && data.finalUrl) || 'مفيش finalUrl راجع من السيرفر');
             if (!data || data.status !== 'success') {
                 const debugSub = '(تفاصيل تقنية مؤقتة للتشخيص: ' + (data && data.message ? data.message : 'لا يوجد رد من السيرفر') + (data && data.debug ? ' | ' + data.debug : '') + ')';
                 showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: debugSub, onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
@@ -1432,6 +1435,20 @@
                 }
                 showLpBlockError('⚠️ لقينا كود الموقع بس معرفناش نحدده بدقة كافية.', { sub: 'اكتب اسم المنطقة في صندوق البحث، أو حرك الخريطة بإيدك.', onManual: () => {} });
                 return;
+            }
+            // 🆕 مفيش لا إحداثيات صريحة ولا Plus Code، لكن عندنا اسم/عنوان المكان الكامل من
+            // اللينك نفسه (دقيق فعلاً زي ما جوجل بترجعه) - نحاول ندور بيه في نوميناتيم كمحاولة
+            // أخيرة قبل ما نستسلم، لأنه أدق بكتير من مجرد اسم منطقة عام
+            if (data.addressText) {
+                try {
+                    const geo2 = await fetchLpGeocode(data.addressText);
+                    if (geo2 && geo2.length > 0) {
+                        hideLpBlock();
+                        lpMap.setView([parseFloat(geo2[0].lat), parseFloat(geo2[0].lon)], 18);
+                        flashLpConfirmGuidance(data.addressText);
+                        return;
+                    }
+                } catch (geoErr2) { /* هنكمل لرسالة الخطأ تحت لو فشلت المحاولة دي كمان */ }
             }
             showLpBlockError('⚠️ اللينك ده مفيهوش موقع واضح.', { sub: '(تشخيص: ' + (data.finalUrl || 'مفيش finalUrl') + (data.debug ? ' | ' + data.debug : '') + ')', onManual: () => {} });
         } catch (e) {
