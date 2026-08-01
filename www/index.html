@@ -1389,9 +1389,115 @@
     // كشف أي شكل من لينكات جوجل ماب (مختصر أو كامل) جوه أي نص متلصق في مربع البحث
     const GMAPS_LINK_REGEX = /(https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|g\.co\/kgs)\S*)/i;
 
+    // =========================================================================
+    // 🆕 المحاولة الأولى (الأدق والمجانية بلا أي حد استخدام): متصفح داخلي مخفي تمامًا
+    // (InAppBrowser) بيفتح اللينك ويشغّل جافاسكريبت جوجل الحقيقية بالظبط زي متصفح
+    // حقيقي، وياخد اللينك النهائي بعد ما الإحداثيات تتحسب فعليًا. شغالة بس جوه التطبيق
+    // (مش في متصفح عادي)، فلو مش متاحة بنرجع تلقائيًا لطريقة السيرفر (Apps Script) تحت.
+    // =========================================================================
+    function isNativeApp() {
+        try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+        catch (e) { return false; }
+    }
+
+    // فحص أمان: أي إحداثيات برة حدود مصر تقريبًا مرفوضة تلقائيًا (زي فحص السيرفر بالظبط)
+    function isCoordInEgypt(lat, lng) {
+        return lat >= 20 && lat <= 33 && lng >= 24 && lng <= 37;
+    }
+
+    function parseGmapsUrlClientSide(url) {
+        if (!url) return null;
+        let decoded = url;
+        try { decoded = decodeURIComponent(url); } catch (e) { /* نكمل بالنص الأصلي */ }
+        let plusCode = null;
+        const plusMatch = decoded.match(/([23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3})/i);
+        if (plusMatch) plusCode = plusMatch[1].toUpperCase();
+        let lat = null, lng = null;
+        if (!plusCode) {
+            const m1 = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+            if (m1) { lat = parseFloat(m1[1]); lng = parseFloat(m1[2]); }
+            if (lat === null) {
+                const m2 = url.match(/@(-?\d{1,3}\.\d{4,}),(-?\d{1,3}\.\d{4,})/);
+                if (m2) { lat = parseFloat(m2[1]); lng = parseFloat(m2[2]); }
+            }
+            if (lat !== null && !isCoordInEgypt(lat, lng)) { lat = null; lng = null; }
+        }
+        let addressText = '';
+        const placeMatch = url.match(/\/maps\/place\/([^\/]+)\//);
+        if (placeMatch) {
+            try { addressText = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')); }
+            catch (e) { addressText = placeMatch[1].replace(/\+/g, ' '); }
+        }
+        return { lat, lng, plusCode, addressText };
+    }
+
+    async function resolveViaHiddenBrowser(url) {
+        if (!isNativeApp()) return null;
+        const plugins = window.Capacitor && window.Capacitor.Plugins;
+        if (!plugins || !plugins.InAppBrowser) return null;
+        const { InAppBrowser } = plugins;
+        let webviewId = null, capturedHref = null, msgListener = null;
+        try {
+            msgListener = await InAppBrowser.addListener('messageFromWebview', (event) => {
+                if (event && event.detail && event.detail.gephalyHref) { capturedHref = event.detail.gephalyHref; }
+            });
+            // 1×1 بكسل وبرة حدود الشاشة تمامًا (x/y سالبة) - مخفي ١٠٠٪، مفيش أي ومضة مرئية خالص
+            const opened = await InAppBrowser.openWebView({
+                url: url, width: 1, height: 1, x: -2000, y: -2000,
+                toolbarType: 'blank', isAnimated: false
+            });
+            webviewId = opened && opened.id;
+            // نستنى شوية عشان جافاسكريبت جوجل تخلص تجيب الإحداثيات وتحدّث شريط العنوان
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+            try {
+                await InAppBrowser.executeScript({
+                    id: webviewId,
+                    code: "window.mobileApp && window.mobileApp.postMessage({ detail: { gephalyHref: window.location.href } });"
+                });
+            } catch (e) { /* هنكمل بأي رابط اتقفل عليه، أو نرجع للسيرفر لو مفيش حاجة خالص */ }
+            await new Promise((resolve) => setTimeout(resolve, 400));
+            return parseGmapsUrlClientSide(capturedHref || url);
+        } catch (e) {
+            return null;
+        } finally {
+            try { if (msgListener && msgListener.remove) await msgListener.remove(); } catch (e2) {}
+            try { if (webviewId) await InAppBrowser.close({ id: webviewId }); } catch (e2) {}
+        }
+    }
+
     async function resolveAndApplyMapsLink(url) {
         hideLpSearchResults();
         showLpBlock('⏳ بنجيب الموقع من اللينك...', { sub: 'من فضلك استنى شوية' });
+
+        // 🆕 نجرب المتصفح المخفي الأول (أدق طريقة، بلا أي حد استخدام) قبل السيرفر
+        try {
+            const nativeResult = await resolveViaHiddenBrowser(url);
+            if (nativeResult && nativeResult.lat && nativeResult.lng) {
+                hideLpBlock();
+                lpMap.setView([nativeResult.lat, nativeResult.lng], 18);
+                flashLpConfirmGuidance(nativeResult.addressText || '');
+                return;
+            }
+            if (nativeResult && nativeResult.plusCode) {
+                let refLat = null, refLon = null;
+                const areaQuery = nativeResult.addressText || nativeResult.plusCode;
+                try {
+                    const geo = await fetchLpGeocode(areaQuery);
+                    if (geo && geo.length > 0) { refLat = parseFloat(geo[0].lat); refLon = parseFloat(geo[0].lon); }
+                } catch (e) { /* هنستخدم مركز الخريطة تحت */ }
+                if (refLat === null && lpMap) { const c = lpMap.getCenter(); refLat = c.lat; refLon = c.lng; }
+                if (refLat !== null && refLon !== null) {
+                    const precise = olcRecoverNearest(nativeResult.plusCode, refLat, refLon);
+                    hideLpBlock();
+                    lpMap.setView([precise.lat, precise.lon], 18);
+                    flashLpConfirmGuidance(nativeResult.addressText || '');
+                    return;
+                }
+            }
+        } catch (nativeErr) { /* هنكمل على طريقة السيرفر الاحتياطية تحت */ }
+
+        // 🆕 المحاولة الثانية (احتياطية): السيرفر (Apps Script) لو المتصفح المخفي مش متاح
+        // أو فشل لأي سبب
         try {
             const res = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
