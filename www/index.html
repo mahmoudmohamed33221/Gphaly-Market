@@ -1400,8 +1400,18 @@
             });
             const data = await res.json();
             // 🆕🔍 مؤقت للتشخيص بس: يوري اللينك الحقيقي اللي السيرفر فتحه فعليًا (finalUrl)
-            // عشان تقدر تنسخه وتفتحه بنفسك في متصفحك وتشوف السيرفر شاف إيه بالظبط
-            window.prompt('اللينك الحقيقي اللي السيرفر فتحه (انسخه بضغطة طويلة أو Ctrl+C):', (data && data.finalUrl) || 'مفيش finalUrl راجع من السيرفر');
+            // في شريط تحت الشاشة تقدر تحدد منه النص بإيدك وتنسخه (window.prompt مش موثوق
+            // في كل أنواع المتصفحات/الويب فيو)
+            (function showDebugFinalUrl(url) {
+                let el = document.getElementById('lp-debug-finalurl');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'lp-debug-finalurl';
+                    el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#d4af37;font-size:12px;padding:12px;z-index:999999;max-height:35vh;overflow:auto;direction:ltr;text-align:left;border-top:2px solid #d4af37;user-select:text;-webkit-user-select:text;font-family:monospace;';
+                    document.body.appendChild(el);
+                }
+                el.innerHTML = '<b>finalUrl (دوس مطولًا على النص وحدده وانسخه):</b><br>' + (url ? url.replace(/</g, '&lt;') : '(فاضي - مفيش finalUrl راجع)') + '<br><button onclick="this.parentElement.remove()" style="margin-top:8px;padding:6px 14px;background:#d4af37;color:#000;border:none;border-radius:6px;">إغلاق</button>';
+            })(data && data.finalUrl);
             if (!data || data.status !== 'success') {
                 const debugSub = '(تفاصيل تقنية مؤقتة للتشخيص: ' + (data && data.message ? data.message : 'لا يوجد رد من السيرفر') + (data && data.debug ? ' | ' + data.debug : '') + ')';
                 showLpBlockError('⚠️ معرفناش نفتح اللينك ده دلوقتي.', { sub: debugSub, onRetry: () => resolveAndApplyMapsLink(url), onManual: () => {} });
