@@ -1437,8 +1437,8 @@
     async function resolveViaHiddenBrowser(url) {
         if (!isNativeApp()) return { _debug: 'not_native_app' };
         const plugins = window.Capacitor && window.Capacitor.Plugins;
-        if (!plugins || !plugins.InAppBrowser) return { _debug: 'plugin_not_found', hasPlugins: !!plugins, pluginKeys: plugins ? Object.keys(plugins).join(' + ') : 'none' };
-        const { InAppBrowser } = plugins;
+        if (!plugins || !plugins.CapgoInAppBrowser) return { _debug: 'plugin_not_found', hasPlugins: !!plugins, pluginKeys: plugins ? Object.keys(plugins).join(' + ') : 'none' };
+        const InAppBrowser = plugins.CapgoInAppBrowser;
         let webviewId = null, capturedHref = null, msgListener = null, pageLoadListener = null, pageLoaded = false;
         try {
             msgListener = await InAppBrowser.addListener('messageFromWebview', (event) => {
