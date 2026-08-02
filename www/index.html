@@ -1514,6 +1514,7 @@
         if (data.finalUrl && /^https?:\/\/(www\.)?google\.[a-z.]+\/maps/i.test(data.finalUrl)) {
             try {
                 const nativeResult = await resolveViaHiddenBrowser(data.finalUrl);
+                data.debug = (data.debug || '') + ' | nativeResult:' + JSON.stringify(nativeResult);
                 if (nativeResult && nativeResult.lat && nativeResult.lng) {
                     hideLpBlock();
                     lpMap.setView([nativeResult.lat, nativeResult.lng], 18);
@@ -1521,7 +1522,9 @@
                     return;
                 }
                 if (nativeResult && nativeResult.plusCode && !data.plusCode) { data.plusCode = nativeResult.plusCode; }
-            } catch (nativeErr) { /* هنكمل على باقي طرق السيرفر تحت */ }
+            } catch (nativeErr) { data.debug = (data.debug || '') + ' | nativeErr:' + (nativeErr && nativeErr.message ? nativeErr.message : String(nativeErr)); }
+        } else {
+            data.debug = (data.debug || '') + ' | nativeSkipped:notFullMapsUrl';
         }
 
         if (data.plusCode) {
