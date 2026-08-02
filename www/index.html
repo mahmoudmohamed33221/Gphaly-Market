@@ -1446,10 +1446,11 @@
             // بالموضع (width/height/x/y) - دي ميزة جديدة بس في إصدار أحدث. بدالها بنستخدم
             // isPresentAfterPageLoad: المتصفح مايتفتحش للعميل خالص لحد ما الصفحة تخلص
             // تحميل، وإحنا هنقفله فورًا أول ما ناخد الإحداثيات - قبل ما يظهر أصلاً غالبًا
+            // 🆕 مع البلجن الجديد (متوافق مع Capacitor 8) بقى فيه خاصية "hidden" حقيقية -
+            // المتصفح ميظهرش للعميل خالص، مش مجرد حيلة توقيت زي الأول
             const opened = await InAppBrowser.openWebView({
                 url: url, toolbarType: 'blank', isAnimated: false,
-                preventDeeplink: true, isPresentAfterPageLoad: true,
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' }
+                preventDeeplink: true, hidden: true
             });
             webviewId = opened && opened.id;
             // نستنى لحد ما الصفحة تخلص تحميل (أو حد أقصى ٦ ثواني احتياطي لو الحدث اتأخر)
