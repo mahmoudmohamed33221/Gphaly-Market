@@ -12,6 +12,7 @@
     <!-- 🆕 البلجن ده لازم ملفه يتحمّل صراحة عشان "يسجّل نفسه" في Capacitor.Plugins، لأن
          التطبيق ده HTML عادي من غير أداة تجميع (Webpack/Vite) بتعمل الاستيراد لوحدها -->
     <script src="https://unpkg.com/@capgo/capacitor-inappbrowser@8.13.2/dist/plugin.js"></script>  
+    <script src="https://unpkg.com/@capacitor/clipboard@8/dist/plugin.js"></script>  
     <script src="capacitor.js"></script>  
 <style>  
     :root {  
@@ -131,6 +132,8 @@
     .lp-search-empty { padding: 0.9rem 1rem; font-size: 0.78rem; color: var(--muted); text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
     /* 🆕 زرار عائم "ودّيني على موقعي" فوق الخريطة نفسها - زي جوجل ماب بالظبط */
     .lp-locate-fab { position: absolute; bottom: 16px; left: 16px; z-index: 1200; height: 42px; padding: 0 15px; border-radius: 21px; background: #1a1a1a; border: 1px solid var(--border); color: var(--gold); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); white-space: nowrap; }
+    #lp-open-gmaps-btn { margin-top: 6px; width: 100%; background: linear-gradient(135deg, #4285F4, #1a5fc4); border: none; border-radius: 0.7rem; padding: 0.65rem; color: #fff; font-weight: 800; font-size: 0.8rem; touch-action: manipulation; }
+    #lp-open-gmaps-btn:active { filter: brightness(0.9); }
     .lp-locate-fab i { font-size: 0.95rem; }
     .lp-locate-fab:active { transform: scale(0.95); background: #262626; }
     /* 🆕 النقطة الزرقاء لموقع الجيبي إس الفعلي (زي جوجل ماب) */
@@ -452,6 +455,9 @@
                 <i class="fas fa-xmark lp-search-clear" id="lp-search-clear" onclick="clearLpSearch()" style="display:none;"></i>  
             </div>  
             <div id="lp-search-results"></div>  
+            <button type="button" id="lp-open-gmaps-btn" onclick="openLinkInGoogleMaps()">  
+                <i class="fab fa-google ml-1"></i><span id="lp-open-gmaps-btn-label">مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك</span>  
+            </button>  
         </div>  
         <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
         <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
@@ -889,8 +895,15 @@
         document.getElementById('location-picker-modal').classList.add('show');  
         setTimeout(() => {  
             if (!lpMap) {  
-                lpMap = L.map('locationPickerMap', { zoomControl: true, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(lpMap);  
+                lpMap = L.map('locationPickerMap', { zoomControl: false, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
+                // 🆕 طبقة ألوان "Voyager" - أقرب تصميم مجاني لشكل جوجل ماب (ألوان، تفاصيل
+                // شوارع ومحلات وأرقام مباني)، بدون أي مفتاح API أو اشتراك
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20,
+                    subdomains: 'abcd'
+                }).addTo(lpMap);  
+                // 🆕 زرار الزووم بقى تحت يمين الخريطة، بعيد عن صندوق البحث فوق عشان يبقى واضح
+                L.control.zoom({ position: 'bottomright' }).addTo(lpMap);  
                 setupLpOverlayEventIsolation();  
             }  
             lpMap.invalidateSize();  
@@ -1077,13 +1090,78 @@
     }  
 
     // 🆕 البحث اللحظي بالاسم - بيحرك الخريطة لوحدها للمكان اللي بيتكتب أول ما المستخدم يسيب لوحة المفاتيح لحظة
+    let lpDetectedGmapsLink = null;
     function onLpSearchInput(value) {  
         document.getElementById('lp-search-clear').style.display = value ? 'block' : 'none';  
         clearTimeout(lpSearchTimer);  
-        if (!value || value.trim().length < 2) { hideLpSearchResults(); return; }  
+        if (!value || value.trim().length < 2) { hideLpSearchResults(); lpDetectedGmapsLink = null; document.getElementById('lp-open-gmaps-btn-label').textContent = 'مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك'; return; }  
         const linkMatch = value.match(GMAPS_LINK_REGEX);
-        if (linkMatch) { resolveAndApplyMapsLink(linkMatch[1]); return; }
+        if (linkMatch) {
+            lpDetectedGmapsLink = linkMatch[1];
+            document.getElementById('lp-open-gmaps-btn-label').textContent = 'افتح نفس اللينك في خرائط جوجل';
+            resolveAndApplyMapsLink(linkMatch[1]);
+            return;
+        }
+        lpDetectedGmapsLink = null;
+        document.getElementById('lp-open-gmaps-btn-label').textContent = 'مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك';
         lpSearchTimer = setTimeout(() => performLpSearch(value.trim()), 450);  
+    }  
+
+    // 🆕 بيودي المستخدم على طول لتطبيق خرائط جوجل (أو المتصفح لو مش متثبت) بنفس اللينك
+    // اللي لصقه، من غير ما يحتاج يدور عليه بنفسه
+    let lpVisibleBrowserId = null, lpClipboardWatchTimer = null, lpVisibleBrowserListeners = [];
+
+    // 🆕 بيفتح متصفحنا الداخلي نفسه ظاهر (مش مخفي) عشان العميل يقدر يدور بنفسه في خرائط
+    // جوجل الحقيقية، وبيراقب الحافظة (Clipboard) في نفس الوقت - أول ما يلاقي مكانه ويدوس
+    // "مشاركة/نسخ اللينك" جوه جوجل ماب، بنلقط اللينك تلقائيًا، نقفل المتصفح، ونلصقه في
+    // صندوق البحث ونبحث عنه لوحدنا من غير ما العميل يحتاج يرجع وييلزقه بإيده
+    async function openLinkInGoogleMaps() {
+        if (!isNativeApp()) {
+            if (lpDetectedGmapsLink) window.open(lpDetectedGmapsLink, '_blank');
+            return;
+        }
+        const plugins = window.Capacitor && window.Capacitor.Plugins;
+        if (!plugins || !plugins.CapgoInAppBrowser) {
+            if (lpDetectedGmapsLink) window.open(lpDetectedGmapsLink, '_blank');
+            return;
+        }
+        const InAppBrowser = plugins.CapgoInAppBrowser;
+        const targetUrl = lpDetectedGmapsLink || 'https://www.google.com/maps';
+        try {
+            const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
+            lpVisibleBrowserListeners.push(closedListener);
+            // 🆕 ظاهر بالكامل هنا (من غير hidden)، وبتوليبار عادي فيه زرار قفل/رجوع
+            const opened = await InAppBrowser.openWebView({ url: targetUrl, preventDeeplink: true });
+            lpVisibleBrowserId = opened && opened.id;
+            startLpClipboardWatch();
+        } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
+    }
+
+    function startLpClipboardWatch() {
+        stopLpClipboardWatch();
+        lpClipboardWatchTimer = setInterval(async () => {
+            try {
+                const plugins = window.Capacitor && window.Capacitor.Plugins;
+                if (!plugins || !plugins.Clipboard) return;
+                const result = await plugins.Clipboard.read();
+                const text = result && result.value;
+                if (text && GMAPS_LINK_REGEX.test(text)) {
+                    const linkMatch = text.match(GMAPS_LINK_REGEX);
+                    stopLpClipboardWatch();
+                    try { if (lpVisibleBrowserId && plugins.CapgoInAppBrowser) await plugins.CapgoInAppBrowser.close({ id: lpVisibleBrowserId }); } catch (e2) {}
+                    document.getElementById('lp-search-input').value = linkMatch[1];
+                    document.getElementById('lp-search-clear').style.display = 'block';
+                    onLpSearchInput(linkMatch[1]);
+                }
+            } catch (e) { /* الحافظة ممكن تكون فاضية أو مش متاحة دلوقتي - نكمل عادي */ }
+        }, 1200);
+    }
+
+    function stopLpClipboardWatch() {
+        if (lpClipboardWatchTimer) { clearInterval(lpClipboardWatchTimer); lpClipboardWatchTimer = null; }
+        lpVisibleBrowserListeners.forEach((l) => { try { l.remove(); } catch (e) {} });
+        lpVisibleBrowserListeners = [];
+        lpVisibleBrowserId = null;
     }  
 
     // 🆕 استعلام لنوميناتيم (OpenStreetMap) - بيرجع أكبر عدد ممكن من النتائج المطابقة في أي
@@ -1325,6 +1403,8 @@
     function clearLpSearch() {  
         document.getElementById('lp-search-input').value = '';  
         document.getElementById('lp-search-clear').style.display = 'none';  
+        document.getElementById('lp-open-gmaps-btn-label').textContent = 'مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك';  
+        lpDetectedGmapsLink = null;  
         hideLpSearchResults();  
     }  
 
@@ -1598,6 +1678,7 @@
         clearTimeout(lpBlockFixTimeout);  
         lpFirstFixPending = false;  
         hideLpSearchResults();  
+        stopLpClipboardWatch();  
         if (lpSearchAbort) lpSearchAbort.abort();  
         stopLiveBlueDotWatch();  
         lpAdvanceTo = null;  
@@ -1630,15 +1711,20 @@
     }  
 
     async function checkGpsAndPermissionOk() {  
-        if (!isRunningInsideNativeApp()) return true;  
+        if (!isRunningInsideNativeApp()) return { ok: true };  
         const geo = window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation;  
-        if (!geo) return true;  
+        if (!geo) return { ok: true };  
         try {  
+            // 🆕 checkPermissions() بترمي استثناء لو خدمة الموقع (GPS) نفسها مقفولة من
+            // هاتف العميل (موضّح رسميًا في توثيق Capacitor) - فحص فوري ١٠٠٪، من غير أي
+            // مهلة زمنية أو انتظار لموقع فعلي، عكس الطريقة القديمة اللي كانت بتفسر أي بطء
+            // مؤقت في استقبال إشارة GPS على إنه "مقفول" بالغلط
             const status = await geo.checkPermissions();  
-            if (status.location !== 'granted') return false;  
-            await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });  
-            return true;  
-        } catch (e) { return false; }  
+            if (status.location !== 'granted') return { ok: false, reason: 'denied' };  
+            return { ok: true };  
+        } catch (e) {  
+            return { ok: false, reason: 'gps-off' };  
+        }  
     }  
 
     async function runMandatoryPermissionGate() {  
@@ -1656,22 +1742,28 @@
 
         const geo = window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation;  
         if (!geo) { hideMandatoryGate(); prefetchCustomerLocationInBackground(); mgRunning = false; return; }  
-        let locGranted = false;  
+        let locGranted = false, gpsOff = false;  
         try {  
             let ls = await geo.checkPermissions();  
             if (ls.location !== 'granted') { ls = await geo.requestPermissions(); }  
             locGranted = (ls.location === 'granted');  
-        } catch (e) { locGranted = false; }  
+        } catch (e) {  
+            // 🆕 checkPermissions/requestPermissions بترمي استثناء لو خدمة الـ GPS نفسها
+            // مقفولة (مش مجرد إذن مرفوض) - نميّز بين الحالتين عشان نوري رسالة مضبوطة
+            gpsOff = true;  
+        }  
 
+        if (gpsOff) { showMandatoryGate('gps-off'); mgRunning = false; return; }  
         if (!locGranted) { showMandatoryGate('denied'); mgRunning = false; return; }  
 
+        // 🆕 وصلنا هنا يبقى الإذن والـ GPS اتأكدنا منهم فعلاً - جلب الموقع الفعلي دلوقتي
+        // بس لغرض التحضير المسبق، مش كفحص تاني. حتى لو الجلب ده بطيء أو فشل لحظيًا، منوقفش
+        // التطبيق تاني عشان أصل المشكلة (الإذن/الـ GPS) اتأكدنا إنه سليم فعلاً فوق
+        hideMandatoryGate();  
         try {  
-            await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });  
-            hideMandatoryGate();  
-            prefetchCustomerLocationInBackground();  
-        } catch (e) {  
-            showMandatoryGate('gps-off');  
-        }  
+            await geo.getCurrentPosition({ enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 });  
+        } catch (e) { /* هيحاول تاني لما يفتح خطوة تحديد العنوان بنفسه */ }  
+        prefetchCustomerLocationInBackground();  
         mgRunning = false;  
     }  
 
@@ -1692,8 +1784,8 @@
 
     async function silentPermissionRecheck() {  
         if (!isRunningInsideNativeApp() || document.visibilityState !== 'visible') return;  
-        const ok = await checkGpsAndPermissionOk();  
-        if (!ok) { runMandatoryPermissionGate(); }  
+        const result = await checkGpsAndPermissionOk();  
+        if (!result.ok) { runMandatoryPermissionGate(); }  
     }  
 
     document.addEventListener('DOMContentLoaded', () => {  
@@ -1703,7 +1795,7 @@
         runMandatoryPermissionGate();  
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { silentPermissionRecheck(); } });  
         if (mgIntervalId) clearInterval(mgIntervalId);  
-        mgIntervalId = setInterval(silentPermissionRecheck, 20000);  
+        mgIntervalId = setInterval(silentPermissionRecheck, 5000);  
         startAutoVersionCheck();
         startAutoAvailabilityCheck();
     });  
