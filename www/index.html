@@ -625,7 +625,7 @@
         return false;
     }
 
-    function checkVersionNow() {
+    function checkVersioexec() {
         if (UPDATE_SHOWN || versionCheckInProgress) return;
         versionCheckInProgress = true;
         fetch(`${GOOGLE_SCRIPT_URL}?action=checkVersion&_t=${Date.now()}`)
@@ -1432,9 +1432,9 @@
     }
 
     async function resolveViaHiddenBrowser(url) {
-        if (!isNativeApp()) return null;
+        if (!isNativeApp()) return { _debug: 'not_native_app' };
         const plugins = window.Capacitor && window.Capacitor.Plugins;
-        if (!plugins || !plugins.InAppBrowser) return null;
+        if (!plugins || !plugins.InAppBrowser) return { _debug: 'plugin_not_found', hasPlugins: !!plugins, pluginKeys: plugins ? Object.keys(plugins).join(',') : 'none' };
         const { InAppBrowser } = plugins;
         let webviewId = null, capturedHref = null, msgListener = null, pageLoadListener = null, pageLoaded = false;
         try {
@@ -1442,23 +1442,15 @@
                 if (event && event.detail && event.detail.gephalyHref) { capturedHref = event.detail.gephalyHref; }
             });
             pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => { pageLoaded = true; });
-            // 🆕 النسخة القديمة من البلجن (المتوافقة مع Capacitor 6) معندهاش خاصية إخفاء
-            // بالموضع (width/height/x/y) - دي ميزة جديدة بس في إصدار أحدث. بدالها بنستخدم
-            // isPresentAfterPageLoad: المتصفح مايتفتحش للعميل خالص لحد ما الصفحة تخلص
-            // تحميل، وإحنا هنقفله فورًا أول ما ناخد الإحداثيات - قبل ما يظهر أصلاً غالبًا
-            // 🆕 مع البلجن الجديد (متوافق مع Capacitor 8) بقى فيه خاصية "hidden" حقيقية -
-            // المتصفح ميظهرش للعميل خالص، مش مجرد حيلة توقيت زي الأول
             const opened = await InAppBrowser.openWebView({
                 url: url, toolbarType: 'blank', isAnimated: false,
                 preventDeeplink: true, hidden: true
             });
             webviewId = opened && opened.id;
-            // نستنى لحد ما الصفحة تخلص تحميل (أو حد أقصى ٦ ثواني احتياطي لو الحدث اتأخر)
             const start = Date.now();
             while (!pageLoaded && Date.now() - start < 6000) {
                 await new Promise((resolve) => setTimeout(resolve, 150));
             }
-            // بافر بسيط إضافي عشان جافاسكريبت جوجل تخلص تجيب الإحداثيات وتحدّث شريط العنوان
             await new Promise((resolve) => setTimeout(resolve, 1500));
             try {
                 await InAppBrowser.executeScript({
@@ -1467,9 +1459,11 @@
                 });
             } catch (e) { /* هنكمل بأي رابط اتقفل عليه، أو نرجع للسيرفر لو مفيش حاجة خالص */ }
             await new Promise((resolve) => setTimeout(resolve, 300));
-            return parseGmapsUrlClientSide(capturedHref || url);
+            const parsed = parseGmapsUrlClientSide(capturedHref || url);
+            parsed._debug = 'ok_pageLoaded:' + pageLoaded + '_gotHref:' + !!capturedHref;
+            return parsed;
         } catch (e) {
-            return null;
+            return { _debug: 'exception:' + (e && e.message ? e.message : String(e)) };
         } finally {
             try { if (msgListener && msgListener.remove) await msgListener.remove(); } catch (e2) {}
             try { if (pageLoadListener && pageLoadListener.remove) await pageLoadListener.remove(); } catch (e2) {}
