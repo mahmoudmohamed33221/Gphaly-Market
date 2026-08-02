@@ -9,6 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">  
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>  
+    <!-- 🆕 البلجن ده لازم ملفه يتحمّل صراحة عشان "يسجّل نفسه" في Capacitor.Plugins، لأن
+         التطبيق ده HTML عادي من غير أداة تجميع (Webpack/Vite) بتعمل الاستيراد لوحدها -->
+    <script src="https://unpkg.com/@capgo/capacitor-inappbrowser@8.13.2/dist/plugin.js"></script>  
     <script src="capacitor.js"></script>  
 <style>  
     :root {  
@@ -625,7 +628,7 @@
         return false;
     }
 
-    function checkVersioexec() {
+    function checkVersionNow() {
         if (UPDATE_SHOWN || versionCheckInProgress) return;
         versionCheckInProgress = true;
         fetch(`${GOOGLE_SCRIPT_URL}?action=checkVersion&_t=${Date.now()}`)
@@ -1434,7 +1437,7 @@
     async function resolveViaHiddenBrowser(url) {
         if (!isNativeApp()) return { _debug: 'not_native_app' };
         const plugins = window.Capacitor && window.Capacitor.Plugins;
-        if (!plugins || !plugins.InAppBrowser) return { _debug: 'plugin_not_found', hasPlugins: !!plugins, pluginKeys: plugins ? Object.keys(plugins).join(',') : 'none' };
+        if (!plugins || !plugins.InAppBrowser) return { _debug: 'plugin_not_found', hasPlugins: !!plugins, pluginKeys: plugins ? Object.keys(plugins).join(' + ') : 'none' };
         const { InAppBrowser } = plugins;
         let webviewId = null, capturedHref = null, msgListener = null, pageLoadListener = null, pageLoaded = false;
         try {
