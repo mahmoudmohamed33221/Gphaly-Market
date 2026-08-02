@@ -1448,7 +1448,8 @@
             // تحميل، وإحنا هنقفله فورًا أول ما ناخد الإحداثيات - قبل ما يظهر أصلاً غالبًا
             const opened = await InAppBrowser.openWebView({
                 url: url, toolbarType: 'blank', isAnimated: false,
-                preventDeeplink: true, isPresentAfterPageLoad: true
+                preventDeeplink: true, isPresentAfterPageLoad: true,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' }
             });
             webviewId = opened && opened.id;
             // نستنى لحد ما الصفحة تخلص تحميل (أو حد أقصى ٦ ثواني احتياطي لو الحدث اتأخر)
