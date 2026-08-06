@@ -163,6 +163,54 @@
     .mg-btn { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: #111827; font-weight: 800; padding: 0.9rem 2.2rem; border-radius: 0.9rem; font-size: 0.95rem; }
     .mg-spinner { width: 34px; height: 34px; border: 3px solid rgba(212,175,55,0.25); border-top-color: var(--gold); border-radius: 50%; animation: mg-spin 0.8s linear infinite; margin-bottom: 1.1rem; }
     @keyframes mg-spin { to { transform: rotate(360deg); } }
+
+    /* =========================================================================
+       🆕 كارت تفاصيل الطلب الجديد (نفس فكرة تصميم جبهالي ريدر: صندوق قابل للطي)
+       ========================================================================= */
+    .mk-details { position: relative; margin: 10px 0; border-radius: 12px; background: var(--bg-elevated); border: 1px solid var(--border); overflow: hidden; }
+    .mk-details-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 10px 13px; user-select: none; -webkit-user-select: none; }
+    .mk-details-lbl { font-size: 12px; color: var(--gold); font-weight: 800; display: flex; align-items: center; gap: 6px; }
+    .mk-details-lbl span { color: var(--cream); font-weight: 800; }
+    .mk-details-arrow { color: var(--gold); font-size: 11px; transition: transform .3s ease; opacity: .8; }
+    .mk-details-arrow.open { transform: rotate(180deg); }
+    .mk-details-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, opacity .3s ease; opacity: 0; }
+    .mk-details-body.open { max-height: 420px; opacity: 1; }
+    .mk-details-box { padding: 0 13px 13px; border-top: 1px solid var(--border); margin-top: 2px; padding-top: 11px; font-size: 12.5px; line-height: 1.9; }
+    .mk-detail-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 7px; color: var(--cream); }
+    .mk-detail-row i { font-size: 12px; margin-top: 3px; flex-shrink: 0; width: 14px; text-align: center; }
+    .mk-detail-row b { color: var(--gold-light); font-weight: 800; }
+    .mk-detail-sep { height: 1px; background: var(--border); margin: 10px 0; }
+    .mk-item-line { font-size: 12.5px; color: var(--cream); line-height: 1.85; margin-bottom: 3px; }
+
+    /* =========================================================================
+       🆕 شريط تتبع الطيار المباشر (كريتف) - بيظهر وقت "جاري التحضير/جاري التوصيل"
+       ========================================================================= */
+    .track-card { margin-top: 10px; padding: 14px 14px 12px; border-radius: 16px; background: radial-gradient(circle at 30% 0%, rgba(212,175,55,0.10), transparent 60%), var(--bg-elevated); border: 1px solid var(--border); }
+    .track-live-row { display: flex; align-items: center; gap: 7px; margin-bottom: 14px; }
+    .track-live-dot { width: 9px; height: 9px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 rgba(239,68,68,.6); animation: track-pulse-dot 1.4s infinite; flex-shrink: 0; }
+    @keyframes track-pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); } 70% { box-shadow: 0 0 0 7px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+    .track-live-text { font-size: 12.5px; font-weight: 800; color: #F87171; letter-spacing: .3px; }
+    .track-bar-area { position: relative; height: 46px; margin: 0 6px 10px; }
+    .track-line { position: absolute; top: 50%; left: 22px; right: 22px; height: 3px; transform: translateY(-50%); background: repeating-linear-gradient(90deg, rgba(212,175,55,.35) 0, rgba(212,175,55,.35) 6px, transparent 6px, transparent 12px); border-radius: 3px; }
+    .track-line-fill { position: absolute; top: 50%; right: 22px; height: 3px; transform: translateY(-50%); background: linear-gradient(90deg, var(--gold-dark), var(--gold)); border-radius: 3px; transition: width .8s ease; }
+    .track-endpoint { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.5); border: 2px solid rgba(0,0,0,.35); z-index: 2; }
+    .track-endpoint.end-right { right: 0; }
+    .track-endpoint.end-left { left: 0; }
+    .track-endpoint.is-shop { background: #F97316; }
+    .track-endpoint.is-house { background: #22C55E; }
+    .track-endpoint.is-rider { background: #111827; border-color: var(--gold); }
+    .track-endpoint.is-rider .track-box-badge { position: absolute; bottom: -3px; left: -3px; width: 15px; height: 15px; border-radius: 5px; background: var(--gold); color: #111827; display: flex; align-items: center; justify-content: center; font-size: 8px; border: 2px solid var(--bg-elevated); }
+    .track-moving { position: absolute; top: -2px; transform: translateX(50%); width: 27px; height: 27px; border-radius: 50%; background: var(--gold); color: #111827; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 3px 10px rgba(212,175,55,.55); z-index: 3; transition: right 1s linear; animation: track-bounce 1s ease-in-out infinite; }
+    @keyframes track-bounce { 0%, 100% { transform: translateX(50%) translateY(0); } 50% { transform: translateX(50%) translateY(-3px); } }
+    .track-info-row { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; margin-bottom: 10px; }
+    .track-km { font-size: 15px; font-weight: 900; color: var(--gold-light); }
+    .track-km span { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 3px; }
+    .track-eta { font-size: 12px; font-weight: 800; color: var(--cream); background: rgba(212,175,55,0.12); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; }
+    .track-pct-row { display: flex; align-items: center; gap: 8px; }
+    .track-pct-bg { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .track-pct-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--gold-dark), var(--gold)); transition: width .8s ease; }
+    .track-pct-num { font-size: 11px; font-weight: 800; color: var(--gold); min-width: 34px; text-align: left; }
+    .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
 </style>
 </head>  
 <body>  
@@ -489,7 +537,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqY6kcM9jR5cfvv4drTinbsWYqLHb9ASr2EIP47aqMUHyljAqaYLabRxmks7PIM_k45w/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuu8JZjNkWpaggyMgez3i8DCuwu_t4lLokurac9n92pl8D_qCVN7FtPBxtRUEvu-1Lag/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     const APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -1867,6 +1915,8 @@
 
     function showSuccessToast() { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<i class="fas fa-check-circle text-green-500 text-xl"></i><span class="font-bold text-sm">تم إرسال طلبك بنجاح وفي انتظار قبول الطلب!</span>`; c.appendChild(t); setTimeout(() => t.remove(), 4000); }  
 
+    function parseKmFromEtaText(t) { if (!t) return null; var n = parseFloat(t); return isNaN(n) ? null : n; }
+
     function syncOrdersWithSheet() {  
         let history = JSON.parse(localStorage.getItem('gebhaly_history'))||[];  
         let active = history.filter(o => o.status !== 'completed'); if (!active.length) return;  
@@ -1880,8 +1930,17 @@
                     if (result.total !== undefined && Number(result.total) !== order.total) { order.total = Number(result.total); nr = true; }
                     if (result.pilotName !== undefined && result.pilotName !== order.pilotName) { order.pilotName = result.pilotName; nr = true; }
                     if (result.pilotPhone !== undefined && result.pilotPhone !== order.pilotPhone) { order.pilotPhone = result.pilotPhone; nr = true; }
+                    // 🆕 مسافة/وقت الوصول الحية (بتتحدث من تطبيق الريدر كل شوية)
+                    if (result.shopEta !== undefined && result.shopEta !== order.shopEta) { order.shopEta = result.shopEta; nr = true; }
+                    if (result.custEta !== undefined && result.custEta !== order.custEta) { order.custEta = result.custEta; nr = true; }
+                    // 🆕 خط الأساس (أكبر مسافة اتشافت لحد دلوقتي) عشان نحسب منه نسبة التقدم المئوية
+                    var shopKm = parseKmFromEtaText(order.shopEta);
+                    if (shopKm !== null && (order._shopBaseline === undefined || order._shopBaseline === null || shopKm > order._shopBaseline)) { order._shopBaseline = shopKm; }
+                    var custKm = parseKmFromEtaText(order.custEta);
+                    if (custKm !== null && (order._custBaseline === undefined || order._custBaseline === null || custKm > order._custBaseline)) { order._custBaseline = custKm; }
                 }
-                if (nr) { localStorage.setItem('gebhaly_history', JSON.stringify(history)); if (currentPage==='active-orders') renderActiveOrders(); if (currentPage==='history') renderHistory(); }
+                localStorage.setItem('gebhaly_history', JSON.stringify(history)); // 🆕 نحفظ دايمًا عشان خط الأساس يفضل متسجل حتى لو مفيش تغيير ظاهر تاني
+                if (nr) { if (currentPage==='active-orders') renderActiveOrders(); if (currentPage==='history') renderHistory(); }
             }).catch(()=>{});  
         });  
     }  
@@ -1892,6 +1951,101 @@
         return `<div class="pilot-header"><span class="text-sm font-bold text-[var(--gold-light)]"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${o.pilotName}</span><a href="${telHref}" class="pilot-call-btn"><i class="fas fa-phone-alt"></i></a></div>`;  
     }  
 
+    // 🆕 صندوق تفاصيل الطلب القابل للطي - نفس فكرة تصميم جبهالي ريدر بالظبط
+    let mkDetailsOpenState = {};
+    function toggleMkDetails(id) {
+        mkDetailsOpenState[id] = !mkDetailsOpenState[id];
+        const body = document.getElementById('mkdtl-' + id); const arrow = document.getElementById('mkarr-' + id);
+        if (body) body.classList.toggle('open', !!mkDetailsOpenState[id]);
+        if (arrow) arrow.classList.toggle('open', !!mkDetailsOpenState[id]);
+    }
+    function buildDetailsBoxHtml(o, uid) {
+        const hasNotes = !!(o.notes && o.notes !== 'لا توجد ملاحظات' && o.notes.trim());
+        const itemLines = (o.orderDetails || '').split('\n')
+            .filter(l => l.trim().startsWith('-'))
+            .map(l => l.trim().replace(/^-+\s*/, ''))
+            .filter(l => l.length > 0);
+        const itemsHtml = itemLines.length
+            ? itemLines.map(l => `<div class="mk-item-line">* ${escHtml(l)}</div>`).join('')
+            : `<div class="mk-item-line">${escHtml(o.orderDetails || '')}</div>`;
+        const isOpen = !!mkDetailsOpenState[uid];
+        return `<div class="mk-details">
+            <div class="mk-details-header" onclick="toggleMkDetails('${uid}')">
+                <div class="mk-details-lbl"><i class="fas fa-store"></i> <span>${escHtml(o.shopType || 'الطلب')}</span></div>
+                <i class="fas fa-chevron-down mk-details-arrow${isOpen ? ' open' : ''}" id="mkarr-${uid}"></i>
+            </div>
+            <div class="mk-details-body${isOpen ? ' open' : ''}" id="mkdtl-${uid}">
+                <div class="mk-details-box">
+                    ${o.storeName ? `<div class="mk-detail-row"><i class="fas fa-store" style="color:var(--gold);"></i><span><b>المحل المطلوب:-</b> ${escHtml(o.storeName)}</span></div>` : ''}
+                    ${o.storeAddress ? `<div class="mk-detail-row"><i class="fas fa-location-dot" style="color:#F97316;"></i><span><b>عنوان المحل:</b> ${escHtml(o.storeAddress)}</span></div>` : ''}
+                    <div class="mk-detail-sep"></div>
+                    <div class="mk-detail-row"><i class="fas fa-basket-shopping" style="color:var(--gold);"></i><span><b>الطلب:-</b></span></div>
+                    <div>${itemsHtml}</div>
+                    ${hasNotes ? `<div class="mk-detail-sep"></div><div class="mk-detail-row"><i class="fas fa-comment-dots" style="color:#FBBF24;"></i><span><b>ملحوظة:-</b></span></div><div class="mk-item-line">* ${escHtml(o.notes)}</div>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // 🆕 حساب الوقت التقريبي للوصول من عدد الكيلومترات (بافتراض سرعة توصيل حضرية متوسطة ~22 كم/س)
+    function etaMinutesText(km) {
+        if (km === null || km === undefined || isNaN(km)) return null;
+        if (km <= 0.03) return 'وصل الآن';
+        const mins = Math.max(1, Math.round((km / 22) * 60));
+        return '~' + mins + (mins === 1 ? ' دقيقة' : ' دقايق');
+    }
+
+    // 🆕 نسبة التقدم المئوية = (خط الأساس - المسافة الحالية) ÷ خط الأساس × 100
+    function trackProgressPercent(order, stage, km) {
+        if (km === null || km === undefined || isNaN(km)) return 0;
+        const baseline = stage === 'shop' ? order._shopBaseline : order._custBaseline;
+        if (!baseline || baseline <= 0) return 0;
+        let pct = (1 - (km / baseline)) * 100;
+        if (pct < 0) pct = 0; if (pct > 100) pct = 100;
+        return Math.round(pct);
+    }
+
+    const TRACK_ARRIVED_KM = 0.05; // 🆕 لو المسافة المتبقية للعميل أقل من كده، نعتبر إن الطيار وصل
+
+    // 🆕 شريط تتبع الطيار الحي الكريتف - بيتغير شكله حسب الاتجاه (نحو المحل، أو نحو العميل)
+    function buildTrackingBarHtml(o) {
+        const stage = (o.status === 'delivering') ? 'cust' : 'shop';
+        const etaTextRaw = stage === 'cust' ? o.custEta : o.shopEta;
+        const km = parseKmFromEtaText(etaTextRaw);
+
+        if (stage === 'cust' && km !== null && km <= TRACK_ARRIVED_KM) {
+            return `<div class="track-arrived-banner"><i class="fas fa-flag-checkered ml-1"></i> تم وصول الطيار إلى موقعك، من فضلك قم باستلام الطلب من مندوب التوصيل 🛵📦</div>`;
+        }
+        if (km === null) return ''; // لسه معندناش أول قراءة موقع من الطيار
+
+        const pct = trackProgressPercent(o, stage, km);
+        const etaMins = etaMinutesText(km);
+        const rightIcon = stage === 'cust'
+            ? `<div class="track-endpoint end-right is-shop"><i class="fas fa-store"></i></div>`
+            : `<div class="track-endpoint end-right is-rider"><i class="fas fa-motorcycle"></i><span class="track-box-badge"><i class="fas fa-box"></i></span></div>`;
+        const leftIcon = stage === 'cust'
+            ? `<div class="track-endpoint end-left is-house"><i class="fas fa-house"></i></div>`
+            : `<div class="track-endpoint end-left is-shop"><i class="fas fa-store"></i></div>`;
+
+        return `<div class="track-card">
+            <div class="track-live-row"><span class="track-live-dot"></span><span class="track-live-text">تتبع الطيار مباشر</span></div>
+            <div class="track-bar-area">
+                <div class="track-line"></div>
+                <div class="track-line-fill" style="width:${pct}%"></div>
+                ${rightIcon}${leftIcon}
+                <div class="track-moving" style="right:${pct}%"><i class="fas fa-motorcycle"></i></div>
+            </div>
+            <div class="track-info-row">
+                <span class="track-km">${km.toFixed(3)}<span>كم متبقية</span></span>
+                <span class="track-eta"><i class="fas fa-clock ml-1"></i>${etaMins || '—'}</span>
+            </div>
+            <div class="track-pct-row">
+                <div class="track-pct-bg"><div class="track-pct-fill" style="width:${pct}%"></div></div>
+                <span class="track-pct-num">${pct}%</span>
+            </div>
+        </div>`;
+    }
+
     function renderActiveOrders() {  
         const c = document.getElementById('active-orders-list'); const h = JSON.parse(localStorage.getItem('gebhaly_history'))||[]; const a = h.filter(o=>o.status!=='completed');  
         if (!a.length) { c.innerHTML = `<p class="text-center text-[var(--muted)] text-sm py-12">لا توجد طلبات جارية.</p>`; return; } c.innerHTML = '';  
@@ -1899,10 +2053,16 @@
             let st="في انتظار قبول طلبك", si="⏳", bs="background:rgba(156,163,175,0.2);color:#9CA3AF;border-color:rgba(156,163,175,0.4);", ds="background:#9CA3AF;color:white;";  
             if(o.status==='accepted'){st="تم قبول طلبك";si="✓";bs="background:rgba(16,185,129,0.2);color:#6EE7B7;border-color:rgba(16,185,129,0.4);";ds="background:#10B981;color:white;";}  
             else if(o.status==='preparing'){st="جاري تحضير طلبك";si="✓";bs="background:rgba(2,132,199,0.2);color:#38BDF8;border-color:rgba(2,132,199,0.4);";ds="background:#0284c7;color:white;";}  
-            else if(o.status==='delivering'){st="جاري توصيل طلبك";si="🛵";bs="background:rgba(173,255,47,0.2);color:#ADFF2F;border-color:rgba(173,255,47,0.4);";ds="background:#111827;color:#ADFF2F;";}  
+            else if(o.status==='delivering'){
+                const custKmChk = parseKmFromEtaText(o.custEta);
+                if (custKmChk !== null && custKmChk <= TRACK_ARRIVED_KM) { st="تم وصول الطيار إلى موقعك"; si="🏁"; bs="background:rgba(34,197,94,0.2);color:#4ADE80;border-color:rgba(34,197,94,0.4);"; ds="background:#22C55E;color:white;"; }
+                else { st="جاري توصيل طلبك";si="🛵";bs="background:rgba(173,255,47,0.2);color:#ADFF2F;border-color:rgba(173,255,47,0.4);";ds="background:#111827;color:#ADFF2F;"; }
+            }  
             let th=''; if(o.status==='delivering'&&o.total&&o.total>0){th=`<div class="mt-2 p-3.5 rounded-2xl bg-white border-2 border-dashed border-[#111827] text-[#111827] space-y-2 shadow-lg text-right"><div class="flex justify-between items-center text-xs font-bold text-gray-700"><span>ثمن الأوردر:</span><span>${o.orderCost||0} ج.م</span></div><div class="flex justify-between items-center text-xs font-bold text-gray-700 pb-1.5 border-b border-dashed border-gray-400"><span>التوصيل:</span><span>${o.deliveryCost||0} ج.م</span></div><div class="flex items-center justify-between pt-0.5"><span class="text-xs font-black"><i class="fas fa-money-bill-wave ml-1"></i> الإجمالي</span><span class="text-xl font-extrabold">${o.total} ج.م</span></div></div>`;}  
+            const uid = 'ao' + o.bon;
+            const trackHtml = (o.status === 'accepted' || o.status === 'preparing' || o.status === 'delivering') ? buildTrackingBarHtml(o) : '';
             const cd = document.createElement('div'); cd.className = 'menu-card p-5 space-y-3';  
-            cd.innerHTML = `${pilotHeaderHtml(o)}<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border" style="${bs}"><span class="w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px]" style="${ds}">${si}</span>${st}</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div><div class="bg-[var(--bg-deep)] p-3 rounded-xl border border-[var(--border)] text-sm whitespace-pre-line text-[var(--cream)] text-right">${o.orderDetails}</div>${th}`;  
+            cd.innerHTML = `${pilotHeaderHtml(o)}<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border" style="${bs}"><span class="w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px]" style="${ds}">${si}</span>${st}</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div>${buildDetailsBoxHtml(o, uid)}${trackHtml}${th}`;  
             c.appendChild(cd);  
         });  
     }  
@@ -1913,7 +2073,7 @@
         co.forEach(o => {  
             let th=''; if(o.total&&o.total>0){th=`<div class="mt-2 p-3.5 rounded-2xl bg-[var(--gold)]/10 border border-[var(--gold)]/30 text-[var(--gold-light)] space-y-1.5 text-right"><div class="flex justify-between items-center text-[11px] text-[var(--muted)]"><span>ثمن الأوردر:</span><span>${o.orderCost||0} ج.م</span></div><div class="flex justify-between items-center text-[11px] text-[var(--muted)] pb-1.5 border-b border-[var(--border)]"><span>التوصيل:</span><span>${o.deliveryCost||0} ج.م</span></div><div class="flex items-center justify-between pt-0.5"><span class="text-xs font-bold text-[var(--gold)]"><i class="fas fa-wallet ml-1"></i> المدفوع</span><span class="text-base font-extrabold text-[var(--gold)]">${o.total} ج.م</span></div></div>`;}  
             const cd = document.createElement('div'); cd.className = 'menu-card p-5 space-y-3 border-green-500/30';  
-            cd.innerHTML = `${pilotHeaderHtml(o)}<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="bg-green-500/20 text-green-400 border border-green-500/40 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center font-extrabold text-[10px]">✓</span>تم التوصيل</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div><div class="bg-[var(--bg-deep)] p-3 rounded-xl border border-[var(--border)] text-sm whitespace-pre-line text-[var(--cream)] text-right">${o.orderDetails}</div>${th}`;  
+            cd.innerHTML = `${pilotHeaderHtml(o)}<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="bg-green-500/20 text-green-400 border border-green-500/40 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center font-extrabold text-[10px]">✓</span>تم التوصيل</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div>${buildDetailsBoxHtml(o, 'h' + o.bon)}${th}`;  
             c.appendChild(cd);  
         });  
     }  
