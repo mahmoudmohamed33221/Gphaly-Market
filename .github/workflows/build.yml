@@ -26,6 +26,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # 🆕 Gradle بيعمل توليد "debug.keystore" عشوائي جديد لو مفيش واحد موجود، وده بيخلي كل بيلد
+      # موقّع بمفتاح مختلف عن اللي قبله - عشان كده لما تيجي تحدّث التطبيق فوق نسخة متثبتة قبل كده
+      # بيقولك "التطبيق غير مثبت" لأن المفتاحين مش متطابقين. الحل: نستخدم نفس debug.keystore ثابت
+      # في كل مرة (المخزّن في الريبو) بدل ما نسيب Gradle يولّد واحد عشوائي.
+      - name: Use stable debug keystore
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
       - name: Add Android platform
         run: npx cap add android
 
