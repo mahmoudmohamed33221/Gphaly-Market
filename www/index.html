@@ -186,30 +186,42 @@
        🆕 شريط تتبع الطيار المباشر (كريتف) - بيظهر وقت "جاري التحضير/جاري التوصيل"
        ========================================================================= */
     .track-card { margin-top: 10px; padding: 14px 14px 12px; border-radius: 16px; background: radial-gradient(circle at 30% 0%, rgba(212,175,55,0.10), transparent 60%), var(--bg-elevated); border: 1px solid var(--border); }
-    .track-live-row { display: flex; align-items: center; gap: 7px; margin-bottom: 14px; }
-    .track-live-dot { width: 9px; height: 9px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 rgba(239,68,68,.6); animation: track-pulse-dot 1.4s infinite; flex-shrink: 0; }
-    @keyframes track-pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); } 70% { box-shadow: 0 0 0 7px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+    /* 🆕 اسم الطيار وزرار الاتصال بقوا في نفس المستطيل فوق شريط التتبع */
+    .track-top-row { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px dashed var(--border); }
+    .track-rider-name { font-size: 13px; font-weight: 800; color: var(--gold-light); }
+    .track-call-btn { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(145deg, var(--gold), var(--gold-dark)); color: #111827; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 3px 8px rgba(212,175,55,.4); flex-shrink: 0; }
+    /* 🆕 صف: تتبع مباشر + اللمبة | الكيلومترات في النص | الوقت التقريبي */
+    .track-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 6px; }
+    .track-live-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .track-live-dot { width: 9px; height: 9px; border-radius: 50%; background: #EF4444; flex-shrink: 0; animation: track-glow-dot 1.4s ease-in-out infinite; }
+    /* 🆕 وميض (النور يخف ويرجع ينور) بدل نبضة الحلقة القديمة */
+    @keyframes track-glow-dot { 0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px rgba(239,68,68,.95); } 50% { opacity: .3; box-shadow: 0 0 2px 0 rgba(239,68,68,.35); } }
     .track-live-text { font-size: 12.5px; font-weight: 800; color: #F87171; letter-spacing: .3px; }
-    .track-bar-area { position: relative; height: 46px; margin: 0 6px 10px; }
+    .track-km-mid { font-size: 13px; font-weight: 900; color: var(--gold-light); text-align: center; line-height: 1.3; }
+    .track-km-mid span { display: block; font-size: 9px; font-weight: 700; color: var(--muted); }
+    .track-eta-box { text-align: center; background: rgba(212,175,55,0.12); border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; flex-shrink: 0; }
+    .track-eta-box .track-eta-label { display: block; font-size: 8px; font-weight: 700; color: var(--muted); margin-bottom: 1px; }
+    .track-eta-box .track-eta-val { display: block; font-size: 12.5px; font-weight: 900; color: var(--cream); }
+    .track-bar-area { position: relative; height: 46px; margin: 0 6px 22px; }
     .track-line { position: absolute; top: 50%; left: 22px; right: 22px; height: 3px; transform: translateY(-50%); background: repeating-linear-gradient(90deg, rgba(212,175,55,.35) 0, rgba(212,175,55,.35) 6px, transparent 6px, transparent 12px); border-radius: 3px; }
     .track-line-fill { position: absolute; top: 50%; right: 22px; height: 3px; transform: translateY(-50%); background: linear-gradient(90deg, var(--gold-dark), var(--gold)); border-radius: 3px; transition: width .8s ease; }
     .track-endpoint { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.5); border: 2px solid rgba(0,0,0,.35); z-index: 2; }
     .track-endpoint.end-right { right: 0; }
     .track-endpoint.end-left { left: 0; }
-    .track-endpoint.is-shop { background: #F97316; }
-    .track-endpoint.is-house { background: #22C55E; }
-    .track-endpoint.is-rider { background: #111827; border-color: var(--gold); }
-    .track-endpoint.is-rider .track-box-badge { position: absolute; bottom: -3px; left: -3px; width: 15px; height: 15px; border-radius: 5px; background: var(--gold); color: #111827; display: flex; align-items: center; justify-content: center; font-size: 8px; border: 2px solid var(--bg-elevated); }
-    .track-moving { position: absolute; top: -2px; transform: translateX(50%); width: 27px; height: 27px; border-radius: 50%; background: var(--gold); color: #111827; display: flex; align-items: center; justify-content: center; font-size: 12px; box-shadow: 0 3px 10px rgba(212,175,55,.55); z-index: 3; transition: right 1s linear; animation: track-bounce 1s ease-in-out infinite; }
-    @keyframes track-bounce { 0%, 100% { transform: translateX(50%) translateY(0); } 50% { transform: translateX(50%) translateY(-3px); } }
-    .track-info-row { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; margin-bottom: 10px; }
-    .track-km { font-size: 15px; font-weight: 900; color: var(--gold-light); }
-    .track-km span { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 3px; }
-    .track-eta { font-size: 12px; font-weight: 800; color: var(--cream); background: rgba(212,175,55,0.12); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; }
-    .track-pct-row { display: flex; align-items: center; gap: 8px; }
-    .track-pct-bg { flex: 1; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.08); overflow: hidden; }
-    .track-pct-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--gold-dark), var(--gold)); transition: width .8s ease; }
-    .track-pct-num { font-size: 11px; font-weight: 800; color: var(--gold); min-width: 34px; text-align: left; }
+    /* 🆕 الأيقونة الثابتة يمين = نقطة البداية دايمًا (سكوتر فضي)، وتحتها 0% ثابتة */
+    .track-endpoint.is-start { background: linear-gradient(145deg, #cbd5e1, #94a3b8); color: #1f2937; border-color: rgba(255,255,255,.4); }
+    .track-start-label { position: absolute; top: 100%; right: 2px; margin-top: 6px; font-size: 9px; font-weight: 800; color: #9CA3AF; }
+    /* 🆕 وجهة الرحلة الحالية (محل أو عميل): برتقالي وهي جارية، أخضر أول ما يوصلها فعليًا */
+    .track-endpoint.is-pending { background: #F97316; }
+    .track-endpoint.is-arrived { background: #22C55E; }
+    /* 🆕 الأيقونة المتنططة: بقت شكل دبوس لوكيشن بدل الدائرة، وبتفضل ورا أيقونة الوجهة لما توصلها (z-index أقل) */
+    .track-moving { position: absolute; top: -6px; transform: translateX(50%); z-index: 1; display: flex; flex-direction: column; align-items: center; transition: right 1s linear; animation: track-bounce 1s ease-in-out infinite; }
+    @keyframes track-bounce { 0%, 100% { transform: translateX(50%) translateY(0); } 50% { transform: translateX(50%) translateY(-4px); } }
+    .track-moving-pin { position: relative; width: 27px; height: 27px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: linear-gradient(145deg, var(--gold), var(--gold-dark)); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(212,175,55,.55); }
+    .track-moving-pin i { transform: rotate(45deg); color: #111827; font-size: 11px; }
+    /* 🆕 صندوق دليفري على ضهر السكوتر - يظهر بس وقت التوصيل للعميل */
+    .track-moving-pin .track-box-badge { position: absolute; bottom: -5px; left: -3px; width: 13px; height: 13px; border-radius: 4px; background: #111827; color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 7px; transform: rotate(45deg); border: 1.5px solid var(--gold); }
+    .track-moving-pct { margin-top: 6px; font-size: 9px; font-weight: 900; color: var(--gold); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
 </style>
 </head>  
@@ -1988,11 +2000,22 @@
     }
 
     // 🆕 حساب الوقت التقريبي للوصول من عدد الكيلومترات (بافتراض سرعة توصيل حضرية متوسطة ~22 كم/س)
+    // 🆕 من غير علامة ~ - بنكتب فوقها "الوقت التقريبي للوصول" في الكارت نفسه بدل العلامة
     function etaMinutesText(km) {
         if (km === null || km === undefined || isNaN(km)) return null;
         if (km <= 0.03) return 'وصل الآن';
         const mins = Math.max(1, Math.round((km / 22) * 60));
-        return '~' + mins + (mins === 1 ? ' دقيقة' : ' دقايق');
+        if (mins < 60) {
+            if (mins === 1) return '1 دقيقة';
+            if (mins === 2) return 'دقيقتين';
+            if (mins <= 10) return mins + ' دقايق';
+            return mins + ' دقيقة';
+        }
+        const hrs = Math.round(mins / 60);
+        if (hrs === 1) return '1 ساعة';
+        if (hrs === 2) return 'ساعتين';
+        if (hrs <= 10) return hrs + ' ساعات';
+        return hrs + ' ساعة';
     }
 
     // 🆕 نسبة التقدم المئوية = (خط الأساس - المسافة الحالية) ÷ خط الأساس × 100
@@ -2008,40 +2031,49 @@
     const TRACK_ARRIVED_KM = 0.05; // 🆕 لو المسافة المتبقية للعميل أقل من كده، نعتبر إن الطيار وصل
 
     // 🆕 شريط تتبع الطيار الحي الكريتف - بيتغير شكله حسب الاتجاه (نحو المحل، أو نحو العميل)
+    // 🆕 اسم الطيار وزرار الاتصال بقوا جوه نفس الكارت ده فوق، مش مستطيل منفصل
     function buildTrackingBarHtml(o) {
+        const telHref = o.pilotPhone ? `tel:${o.pilotPhone}` : '#';
+        const topRowHtml = o.pilotName
+            ? `<div class="track-top-row"><a href="${telHref}" class="track-call-btn"><i class="fas fa-phone-alt"></i></a><span class="track-rider-name"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${escHtml(o.pilotName)}</span></div>`
+            : '';
+
         const stage = (o.status === 'delivering') ? 'cust' : 'shop';
         const etaTextRaw = stage === 'cust' ? o.custEta : o.shopEta;
         const km = parseKmFromEtaText(etaTextRaw);
 
         if (stage === 'cust' && km !== null && km <= TRACK_ARRIVED_KM) {
-            return `<div class="track-arrived-banner"><i class="fas fa-flag-checkered ml-1"></i> تم وصول الطيار إلى موقعك، من فضلك قم باستلام الطلب من مندوب التوصيل 🛵📦</div>`;
+            return `<div class="track-card">${topRowHtml}<div class="track-arrived-banner"><i class="fas fa-flag-checkered ml-1"></i> تم وصول الطيار إلى موقعك، من فضلك قم باستلام الطلب من مندوب التوصيل 🛵📦</div></div>`;
         }
-        if (km === null) return ''; // لسه معندناش أول قراءة موقع من الطيار
+        if (km === null) return topRowHtml ? `<div class="track-card">${topRowHtml}</div>` : ''; // لسه معندناش أول قراءة موقع من الطيار
 
         const pct = trackProgressPercent(o, stage, km);
+        const arrivedLeg = pct >= 100;
+        // 🆕 الأيقونة الشمال دايمًا هي وجهة الرحلة الحالية (المحل وإحنا رايحينله، أو العميل وإحنا رايحينله) - برتقالي وهي جاري الوصول لها، أخضر أول ما توصلها فعليًا
+        const destIcon = stage === 'cust'
+            ? `<div class="track-endpoint end-left ${arrivedLeg ? 'is-arrived' : 'is-pending'}"><i class="fas fa-house"></i></div>`
+            : `<div class="track-endpoint end-left ${arrivedLeg ? 'is-arrived' : 'is-pending'}"><i class="fas fa-store"></i></div>`;
+        // 🆕 صندوق دليفري على ضهر السكوتر المتحرك بس وقت التوصيل الفعلي للعميل، مش وهو رايح للمحل
+        const movingBoxBadge = stage === 'cust' ? `<span class="track-box-badge"><i class="fas fa-box"></i></span>` : '';
         const etaMins = etaMinutesText(km);
-        const rightIcon = stage === 'cust'
-            ? `<div class="track-endpoint end-right is-shop"><i class="fas fa-store"></i></div>`
-            : `<div class="track-endpoint end-right is-rider"><i class="fas fa-motorcycle"></i><span class="track-box-badge"><i class="fas fa-box"></i></span></div>`;
-        const leftIcon = stage === 'cust'
-            ? `<div class="track-endpoint end-left is-house"><i class="fas fa-house"></i></div>`
-            : `<div class="track-endpoint end-left is-shop"><i class="fas fa-store"></i></div>`;
 
         return `<div class="track-card">
-            <div class="track-live-row"><span class="track-live-dot"></span><span class="track-live-text">تتبع الطيار مباشر</span></div>
+            ${topRowHtml}
+            <div class="track-status-row">
+                <div class="track-live-group"><span class="track-live-dot"></span><span class="track-live-text">تتبع مباشر</span></div>
+                <div class="track-km-mid">${km.toFixed(3)}<span>كم متبقية</span></div>
+                <div class="track-eta-box"><span class="track-eta-label">الوقت التقريبي للوصول</span><span class="track-eta-val">${etaMins || '—'}</span></div>
+            </div>
             <div class="track-bar-area">
                 <div class="track-line"></div>
                 <div class="track-line-fill" style="width:${pct}%"></div>
-                ${rightIcon}${leftIcon}
-                <div class="track-moving" style="right:${pct}%"><i class="fas fa-motorcycle"></i></div>
-            </div>
-            <div class="track-info-row">
-                <span class="track-km">${km.toFixed(3)}<span>كم متبقية</span></span>
-                <span class="track-eta"><i class="fas fa-clock ml-1"></i>${etaMins || '—'}</span>
-            </div>
-            <div class="track-pct-row">
-                <div class="track-pct-bg"><div class="track-pct-fill" style="width:${pct}%"></div></div>
-                <span class="track-pct-num">${pct}%</span>
+                <div class="track-endpoint end-right is-start"><i class="fas fa-motorcycle"></i></div>
+                <span class="track-start-label">0%</span>
+                ${destIcon}
+                <div class="track-moving" style="right:${pct}%">
+                    <div class="track-moving-pin"><i class="fas fa-motorcycle"></i>${movingBoxBadge}</div>
+                    <span class="track-moving-pct">${pct}%</span>
+                </div>
             </div>
         </div>`;
     }
@@ -2063,7 +2095,7 @@
             const trackHtml = (o.status === 'accepted' || o.status === 'preparing' || o.status === 'delivering') ? buildTrackingBarHtml(o) : '';
             const cd = document.createElement('div'); cd.className = 'menu-card p-5 space-y-3';  
             // 🆕 اسم الطيار وزرار الاتصال بقوا تحت مع شريط تتبع الطيار مباشرة (مش فوق الكارت) - عشان يبانوا مع نظام المراقبة الحي كوحدة واحدة
-            cd.innerHTML = `<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border" style="${bs}"><span class="w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px]" style="${ds}">${si}</span>${st}</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div>${buildDetailsBoxHtml(o, uid)}${pilotHeaderHtml(o)}${trackHtml}${th}`;  
+            cd.innerHTML = `<div class="flex justify-between items-center border-b border-[var(--border)] pb-2"><span class="text-[var(--gold)] font-bold text-sm"><i class="fas fa-store ml-1"></i> ${o.shopType} (بون: ${o.bon})</span><span class="text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border" style="${bs}"><span class="w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px]" style="${ds}">${si}</span>${st}</span></div><div class="text-xs text-[var(--muted)] flex justify-between"><span><i class="fas fa-calendar-alt ml-1"></i> ${o.orderDayDate}</span><span><i class="fas fa-clock ml-1"></i> ${o.orderTime}</span></div>${buildDetailsBoxHtml(o, uid)}${trackHtml}${th}`;  
             c.appendChild(cd);  
         });  
     }  
