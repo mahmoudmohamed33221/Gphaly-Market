@@ -197,8 +197,6 @@
     /* 🆕 وميض (النور يخف ويرجع ينور) بدل نبضة الحلقة القديمة */
     @keyframes track-glow-dot { 0%, 100% { opacity: 1; box-shadow: 0 0 8px 2px rgba(239,68,68,.95); } 50% { opacity: .3; box-shadow: 0 0 2px 0 rgba(239,68,68,.35); } }
     .track-live-text { font-size: 12.5px; font-weight: 800; color: #F87171; letter-spacing: .3px; }
-    .track-km-mid { font-size: 13px; font-weight: 900; color: var(--gold-light); text-align: center; line-height: 1.3; }
-    .track-km-mid span { display: block; font-size: 9px; font-weight: 700; color: var(--muted); }
     .track-eta-box { text-align: center; background: rgba(212,175,55,0.12); border: 1px solid var(--border); border-radius: 12px; padding: 3px 10px; flex-shrink: 0; }
     .track-eta-box .track-eta-label { display: block; font-size: 8px; font-weight: 700; color: var(--muted); margin-bottom: 1px; }
     .track-eta-box .track-eta-val { display: block; font-size: 12.5px; font-weight: 900; color: var(--cream); }
@@ -209,8 +207,7 @@
     .track-endpoint.end-right { right: 0; }
     .track-endpoint.end-left { left: 0; }
     /* 🆕 الأيقونة الثابتة يمين = نقطة البداية دايمًا (سكوتر فضي)، وتحتها 0% ثابتة */
-    .track-endpoint.is-start { background: linear-gradient(145deg, #cbd5e1, #94a3b8); color: #1f2937; border-color: rgba(255,255,255,.4); }
-    .track-start-label { position: absolute; top: 100%; right: 2px; margin-top: 6px; font-size: 9px; font-weight: 800; color: #9CA3AF; }
+    .track-endpoint.is-start { background: linear-gradient(145deg, var(--gold), var(--gold-dark)); color: #111827; border-color: rgba(0,0,0,.35); }
     /* 🆕 وجهة الرحلة الحالية (محل أو عميل): برتقالي وهي جارية، أخضر أول ما يوصلها فعليًا */
     .track-endpoint.is-pending { background: #F97316; }
     .track-endpoint.is-arrived { background: #22C55E; }
@@ -222,6 +219,8 @@
     /* 🆕 صندوق دليفري على ضهر السكوتر - يظهر بس وقت التوصيل للعميل */
     .track-moving-pin .track-box-badge { position: absolute; bottom: -5px; left: -3px; width: 13px; height: 13px; border-radius: 4px; background: #111827; color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 7px; transform: rotate(45deg); border: 1.5px solid var(--gold); }
     .track-moving-pct { margin-top: 6px; font-size: 9px; font-weight: 900; color: var(--gold); white-space: nowrap; }
+    /* 🆕 لما يوصل فعليًا (100%)، بتختفي العلامة المتحركة ويظهر النص ده تحت أيقونة الوجهة بلون أخضر فسفوري */
+    .track-arrived-label { position: absolute; top: 100%; left: 0; margin-top: 6px; font-size: 9.5px; font-weight: 900; color: #39FF14; text-shadow: 0 0 6px rgba(57,255,20,.85), 0 0 2px rgba(57,255,20,.6); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
 </style>
 </head>  
@@ -2034,8 +2033,9 @@
     // 🆕 اسم الطيار وزرار الاتصال بقوا جوه نفس الكارت ده فوق، مش مستطيل منفصل
     function buildTrackingBarHtml(o) {
         const telHref = o.pilotPhone ? `tel:${o.pilotPhone}` : '#';
+        // 🆕 اسم الطيار على اليمين، وزرار الاتصال على الشمال
         const topRowHtml = o.pilotName
-            ? `<div class="track-top-row"><a href="${telHref}" class="track-call-btn"><i class="fas fa-phone-alt"></i></a><span class="track-rider-name"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${escHtml(o.pilotName)}</span></div>`
+            ? `<div class="track-top-row"><span class="track-rider-name"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${escHtml(o.pilotName)}</span><a href="${telHref}" class="track-call-btn"><i class="fas fa-phone-alt"></i></a></div>`
             : '';
 
         const stage = (o.status === 'delivering') ? 'cust' : 'shop';
@@ -2056,24 +2056,30 @@
         // 🆕 صندوق دليفري على ضهر السكوتر المتحرك بس وقت التوصيل الفعلي للعميل، مش وهو رايح للمحل
         const movingBoxBadge = stage === 'cust' ? `<span class="track-box-badge"><i class="fas fa-box"></i></span>` : '';
         const etaMins = etaMinutesText(km);
+        // 🆕 المكنة المتحركة بتمشي بالظبط من أول الخط المتقطع (مش من جوه أيقونة البداية) لحد آخره (مش جوه أيقونة الوجهة)
+        // الخط المتقطع بادئ من 22px وخالص عند (العرض - 22px) - فبنحسب موقعها بالـ calc على أساس ده بالظبط
+        const movingRightExpr = `calc(22px + (100% - 44px) * ${(pct / 100).toFixed(4)})`;
+        // 🆕 أول ما توصل 100%، المكنة المتحركة تختفي، ويظهر تحت أيقونة الوجهة "تم وصول المندوب" بلون أخضر فسفوري
+        const movingHtml = arrivedLeg
+            ? `<span class="track-arrived-label">تم وصول المندوب</span>`
+            : `<div class="track-moving" style="right:${movingRightExpr}">
+                    <div class="track-moving-pin"><i class="fas fa-motorcycle"></i>${movingBoxBadge}</div>
+                    <span class="track-moving-pct">${pct}%</span>
+                </div>`;
 
         return `<div class="track-card">
             ${topRowHtml}
             <div class="track-status-row">
                 <div class="track-live-group"><span class="track-live-dot"></span><span class="track-live-text">تتبع مباشر</span></div>
-                <div class="track-km-mid">${km.toFixed(3)}<span>كم متبقية</span></div>
+                <div class="track-eta-box"><span class="track-eta-label">كم متبقية</span><span class="track-eta-val">${km.toFixed(3)} كم</span></div>
                 <div class="track-eta-box"><span class="track-eta-label">الوقت التقريبي للوصول</span><span class="track-eta-val">${etaMins || '—'}</span></div>
             </div>
             <div class="track-bar-area">
                 <div class="track-line"></div>
-                <div class="track-line-fill" style="width:${pct}%"></div>
+                <div class="track-line-fill" style="width:calc((100% - 44px) * ${(pct / 100).toFixed(4)})"></div>
                 <div class="track-endpoint end-right is-start"><i class="fas fa-motorcycle"></i></div>
-                <span class="track-start-label">0%</span>
                 ${destIcon}
-                <div class="track-moving" style="right:${pct}%">
-                    <div class="track-moving-pin"><i class="fas fa-motorcycle"></i>${movingBoxBadge}</div>
-                    <span class="track-moving-pct">${pct}%</span>
-                </div>
+                ${movingHtml}
             </div>
         </div>`;
     }
