@@ -347,6 +347,70 @@
     </div>
 </div>  
 
+<div id="page-register" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
+    <div class="menu-card p-6 w-full max-w-xl">
+        <h2 id="register-page-title" class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-user-plus ml-2"></i>بيانات العميل الجديد</h2>
+        <p id="register-page-sub" class="text-[var(--muted)] text-xs text-center mb-4">من فضلك املأ بياناتك مرة واحدة وهنحتفظ بيها، عشان متكتبهاش تاني في كل أوردر</p>
+        <div class="space-y-4">
+            <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">اسم العميل الثلاثي <span class="text-red-500">*</span></label><input type="text" id="u_name" class="modal-input" placeholder="اكتب اسمك ثلاثي" oninput="clearError(this)"><span class="error-msg" id="err-u_name"></span></div>
+            <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">رقم تليفون <span class="text-red-500">*</span></label><input type="tel" id="u_phone" class="modal-input" placeholder="01xxxxxxxxx" oninput="clearError(this)"><span class="error-msg" id="err-u_phone"></span></div>
+            <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">تاكيد الرقم <span class="text-red-500">*</span></label><input type="tel" id="u_phone_confirm" class="modal-input" placeholder="أعد كتابة الرقم" oninput="clearError(this)"><span class="error-msg" id="err-u_phone_confirm"></span></div>
+            <div class="input-container">
+                <label class="text-[var(--gold)] text-sm font-semibold">المحافظة <span class="text-red-500">*</span></label>
+                <select id="u_governorate" class="modal-input" onchange="clearError(this)">
+                    <option value="">اختر المحافظة</option>
+                    <option>القاهرة</option><option>الجيزة</option><option>القليوبية</option><option>الإسكندرية</option>
+                    <option>البحيرة</option><option>مطروح</option><option>كفر الشيخ</option><option>الدقهلية</option>
+                    <option>دمياط</option><option>الشرقية</option><option>الغربية</option><option>المنوفية</option>
+                    <option>بورسعيد</option><option>الإسماعيلية</option><option>السويس</option><option>شمال سيناء</option>
+                    <option>جنوب سيناء</option><option>الفيوم</option><option>بني سويف</option><option>المنيا</option>
+                    <option>أسيوط</option><option>سوهاج</option><option>قنا</option><option>الأقصر</option>
+                    <option>أسوان</option><option>البحر الأحمر</option><option>الوادي الجديد</option>
+                </select>
+                <span class="error-msg" id="err-u_governorate"></span>
+            </div>
+            <div class="space-y-3">
+                <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-map-marker-alt ml-1"></i>تفاصيل العنوان</span>
+                <div class="input-container"><label class="text-[var(--muted)] text-xs">اسم العزبة / المنطقة <span class="text-red-500">*</span></label><input type="text" id="u_ezba" class="modal-input" placeholder="مثال: عزبة ايوب / عزبة العرب / عزبة مراد" oninput="clearError(this)"><span class="error-msg" id="err-u_ezba"></span></div>
+                <div class="input-container"><label class="text-[var(--muted)] text-xs"> رقم الشارع او اسم الشارع <span class="text-red-500">*</span></label><input type="text" id="u_street" class="modal-input" placeholder="مثال: شارع 8 / شارع ابو ياسين" oninput="clearError(this)"><span class="error-msg" id="err-u_street"></span></div>
+                <div class="input-container"><label class="text-[var(--muted)] text-xs"> علامه مميزه جمب بيتك <span class="text-red-500">*</span></label><input type="text" id="u_landmark" class="modal-input" placeholder="بجوار صيدلية / بجوار سوبر ماركت / بجوار رشاح" oninput="clearError(this)"><span class="error-msg" id="err-u_landmark"></span></div>
+                <div class="location-picker-box" id="location-box-customer">
+                    <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقعك بالظبط على الخريطة <span class="text-red-500">*</span></label>
+                    <button type="button" onclick="openLocationPicker('customer')" id="btn-location-customer" class="location-pick-btn">
+                        <i class="fas fa-map-location-dot"></i><span>حدد موقعي على الخريطة</span>
+                    </button>
+                    <div id="location-status-customer" class="location-status"></div>
+                    <span class="error-msg" id="err-u_customer_location"></span>
+                    <input type="hidden" id="u_customer_lat"><input type="hidden" id="u_customer_lng">
+                </div>
+            </div>
+            <button type="button" id="btn-save-profile" onclick="saveProfile()" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
+            <button type="button" id="btn-cancel-edit-profile" onclick="switchPage('profile')" style="display:none;" class="w-full bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<div id="page-profile" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
+    <div class="menu-card p-6 w-full max-w-xl space-y-4">
+        <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-id-card ml-2"></i>ملفي الشخصي</h2>
+        <div id="profile-view-content" class="space-y-3 text-sm"></div>
+        <button type="button" onclick="openProfileEdit()" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-2 shadow-lg"><i class="fas fa-pen ml-2"></i>تعديل بياناتي</button>
+    </div>
+</div>
+
+<div id="page-order-review" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
+    <div class="menu-card p-6 w-full max-w-xl space-y-4">
+        <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-clipboard-check ml-2"></i>مراجعة الطلب قبل الإرسال</h2>
+        <p class="text-[var(--muted)] text-xs text-center mb-1">راجع بياناتك كويس قبل ما تأكد الإرسال</p>
+        <div id="order-review-content" class="space-y-3 text-sm"></div>
+        <div class="flex flex-col gap-3 pt-2">
+            <button type="button" onclick="openProfileEdit()" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#22C3EE,#0EA5E9);"><i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل</button>
+            <button type="button" onclick="switchPage('order')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#FBA94C,#F97316);"><i class="fas fa-edit ml-2"></i>تعديل بيانات الطلب</button>
+            <button type="button" id="btn-final-submit" onclick="submitOrderToServer()" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#34D399,#10B981);"><i class="fas fa-check-circle ml-2"></i>تم التأكد وإرسال الطلب</button>
+        </div>
+    </div>
+</div>
+
 <div id="page-home" class="app-page hero-gradient active flex flex-col justify-center items-center px-4 w-full relative overflow-hidden">  
     <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="bg-watermark">  
     <div class="text-center max-w-xl mx-auto z-10 w-full px-2 space-y-8 flex flex-col items-center justify-center relative pt-12">  
@@ -366,47 +430,10 @@
 <div id="page-order" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">  
     <div class="menu-card p-6 w-full max-w-xl">  
         <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1">استمارة طلب اوردر</h2>  
-        <div class="flex items-center justify-center my-6 gap-2">  
-            <span id="badge-step1" class="w-8 h-8 rounded-full bg-[var(--gold)] text-[#111827] font-bold flex items-center justify-center text-sm">1</span>  
-            <div class="h-[2px] w-8 bg-[var(--border)]" id="line-step1"></div>  
-            <span id="badge-step2" class="w-8 h-8 rounded-full bg-[var(--bg-deep)] text-[var(--muted)] font-bold flex items-center justify-center text-sm border border-[var(--border)]">2</span>  
-            <div class="h-[2px] w-8 bg-[var(--border)]" id="line-step2"></div>  
-            <span id="badge-step3" class="w-8 h-8 rounded-full bg-[var(--bg-deep)] text-[var(--muted)] font-bold flex items-center justify-center text-sm border border-[var(--border)]">3</span>  
-            <div class="h-[2px] w-8 bg-[var(--border)]" id="line-step3"></div>  
-            <span id="badge-step4" class="w-8 h-8 rounded-full bg-[var(--bg-deep)] text-[var(--muted)] font-bold flex items-center justify-center text-sm border border-[var(--border)]">4</span>  
-        </div>  
-        <form id="multiStepForm" onsubmit="handleFormSubmit(event)" novalidate>  
+        <p class="text-[var(--muted)] text-xs text-center mb-4">حدد نوع المحل واكتب طلباتك، وهنجيبهولك بسرعة</p>
+        <form id="multiStepForm" onsubmit="event.preventDefault(); goToOrderReview();" novalidate>  
 
-            <div id="step-1" class="step-panel active space-y-4">  
-                <h3 class="text-[var(--gold-light)] font-bold border-b border-[var(--border)] pb-2 mb-2"><i class="fas fa-user ml-2"></i>الخطوة 1: بيانات العميل</h3>  
-                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">اسم العميل الثلاثي <span class="text-red-500">*</span></label><input type="text" id="u_name" class="modal-input" placeholder="اكتب اسمك ثلاثي" oninput="clearError(this)"><span class="error-msg" id="err-u_name"></span></div>  
-                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">رقم تليفون <span class="text-red-500">*</span></label><input type="tel" id="u_phone" class="modal-input" placeholder="01xxxxxxxxx" oninput="clearError(this)"><span class="error-msg" id="err-u_phone"></span></div>  
-                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">تاكيد الرقم <span class="text-red-500">*</span></label><input type="tel" id="u_phone_confirm" class="modal-input" placeholder="أعد كتابة الرقم" oninput="clearError(this)"><span class="error-msg" id="err-u_phone_confirm"></span></div>  
-                <button type="button" onclick="validateAndGoToStep(2)" class="w-full bg-[var(--gold)] text-[#111827] font-bold py-3 rounded-xl mt-4">التالي <i class="fas fa-arrow-left mr-2"></i></button>  
-            </div>  
-
-            <div id="step-2" class="step-panel space-y-4">  
-                <h3 class="text-[var(--gold-light)] font-bold border-b border-[var(--border)] pb-2 mb-2"><i class="fas fa-map-marker-alt ml-2"></i>الخطوة 2: عنوان التوصيل</h3>  
-                <div class="space-y-3">  
-                    <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-map-marker-alt ml-1"></i>تفاصيل العنوان</span>  
-                    <div class="input-container"><label class="text-[var(--muted)] text-xs">اسم العزبة / المنطقة <span class="text-red-500">*</span></label><input type="text" id="u_ezba" class="modal-input" placeholder="مثال: عزبة ايوب / عزبة العرب / عزبة مراد" oninput="clearError(this)"><span class="error-msg" id="err-u_ezba"></span></div>  
-                    <div class="input-container"><label class="text-[var(--muted)] text-xs"> رقم الشارع او اسم الشارع <span class="text-red-500">*</span></label><input type="text" id="u_street" class="modal-input" placeholder="مثال: شارع 8 / شارع ابو ياسين" oninput="clearError(this)"><span class="error-msg" id="err-u_street"></span></div>  
-                    <div class="input-container"><label class="text-[var(--muted)] text-xs"> علامه مميزه جمب بيتك <span class="text-red-500">*</span></label><input type="text" id="u_landmark" class="modal-input" placeholder="بجوار صيدلية / بجوار سوبر ماركت / بجوار رشاح" oninput="clearError(this)"><span class="error-msg" id="err-u_landmark"></span></div>  
-                    <div class="location-picker-box" id="location-box-customer">  
-                        <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقعك بالظبط على الخريطة <span class="text-red-500">*</span></label>  
-                        <button type="button" onclick="openLocationPicker('customer')" id="btn-location-customer" class="location-pick-btn">  
-                            <i class="fas fa-map-location-dot"></i><span>حدد موقعي على الخريطة</span>  
-                        </button>  
-                        <div id="location-status-customer" class="location-status"></div>  
-                        <span class="error-msg" id="err-u_customer_location"></span>  
-                        <input type="hidden" id="u_customer_lat"><input type="hidden" id="u_customer_lng">  
-                    </div>  
-                </div>  
-                <div class="flex gap-3 pt-4"><button type="button" onclick="goToStep(1)" class="w-1/3 bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">السابق</button><button type="button" onclick="validateAndGoToStep(3)" class="w-2/3 bg-[var(--gold)] text-[#111827] font-bold py-3 rounded-xl">التالي</button></div>  
-            </div>  
-
-            <div id="step-3" class="step-panel space-y-4">  
-                <h3 class="text-[var(--gold-light)] font-bold border-b border-[var(--border)] pb-2 mb-2"><i class="fas fa-store ml-2"></i>الخطوة 3: ماذا تريد أن تطلب؟</h3>  
+            <div id="order-fields" class="space-y-4">  
 
                 <div>  
                     <label class="text-[var(--gold)] text-sm font-semibold block mb-2">نوع المحل <span class="text-red-500">*</span></label>  
@@ -453,13 +480,12 @@
                     <div id="items-container" class="space-y-4"><div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div></div>  
                     <button type="button" onclick="addNewItemRow()" class="mt-4 w-full text-sm font-bold bg-amber-500 text-slate-950 px-4 py-3 rounded-xl hover:bg-amber-400 transition flex items-center justify-center gap-2 shadow-md"><i class="fas fa-plus"></i> أضف صنف آخر</button>  
                 </div>  
-                <div class="flex gap-3 pt-4"><button type="button" onclick="goToStep(2)" class="w-1/3 bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">السابق</button><button type="button" onclick="validateAndGoToStep(4)" class="w-2/3 bg-[var(--gold)] text-[#111827] font-bold py-3 rounded-xl">التالي</button></div>  
-            </div>  
 
-            <div id="step-4" class="step-panel space-y-4">  
-                <h3 class="text-[var(--gold-light)] font-bold border-b border-[var(--border)] pb-2 mb-2"><i class="fas fa-sticky-note ml-2"></i>الخطوة 4: ملاحظات</h3>  
                 <div><label class="text-[var(--gold)] text-sm font-semibold">ملحوظة (اختياري)</label><input type="text" id="u_notes" class="modal-input" placeholder="مثال: لو محتاج الحاجه من محل معين"></div>  
-                <div class="flex gap-3 pt-4"><button type="button" onclick="goToStep(3)" class="w-1/3 bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">السابق</button><button type="submit" id="submitBtn" class="w-2/3 bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl shadow-lg"><i class="fas fa-paper-plane ml-2"></i>إرسال الطلب فوراً</button></div>  
+
+                <div class="pt-4">
+                    <button type="button" id="btn-review-order" onclick="goToOrderReview()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl shadow-lg"><i class="fas fa-paper-plane ml-2"></i>مراجعة وإرسال الطلب</button>
+                </div>
             </div>  
 
         </form>  
@@ -494,6 +520,7 @@
     <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><i class="fas fa-home"></i><span>اطلب الان</span></div>  
     <div class="nav-item" id="nav-active-orders" onclick="switchPage('active-orders')"><i class="fas fa-spinner"></i><span>الحاليه</span></div>  
     <div class="nav-item" id="nav-history" onclick="switchPage('history')"><i class="fas fa-check-circle"></i><span>مستلمه</span></div>  
+    <div class="nav-item" id="nav-profile" onclick="switchPage('profile')"><i class="fas fa-id-card"></i><span>ملفي الشخصي</span></div>  
     <div class="nav-item" id="nav-contact" onclick="switchPage('contact')"><i class="fas fa-cog"></i><span>المساعده و الدعم</span></div>  
 </div>  
 
@@ -782,6 +809,7 @@
        ================================================================ */
     function handleOrderClick() {
         if (UPDATE_SHOWN || AVAILABILITY_BLOCKED) return;
+        if (!isProfileComplete()) { setRegisterPageMode(false); switchPage('register'); return; }
         switchPage('order');
         requestNotifPermission();
     }
@@ -805,16 +833,6 @@
         else { slowCheckInterval = setInterval(syncOrdersWithSheet, 15000); }
     }  
 
-    function goToStep(n) {  
-        document.querySelectorAll('.step-panel').forEach(s => s.classList.remove('active'));  
-        document.getElementById('step-' + n).classList.add('active');  
-        for (let i = 1; i <= 4; i++) {  
-            const b = document.getElementById('badge-step'+i), l = document.getElementById('line-step'+i);  
-            if (i <= n) { b.style.background = 'var(--gold)'; b.style.color = '#111827'; if (l) l.style.background = 'var(--gold)'; }  
-            else { b.style.background = 'var(--bg-deep)'; b.style.color = 'var(--muted)'; if (l) l.style.background = 'var(--border)'; }  
-        }  
-    }  
-
     function showError(el, msg) { el.classList.add('input-error'); const c = el.closest('.input-container') || el.closest('.item-row-container'); if (c) { const e = c.querySelector('.error-msg') || c.querySelector('.item-error-msg'); if (e) e.textContent = msg; } }  
     function clearError(el) { el.classList.remove('input-error'); const c = el.closest('.input-container') || el.closest('.item-row-container'); if (c) { const e = c.querySelector('.error-msg') || c.querySelector('.item-error-msg'); if (e) e.textContent = ''; } }  
 
@@ -823,36 +841,173 @@
         el.classList.add('selected');
         selectedShopType = el.dataset.type;
         document.getElementById('err-shop-type').textContent = '';
+        updateOrderReviewVisibility();
     }
 
-    function validateAndGoToStep(next) {  
-        let err = false;  
-        if (next === 2) {  
-            ['u_name','u_phone','u_phone_confirm'].forEach(id => clearError(document.getElementById(id)));  
-            for (let i = 2; i >= 0; i--) { const el = document.getElementById(['u_name','u_phone','u_phone_confirm'][i]); if (!el.value.trim()) { showError(el, 'هذه الخانة مطلوبة!'); el.focus(); err = true; } }  
-            if (err) return;  
-            const pv = document.getElementById('u_phone').value.trim(), cv = document.getElementById('u_phone_confirm').value.trim();  
-            if (pv.length !== 11 || isNaN(pv)) { showError(document.getElementById('u_phone'), 'يجب 11 رقم!'); return; }  
-            if (pv !== cv) { showError(document.getElementById('u_phone_confirm'), 'الرقمين غير متطابقين!'); return; }  
-            goToStep(2);  
-        } else if (next === 3) {  
-            ['u_ezba','u_street','u_landmark'].forEach(id => clearError(document.getElementById(id)));  
-            for (let i = 2; i >= 0; i--) { const el = document.getElementById(['u_ezba','u_street','u_landmark'][i]); if (!el.value.trim()) { showError(el, 'هذه الخانة مطلوبة!'); el.focus(); err = true; } }  
-            if (err) return;  
-            // 🆕 في كل أوردر جديد، لازم يأكد موقعه على الخريطة قبل ما يكمل - حتى لو كان محدده قبل كده
-            openLocationPicker('customer', 3);  
-        } else if (next === 4) {  
-            document.getElementById('err-shop-type').textContent = '';  
-            if (!selectedShopType) { document.getElementById('err-shop-type').textContent = 'اختر نوع المحل أولاً!'; err = true; }  
-            document.querySelectorAll('.item-name').forEach(el => { clearError(el); if (!el.value.trim()) { showError(el, 'اكتب الصنف أو احذفه!'); err = true; } });  
-            ['u_store_name','u_store_address'].forEach(id => clearError(document.getElementById(id)));  
-            if (!document.getElementById('u_store_name').value.trim()) { showError(document.getElementById('u_store_name'), 'اكتب اسم المحل!'); err = true; }  
-            if (!document.getElementById('u_store_address').value.trim()) { showError(document.getElementById('u_store_address'), 'اكتب عنوان المحل!'); err = true; }  
-            if (err) return;  
-            // 🆕 نفس الموضوع لموقع المحل - يفتحله الخريطة كل مرة عشان يأكد قبل ما يكمل
-            openLocationPicker('store', 4);  
-        }  
-    }  
+    // =========================================================================
+    // 🆕 التحقق من "الاسم الثلاثي" - بيقبل 3 كلمات فعلية، وبيراعي إن كلمة "عبد"
+    // (سواء متصلة زي "عبدالله" أو منفصلة زي "عبد الله") بتتحسب اسم واحد بس، مش اتنين
+    // =========================================================================
+    function countNameParts(name) {
+        const words = (name || '').trim().split(/\s+/).filter(Boolean);
+        const merged = [];
+        for (let i = 0; i < words.length; i++) {
+            if (words[i] === 'عبد' && i + 1 < words.length) { merged.push(words[i] + ' ' + words[i + 1]); i++; }
+            else { merged.push(words[i]); }
+        }
+        return merged.length;
+    }
+
+    // =========================================================================
+    // 🆕 استمارة "بيانات العميل" - بتستخدم لأول تسجيل ولتعديل البيانات من "ملفي الشخصي"
+    // =========================================================================
+    let profileEditMode = false; // false = تسجيل عميل جديد | true = تعديل بيانات موجودة
+
+    function isProfileComplete() {
+        return !!(localStorage.getItem('gebhaly_name') && localStorage.getItem('gebhaly_phone') && localStorage.getItem('gebhaly_governorate') && localStorage.getItem('gebhaly_ezba') && localStorage.getItem('gebhaly_street') && localStorage.getItem('gebhaly_landmark') && localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng'));
+    }
+
+    function setRegisterPageMode(isEdit) {
+        profileEditMode = isEdit;
+        document.getElementById('register-page-title').innerHTML = isEdit ? '<i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل' : '<i class="fas fa-user-plus ml-2"></i>بيانات العميل الجديد';
+        document.getElementById('register-page-sub').textContent = isEdit ? 'عدّل بياناتك وهنحدّثها فورًا' : 'من فضلك املأ بياناتك مرة واحدة وهنحتفظ بيها، عشان متكتبهاش تاني في كل أوردر';
+        document.getElementById('btn-save-profile-text').textContent = isEdit ? 'حفظ التعديلات' : 'حفظ بياناتك كعميل جديد لدينا';
+        document.getElementById('btn-cancel-edit-profile').style.display = isEdit ? 'block' : 'none';
+    }
+
+    function fillRegisterFormFromStorage() {
+        document.getElementById('u_name').value = localStorage.getItem('gebhaly_name') || '';
+        document.getElementById('u_phone').value = localStorage.getItem('gebhaly_phone') || '';
+        document.getElementById('u_phone_confirm').value = localStorage.getItem('gebhaly_phone') || '';
+        document.getElementById('u_governorate').value = localStorage.getItem('gebhaly_governorate') || '';
+        document.getElementById('u_ezba').value = localStorage.getItem('gebhaly_ezba') || '';
+        document.getElementById('u_street').value = localStorage.getItem('gebhaly_street') || '';
+        document.getElementById('u_landmark').value = localStorage.getItem('gebhaly_landmark') || '';
+        if (localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng')) {
+            setPickedLocation('customer', parseFloat(localStorage.getItem('gebhaly_lat')), parseFloat(localStorage.getItem('gebhaly_lng')));
+        }
+    }
+
+    function openProfileEdit() {
+        setRegisterPageMode(true);
+        fillRegisterFormFromStorage();
+        switchPage('register');
+    }
+
+    function saveProfile() {
+        let err = false;
+        ['u_name','u_phone','u_phone_confirm','u_governorate','u_ezba','u_street','u_landmark'].forEach(id => clearError(document.getElementById(id)));
+        const nameEl = document.getElementById('u_name'); const nameVal = nameEl.value.trim();
+        if (!nameVal) { showError(nameEl, 'هذه الخانة مطلوبة!'); err = true; }
+        else if (countNameParts(nameVal) < 3) { showError(nameEl, 'اكتب الاسم ثلاثي كامل (اسم وسط بينه وبين الباقي مسافة)!'); err = true; }
+
+        const phoneEl = document.getElementById('u_phone'), confirmEl = document.getElementById('u_phone_confirm');
+        const pv = phoneEl.value.trim(), cv = confirmEl.value.trim();
+        if (!pv) { showError(phoneEl, 'هذه الخانة مطلوبة!'); err = true; }
+        else if (pv.length !== 11 || isNaN(pv)) { showError(phoneEl, 'يجب 11 رقم!'); err = true; }
+        if (!cv) { showError(confirmEl, 'هذه الخانة مطلوبة!'); err = true; }
+        else if (pv && cv && pv !== cv) { showError(confirmEl, 'الرقمين غير متطابقين!'); err = true; }
+
+        const govEl = document.getElementById('u_governorate');
+        if (!govEl.value.trim()) { showError(govEl, 'اختر المحافظة!'); err = true; }
+
+        ['u_ezba','u_street','u_landmark'].forEach(id => { const el = document.getElementById(id); if (!el.value.trim()) { showError(el, 'هذه الخانة مطلوبة!'); err = true; } });
+
+        const custLat = document.getElementById('u_customer_lat').value, custLng = document.getElementById('u_customer_lng').value;
+        const errLocEl = document.getElementById('err-u_customer_location');
+        if (!custLat || !custLng) { if (errLocEl) errLocEl.textContent = 'لازم تحدد موقعك على الخريطة!'; err = true; }
+
+        if (err) return;
+
+        localStorage.setItem('gebhaly_name', nameVal);
+        localStorage.setItem('gebhaly_phone', pv);
+        localStorage.setItem('gebhaly_governorate', govEl.value.trim());
+        localStorage.setItem('gebhaly_ezba', document.getElementById('u_ezba').value.trim());
+        localStorage.setItem('gebhaly_street', document.getElementById('u_street').value.trim());
+        localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value.trim());
+        localStorage.setItem('gebhaly_lat', custLat);
+        localStorage.setItem('gebhaly_lng', custLng);
+
+        if (profileEditMode) { renderProfilePage(); switchPage('profile'); }
+        else { switchPage('home'); }
+    }
+
+    function renderProfilePage() {
+        const c = document.getElementById('profile-view-content');
+        const name = localStorage.getItem('gebhaly_name') || '';
+        const phone = localStorage.getItem('gebhaly_phone') || '';
+        const gov = localStorage.getItem('gebhaly_governorate') || '';
+        const ezba = localStorage.getItem('gebhaly_ezba') || '';
+        const street = localStorage.getItem('gebhaly_street') || '';
+        const landmark = localStorage.getItem('gebhaly_landmark') || '';
+        const hasLoc = !!(localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng'));
+        c.innerHTML = `
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold">${escapeHtml(name)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold">${escapeHtml(phone)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-marker-alt ml-1"></i>المحافظة</span><span class="font-bold">${escapeHtml(gov)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-pin ml-1"></i>العنوان</span><span class="font-bold">${escapeHtml(ezba)} - ${escapeHtml(street)}</span><br><span class="text-[var(--muted)] text-xs">${escapeHtml(landmark)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-location-crosshairs ml-1"></i>الموقع على الخريطة</span><span class="font-bold ${hasLoc ? 'text-[var(--success)]' : 'text-red-400'}">${hasLoc ? 'تم تحديد الموقع ✅' : 'لم يتم التحديد بعد'}</span></div>
+        `;
+    }
+
+    // =========================================================================
+    // 🆕 استمارة الطلب بقت صفحة واحدة (بعد ما بيانات العميل بقت متسجلة من "ملفي الشخصي")
+    // زرار "مراجعة وإرسال الطلب" مبيظهرش إلا لما كل الخانات الإجبارية تتملى (الملحوظة اختيارية)
+    // =========================================================================
+    function updateOrderReviewVisibility() {
+        const btn = document.getElementById('btn-review-order');
+        if (!btn) return;
+        const hasShopType = !!selectedShopType;
+        const storeName = document.getElementById('u_store_name').value.trim();
+        const storeAddress = document.getElementById('u_store_address').value.trim();
+        const storeLat = document.getElementById('u_store_lat').value;
+        const storeLng = document.getElementById('u_store_lng').value;
+        const hasItems = Array.from(document.querySelectorAll('.item-name')).some(el => el.value.trim());
+        const ok = hasShopType && storeName && storeAddress && storeLat && storeLng && hasItems;
+        btn.style.display = ok ? 'flex' : 'none';
+    }
+
+    function goToOrderReview() {
+        let err = false;
+        document.getElementById('err-shop-type').textContent = '';
+        if (!selectedShopType) { document.getElementById('err-shop-type').textContent = 'اختر نوع المحل أولاً!'; err = true; }
+        document.querySelectorAll('.item-name').forEach(el => { clearError(el); if (!el.value.trim()) { showError(el, 'اكتب الصنف أو احذفه!'); err = true; } });
+        ['u_store_name','u_store_address'].forEach(id => clearError(document.getElementById(id)));
+        if (!document.getElementById('u_store_name').value.trim()) { showError(document.getElementById('u_store_name'), 'اكتب اسم المحل!'); err = true; }
+        if (!document.getElementById('u_store_address').value.trim()) { showError(document.getElementById('u_store_address'), 'اكتب عنوان المحل!'); err = true; }
+        const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';
+        if (!document.getElementById('u_store_lat').value || !document.getElementById('u_store_lng').value) { if (errStoreLocEl) errStoreLocEl.textContent = 'لازم تحدد موقع المحل على الخريطة!'; err = true; }
+        if (err) return;
+        renderOrderReview();
+        switchPage('order-review');
+    }
+
+    function renderOrderReview() {
+        const c = document.getElementById('order-review-content');
+        const name = localStorage.getItem('gebhaly_name') || '';
+        const phone = localStorage.getItem('gebhaly_phone') || '';
+        const gov = localStorage.getItem('gebhaly_governorate') || '';
+        const ezba = localStorage.getItem('gebhaly_ezba') || '';
+        const street = localStorage.getItem('gebhaly_street') || '';
+        const landmark = localStorage.getItem('gebhaly_landmark') || '';
+        const storeName = document.getElementById('u_store_name').value.trim() || 'أي محل';
+        const storeAddress = document.getElementById('u_store_address').value.trim();
+        c.innerHTML = `
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]">
+                <div class="font-bold text-[var(--gold-light)] mb-1"><i class="fas fa-user ml-1"></i> ${escapeHtml(name)}</div>
+                <div class="text-[var(--muted)]"><i class="fas fa-phone ml-1"></i> ${escapeHtml(phone)}</div>
+            </div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)] space-y-1">
+                <div><i class="fas fa-map-marker-alt ml-1 text-[var(--gold)]"></i>${escapeHtml(gov)} - ${escapeHtml(ezba)}</div>
+                <div>${escapeHtml(street)}${landmark ? ' - ' + escapeHtml(landmark) : ''}</div>
+            </div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)] space-y-1">
+                <div><i class="fas fa-store ml-1 text-[var(--gold)]"></i>${escapeHtml(selectedShopType || '')}</div>
+                <div class="font-semibold">${escapeHtml(storeName)}</div>
+                <div class="text-[var(--muted)]">${escapeHtml(storeAddress)}</div>
+            </div>
+        `;
+    }
 
     // =========================================================================
     // 🆕 نظام تحديد الموقع على الخريطة - بسيط جدًا لأي عمر: بيحاول ياخد موقعك
@@ -1138,11 +1293,9 @@
         }  
         try {  
             const { lat, lng } = await getFreshPositionPromise();  
-            const advanceTo = lpAdvanceTo;  
             setPickedLocation(lpTarget, lat, lng);  
             hideLpBlock();  
             closeLocationPicker();  
-            if (advanceTo) { goToStep(advanceTo); }  
         } catch (e) {  
             showLpBlockError(e.msg, { onRetry: autoSetCurrentLocationAndConfirm, onManual: () => {} });  
         }  
@@ -1706,10 +1859,8 @@
     function confirmLocationPick() {  
         if (!lpMap) return;  
         const c = lpMap.getCenter();  
-        const advanceTo = lpAdvanceTo;  
         setPickedLocation(lpTarget, c.lat, c.lng);  
         closeLocationPicker();  
-        if (advanceTo) { goToStep(advanceTo); }  
     }  
 
     function setPickedLocation(target, lat, lng) {  
@@ -1729,6 +1880,7 @@
         } else if (target === 'store') {  
             const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
         }  
+        updateOrderReviewVisibility();  
     }  
 
     function closeLocationPicker() {  
@@ -1848,8 +2000,17 @@
     }  
 
     document.addEventListener('DOMContentLoaded', () => {  
-        if (localStorage.getItem('gebhaly_name')) { document.getElementById('u_name').value = localStorage.getItem('gebhaly_name'); document.getElementById('u_phone').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_phone_confirm').value = localStorage.getItem('gebhaly_phone'); document.getElementById('u_ezba').value = localStorage.getItem('gebhaly_ezba'); document.getElementById('u_street').value = localStorage.getItem('gebhaly_street'); document.getElementById('u_landmark').value = localStorage.getItem('gebhaly_landmark'); }  
-        if (localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng')) { setPickedLocation('customer', parseFloat(localStorage.getItem('gebhaly_lat')), parseFloat(localStorage.getItem('gebhaly_lng'))); }  
+        fillRegisterFormFromStorage();  
+        // 🆕 لو دي أول مرة يفتح فيها العميل البرنامج ومسجلش بياناته لسه، هنجيبله استمارة
+        // "بيانات العميل الجديد" على طول بدل شاشة "اطلب الآن"، وبعد ما يحفظ بياناته هيروح لها تلقائي
+        if (isProfileComplete()) { switchPage('home'); }
+        else { setRegisterPageMode(false); switchPage('register'); }
+        updateOrderReviewVisibility();
+        const orderPageEl = document.getElementById('page-order');
+        if (orderPageEl) {
+            orderPageEl.addEventListener('input', updateOrderReviewVisibility);
+            orderPageEl.addEventListener('click', () => setTimeout(updateOrderReviewVisibility, 30));
+        }
         manageIntervals(); 
         runMandatoryPermissionGate();  
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { silentPermissionRecheck(); } });  
@@ -1861,12 +2022,12 @@
 
     function addNewItemRow() {  
         const c = document.getElementById('items-container'); const r = document.createElement('div'); r.className = 'flex flex-col item-row-container';  
-        r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"><button type="button" onclick="this.closest('.item-row-container').remove()" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
+        r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"><button type="button" onclick="this.closest('.item-row-container').remove(); updateOrderReviewVisibility();" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
         c.appendChild(r);  
+        updateOrderReviewVisibility();  
     }  
 
-    function handleFormSubmit(e) {  
-        e.preventDefault();  
+    function submitOrderToServer() {  
         const st = selectedShopType;  
         const storeNameVal = (document.getElementById('u_store_name').value.trim()) || 'أي محل';  
         const storeAddrVal = document.getElementById('u_store_address').value.trim();  
@@ -1876,13 +2037,19 @@
         document.querySelectorAll('.item-name').forEach(el => { if (el.value.trim()) fd += `- ${el.value.trim()}\n`; });  
         const now = new Date(); const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];  
         let h = now.getHours(); const m = now.getMinutes().toString().padStart(2,'0'); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;  
-        localStorage.setItem('gebhaly_name', document.getElementById('u_name').value); localStorage.setItem('gebhaly_phone', document.getElementById('u_phone').value); localStorage.setItem('gebhaly_ezba', document.getElementById('u_ezba').value); localStorage.setItem('gebhaly_street', document.getElementById('u_street').value); localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value);  
-        const custLat = document.getElementById('u_customer_lat').value, custLng = document.getElementById('u_customer_lng').value;  
+        // 🆕 بيانات العميل بقت متسجلة قبل كده في "ملفي الشخصي" فبنقراها من التخزين المحلي بدل ما نطلبها في كل أوردر
+        const custName = localStorage.getItem('gebhaly_name') || '';  
+        const custPhone = localStorage.getItem('gebhaly_phone') || '';  
+        const custGov = localStorage.getItem('gebhaly_governorate') || '';  
+        const custEzba = localStorage.getItem('gebhaly_ezba') || '';  
+        const custStreet = localStorage.getItem('gebhaly_street') || '';  
+        const custLandmark = localStorage.getItem('gebhaly_landmark') || '';  
+        const custLat = localStorage.getItem('gebhaly_lat') || '', custLng = localStorage.getItem('gebhaly_lng') || '';  
         const storeLat = document.getElementById('u_store_lat').value, storeLng = document.getElementById('u_store_lng').value;  
         const customerLocationLink = (custLat && custLng) ? `https://www.google.com/maps?q=${custLat},${custLng}` : '';  
         const storeLocationLink = (storeLat && storeLng) ? `https://www.google.com/maps?q=${storeLat},${storeLng}` : '';  
-        const payload = { bon:0, name:document.getElementById('u_name').value, phone:document.getElementById('u_phone').value, ezba:document.getElementById('u_ezba').value, street:document.getElementById('u_street').value, landmark:document.getElementById('u_landmark').value, customerLocation:customerLocationLink, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, storeLocation:storeLocationLink, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
-        const sb = document.getElementById('submitBtn'); const ot = sb.innerHTML; sb.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i>جاري الإرسال...`; sb.disabled = true;  
+        const payload = { bon:0, name:custName, phone:custPhone, ezba:(custGov ? custGov + ' - ' : '') + custEzba, street:custStreet, landmark:custLandmark, customerLocation:customerLocationLink, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, storeLocation:storeLocationLink, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
+        const sb = document.getElementById('btn-final-submit'); const ot = sb.innerHTML; sb.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i>جاري الإرسال...`; sb.disabled = true;  
         fetch(GOOGLE_SCRIPT_URL, { method:"POST", body:JSON.stringify(payload) })
     .then(r=>r.json())
     .then(d => {
@@ -1921,7 +2088,8 @@
         document.getElementById('u_store_address').value = '';  
         document.getElementById('u_notes').value='';  
         document.getElementById('items-container').innerHTML = `<div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div>`;  
-        goToStep(1); switchPage('active-orders');  
+        updateOrderReviewVisibility();  
+        switchPage('active-orders');  
     }  
 
     function showSuccessToast() { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<i class="fas fa-check-circle text-green-500 text-xl"></i><span class="font-bold text-sm">تم إرسال طلبك بنجاح وفي انتظار قبول الطلب!</span>`; c.appendChild(t); setTimeout(() => t.remove(), 4000); }  
