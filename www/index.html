@@ -36,6 +36,8 @@
     .menu-card > * { position: relative; z-index: 1; }  
     .modal-input { width: 100%; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.8rem; color: var(--cream); outline: none; transition: border-color 0.3s; margin-top: 0.35rem; font-size: 1rem; }  
     .modal-input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.1); }  
+    /* 🆕 كل الأزرار افتراضيًا نصها وأيقونتها في النص بالظبط، مش لاصقين على جنب */
+    button { display: flex; align-items: center; justify-content: center; text-align: center; gap: 0.4rem; }
     .input-error { border-color: var(--error) !important; box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }  
     .error-msg { color: var(--error); font-size: 0.75rem; font-weight: bold; margin-top: 0.25rem; display: block; }  
     /* 🆕 علامة الصح اللي بتظهر جمب كل خانة اتكتبت صح - على الجنب التاني من اتجاه الكتابة */
@@ -395,12 +397,14 @@
     </div>
 </div>
 
-<div id="page-profile" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
-    <div class="menu-card p-6 w-full max-w-xl space-y-4">
-        <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-id-card ml-2"></i>ملفي الشخصي</h2>
-        <div id="profile-view-content" class="space-y-3 text-sm"></div>
-        <button type="button" onclick="openProfileEdit()" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-2 shadow-lg"><i class="fas fa-pen ml-2"></i>تعديل بياناتي</button>
+<div id="page-profile" class="app-page flex flex-col justify-between items-center px-4 py-6 w-full">
+    <div class="w-full max-w-xl">
+        <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-4"><i class="fas fa-id-card ml-2"></i>ملفي الشخصي</h2>
+        <div class="menu-card p-6 w-full">
+            <div id="profile-view-content" class="space-y-3 text-base"></div>
+        </div>
     </div>
+    <button type="button" onclick="openProfileEdit()" class="w-full max-w-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-4 rounded-xl mt-4 shadow-lg text-lg"><i class="fas fa-pen ml-2"></i>تعديل بياناتي</button>
 </div>
 
 <div id="page-order-review" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
@@ -829,6 +833,7 @@
         const tn = document.getElementById('nav-' + pageId); if (tn) tn.classList.add('active');  
         if (pageId === 'active-orders') renderActiveOrders();  
         if (pageId === 'history') renderHistory();  
+        if (pageId === 'profile') renderProfilePage();
         // 🆕 لو دي أول تسجيل لعميل جديد لسه مسجلش بياناته، نخبي النافيجيشن بار تحت لحد ما يحفظ بياناته
         const navBarEl = document.querySelector('.bottom-nav');
         if (navBarEl) navBarEl.style.display = (pageId === 'register' && !profileEditMode) ? 'none' : 'flex';
@@ -970,11 +975,11 @@
         const landmark = localStorage.getItem('gebhaly_landmark') || '';
         const hasLoc = !!(localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng'));
         c.innerHTML = `
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold">${escapeHtml(name)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold">${escapeHtml(phone)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-marker-alt ml-1"></i>المحافظة</span><span class="font-bold">${escapeHtml(gov)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-pin ml-1"></i>العنوان</span><span class="font-bold">${escapeHtml(ezba)} - ${escapeHtml(street)}</span><br><span class="text-[var(--muted)] text-xs">${escapeHtml(landmark)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-location-crosshairs ml-1"></i>الموقع على الخريطة</span><span class="font-bold ${hasLoc ? 'text-[var(--success)]' : 'text-red-400'}">${hasLoc ? 'تم تحديد الموقع ✅' : 'لم يتم التحديد بعد'}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold text-lg">${escapeHtml(name)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold text-lg">${escapeHtml(phone)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-marker-alt ml-1"></i>المحافظة</span><span class="font-bold text-lg">${escapeHtml(gov)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-pin ml-1"></i>العنوان</span><span class="font-bold text-lg">${escapeHtml(ezba)} - ${escapeHtml(street)}</span><br><span class="text-[var(--muted)] text-sm">${escapeHtml(landmark)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-location-crosshairs ml-1"></i>الموقع على الخريطة</span><span class="font-bold text-lg ${hasLoc ? 'text-[var(--success)]' : 'text-red-400'}">${hasLoc ? 'تم تحديد الموقع ✅' : 'لم يتم التحديد بعد'}</span></div>
         `;
     }
 
