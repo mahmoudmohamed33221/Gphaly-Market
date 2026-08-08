@@ -38,6 +38,11 @@
     .modal-input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.1); }  
     .input-error { border-color: var(--error) !important; box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }  
     .error-msg { color: var(--error); font-size: 0.75rem; font-weight: bold; margin-top: 0.25rem; display: block; }  
+    /* 🆕 علامة الصح اللي بتظهر جمب كل خانة اتكتبت صح - على الجنب التاني من اتجاه الكتابة */
+    .input-check-wrap { position: relative; }
+    .input-check-wrap .modal-input { padding-left: 2.4rem; }
+    .input-valid-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%) scale(0.6); color: var(--success); font-size: 1.1rem; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; }
+    .input-valid-icon.show { opacity: 1; transform: translateY(-50%) scale(1); }
     .step-panel { display: none; }  
     .step-panel.active { display: block; }  
     .btn-oval { background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated)); border: 1px solid var(--border); color: var(--cream); font-weight: 600; border-radius: 50px; transition: all 0.3s ease; text-align: center; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; }  
@@ -384,7 +389,7 @@
                     <input type="hidden" id="u_customer_lat"><input type="hidden" id="u_customer_lng">
                 </div>
             </div>
-            <button type="button" id="btn-save-profile" onclick="saveProfile()" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
+            <button type="button" id="btn-save-profile" onclick="saveProfile()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
             <button type="button" id="btn-cancel-edit-profile" onclick="switchPage('profile')" style="display:none;" class="w-full bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">إلغاء</button>
         </div>
     </div>
@@ -521,7 +526,7 @@
     <div class="nav-item" id="nav-active-orders" onclick="switchPage('active-orders')"><i class="fas fa-spinner"></i><span>الحاليه</span></div>  
     <div class="nav-item" id="nav-history" onclick="switchPage('history')"><i class="fas fa-check-circle"></i><span>مستلمه</span></div>  
     <div class="nav-item" id="nav-profile" onclick="switchPage('profile')"><i class="fas fa-id-card"></i><span>ملفي الشخصي</span></div>  
-    <div class="nav-item" id="nav-contact" onclick="switchPage('contact')"><i class="fas fa-cog"></i><span>المساعده و الدعم</span></div>  
+    <div class="nav-item" id="nav-contact" onclick="switchPage('contact')"><i class="fas fa-cog"></i><span>الدعم</span></div>  
 </div>  
 
 <div id="mandatory-gate">  
@@ -824,6 +829,9 @@
         const tn = document.getElementById('nav-' + pageId); if (tn) tn.classList.add('active');  
         if (pageId === 'active-orders') renderActiveOrders();  
         if (pageId === 'history') renderHistory();  
+        // 🆕 لو دي أول تسجيل لعميل جديد لسه مسجلش بياناته، نخبي النافيجيشن بار تحت لحد ما يحفظ بياناته
+        const navBarEl = document.querySelector('.bottom-nav');
+        if (navBarEl) navBarEl.style.display = (pageId === 'register' && !profileEditMode) ? 'none' : 'flex';
         manageIntervals();  
     }  
 
@@ -886,6 +894,26 @@
         if (localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng')) {
             setPickedLocation('customer', parseFloat(localStorage.getItem('gebhaly_lat')), parseFloat(localStorage.getItem('gebhaly_lng')));
         }
+        setupInputCheckmarks();
+        updateRegisterSaveVisibility();
+    }
+
+    // 🆕 زرار "حفظ بياناتك كعميل جديد لدينا" ميظهرش إلا لما العميل الجديد يملأ كل خاناته الإجبارية
+    function updateRegisterSaveVisibility() {
+        const btn = document.getElementById('btn-save-profile');
+        if (!btn) return;
+        if (profileEditMode) { btn.style.display = 'flex'; return; }
+        const name = document.getElementById('u_name').value.trim();
+        const phone = document.getElementById('u_phone').value.trim();
+        const phoneConfirm = document.getElementById('u_phone_confirm').value.trim();
+        const gov = document.getElementById('u_governorate').value.trim();
+        const ezba = document.getElementById('u_ezba').value.trim();
+        const street = document.getElementById('u_street').value.trim();
+        const landmark = document.getElementById('u_landmark').value.trim();
+        const lat = document.getElementById('u_customer_lat').value;
+        const lng = document.getElementById('u_customer_lng').value;
+        const ok = !!(name && phone && phoneConfirm && gov && ezba && street && landmark && lat && lng);
+        btn.style.display = ok ? 'flex' : 'none';
     }
 
     function openProfileEdit() {
@@ -954,6 +982,41 @@
     // 🆕 استمارة الطلب بقت صفحة واحدة (بعد ما بيانات العميل بقت متسجلة من "ملفي الشخصي")
     // زرار "مراجعة وإرسال الطلب" مبيظهرش إلا لما كل الخانات الإجبارية تتملى (الملحوظة اختيارية)
     // =========================================================================
+    // =========================================================================
+    // 🆕 علامة الصح الخضرا اللي بتظهر جمب كل خانة بمجرد ما العميل يكتب فيها بيانات
+    // صحيحة - بتظهر على الجنب المقابل لبداية الكتابة (يعني هنا على الشمال، لأن
+    // الكتابة في الفورم بتبدأ من اليمين لأن التطبيق RTL)
+    // =========================================================================
+    function wrapInputWithCheck(input) {
+        if (!input || input.dataset.checkWrapped) { updateInputCheck(input); return; }
+        const wrap = document.createElement('div');
+        wrap.className = 'input-check-wrap';
+        // لو الخانة كانت flex-1 (زي خانة الصنف جمب زرار الحذف)، لازم الغلاف الجديد ياخد نفس الخاصية عشان التقسيمة متتفلقش
+        if (input.classList.contains('flex-1')) wrap.classList.add('flex-1');
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-check-circle input-valid-icon';
+        wrap.appendChild(icon);
+        input.dataset.checkWrapped = '1';
+        updateInputCheck(input);
+    }
+
+    function updateInputCheck(input) {
+        if (!input || !input.dataset.checkWrapped) return;
+        const icon = input.parentNode.querySelector('.input-valid-icon');
+        if (icon) icon.classList.toggle('show', !!input.value.trim());
+    }
+
+    function setupInputCheckmarks() {
+        const selector = '#page-register input[type="text"].modal-input, #page-register input[type="tel"].modal-input, #page-order input[type="text"].modal-input, #page-order .item-name';
+        document.querySelectorAll(selector).forEach(wrapInputWithCheck);
+    }
+
+    document.addEventListener('input', (e) => {
+        if (e.target && e.target.dataset && e.target.dataset.checkWrapped) updateInputCheck(e.target);
+    });
+
     function updateOrderReviewVisibility() {
         const btn = document.getElementById('btn-review-order');
         if (!btn) return;
@@ -992,20 +1055,23 @@
         const landmark = localStorage.getItem('gebhaly_landmark') || '';
         const storeName = document.getElementById('u_store_name').value.trim() || 'أي محل';
         const storeAddress = document.getElementById('u_store_address').value.trim();
+        const items = Array.from(document.querySelectorAll('.item-name')).map(el => el.value.trim()).filter(Boolean);
+        const notes = document.getElementById('u_notes').value.trim();
+        // 🆕 نفس تصميم كروت "ملفي الشخصي": عنوان صغير باهت فوق، والقيمة تحته بخط غامق -
+        // عشان يبقى شكل موحّد وكل حاجة واضحة ومظبوطة، مش نص متلخبط على اليمين
         c.innerHTML = `
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold">${escapeHtml(name)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold">${escapeHtml(phone)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-pin ml-1"></i>عنوان العميل</span><span class="font-bold">${escapeHtml(gov)} - ${escapeHtml(ezba)}</span><br><span class="text-[var(--muted)] text-xs">${escapeHtml(street)}${landmark ? ' - ' + escapeHtml(landmark) : ''}</span></div>
+            <div class="border-t border-[var(--border)]"></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-store ml-1"></i>اسم المحل</span><span class="font-bold">${escapeHtml(storeName)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-map-marker-alt ml-1"></i>عنوان المحل</span><span class="font-bold">${escapeHtml(storeAddress)}</span></div>
             <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]">
-                <div class="font-bold text-[var(--gold-light)] mb-1"><i class="fas fa-user ml-1"></i> ${escapeHtml(name)}</div>
-                <div class="text-[var(--muted)]"><i class="fas fa-phone ml-1"></i> ${escapeHtml(phone)}</div>
+                <span class="text-[var(--muted)] text-xs block mb-1"><i class="fas fa-list-ul ml-1"></i>الطلب بالأصناف</span>
+                <ul class="space-y-1">${items.map(it => `<li class="font-bold">• ${escapeHtml(it)}</li>`).join('')}</ul>
             </div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)] space-y-1">
-                <div><i class="fas fa-map-marker-alt ml-1 text-[var(--gold)]"></i>${escapeHtml(gov)} - ${escapeHtml(ezba)}</div>
-                <div>${escapeHtml(street)}${landmark ? ' - ' + escapeHtml(landmark) : ''}</div>
-            </div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)] space-y-1">
-                <div><i class="fas fa-store ml-1 text-[var(--gold)]"></i>${escapeHtml(selectedShopType || '')}</div>
-                <div class="font-semibold">${escapeHtml(storeName)}</div>
-                <div class="text-[var(--muted)]">${escapeHtml(storeAddress)}</div>
-            </div>
+            <div class="border-t border-[var(--border)]"></div>
+            ${notes ? `<div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-xs block mb-0.5"><i class="fas fa-note-sticky ml-1"></i>ملحوظة</span><span class="font-bold">${escapeHtml(notes)}</span></div>` : `<div class="text-[var(--muted)] text-xs text-center">لا توجد ملحوظة</div>`}
         `;
     }
 
@@ -1881,6 +1947,7 @@
             const errStoreLocEl = document.getElementById('err-u_store_location'); if (errStoreLocEl) errStoreLocEl.textContent = '';  
         }  
         updateOrderReviewVisibility();  
+        updateRegisterSaveVisibility();
     }  
 
     function closeLocationPicker() {  
@@ -2006,10 +2073,17 @@
         if (isProfileComplete()) { switchPage('home'); }
         else { setRegisterPageMode(false); switchPage('register'); }
         updateOrderReviewVisibility();
+        setupInputCheckmarks();
         const orderPageEl = document.getElementById('page-order');
         if (orderPageEl) {
             orderPageEl.addEventListener('input', updateOrderReviewVisibility);
             orderPageEl.addEventListener('click', () => setTimeout(updateOrderReviewVisibility, 30));
+        }
+        const registerPageEl = document.getElementById('page-register');
+        if (registerPageEl) {
+            registerPageEl.addEventListener('input', updateRegisterSaveVisibility);
+            registerPageEl.addEventListener('change', updateRegisterSaveVisibility);
+            registerPageEl.addEventListener('click', () => setTimeout(updateRegisterSaveVisibility, 30));
         }
         manageIntervals(); 
         runMandatoryPermissionGate();  
@@ -2024,6 +2098,7 @@
         const c = document.getElementById('items-container'); const r = document.createElement('div'); r.className = 'flex flex-col item-row-container';  
         r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"><button type="button" onclick="this.closest('.item-row-container').remove(); updateOrderReviewVisibility();" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
         c.appendChild(r);  
+        wrapInputWithCheck(r.querySelector('.item-name'));
         updateOrderReviewVisibility();  
     }  
 
@@ -2088,6 +2163,7 @@
         document.getElementById('u_store_address').value = '';  
         document.getElementById('u_notes').value='';  
         document.getElementById('items-container').innerHTML = `<div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div>`;  
+        setupInputCheckmarks();
         updateOrderReviewVisibility();  
         switchPage('active-orders');  
     }  
