@@ -26,17 +26,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 🆕 Gradle بيعمل توليد "debug.keystore" عشوائي جديد لو مفيش واحد موجود، وده بيخلي كل بيلد
-      # موقّع بمفتاح مختلف عن اللي قبله - عشان كده لما تيجي تحدّث التطبيق فوق نسخة متثبتة قبل كده
-      # بيقولك "التطبيق غير مثبت" لأن المفتاحين مش متطابقين. الحل: نستخدم نفس debug.keystore ثابت
-      # في كل مرة (المخزّن في الريبو) بدل ما نسيب Gradle يولّد واحد عشوائي.
-      - name: Use stable debug keystore
-        run: |
-          mkdir -p ~/.android
-          cp debug.keystore ~/.android/debug.keystore
-
       - name: Add Android platform
         run: npx cap add android
+
+      # 🆕 كنا بنعتمد على إن Gradle "يلاقي" نسخة debug.keystore الثابتة في ~/.android بنفسه،
+      # بس الطريقة دي مش مضمونة 100% لأنها بتعتمد على إن Gradle يدوّر في المكان ده بالظبط
+      # وميستخدمش دالته الداخلية اللي بتولّد مفتاح عشوائي جديد لو حسّت إن في أي فرق.
+      # الحل الأضمن: نحط نسخة من نفس debug.keystore الثابت (المخزّن في الريبو) جوه مشروع
+      # الأندرويد نفسه، ونجبر Gradle صراحة (signingConfig) إنه يستخدمها للتوقيع دايمًا -
+      # كده بنقفل تمامًا احتمال إن دالة توليد المفتاح العشوائي بتاعت Gradle تشتغل خالص.
+      - name: Force stable debug signing (no random key ever)
+        run: |
+          cp debug.keystore android/app/debug.keystore
+          GRADLE_FILE="android/app/build.gradle"
+          sed -i 's/^android {$/android {\n    signingConfigs {\n        debug {\n            storeFile file("debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }/' "$GRADLE_FILE"
+          sed -i 's/buildTypes {/buildTypes {\n        debug {\n            signingConfig signingConfigs.debug\n        }/' "$GRADLE_FILE"
+          echo "----- app/build.gradle بعد التعديل -----"
+          cat "$GRADLE_FILE"
 
       - name: Sync Capacitor
         run: npx cap sync android
