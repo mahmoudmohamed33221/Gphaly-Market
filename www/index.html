@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzGle_xpD5tp7rpBbWEhuofTo7GLUlywrAR9NY8apHgt-nXUHeAJ1RFe4eIG-0JQQEIw/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -816,7 +816,7 @@
         ramadan:   "https://b.top4top.io/p_3873f4zgo0.png",
         eidFitr:   "https://c.top4top.io/p_3873kt6l41.png",
         christmas: "https://d.top4top.io/p_38734d94s2.png",
-        eidAdha:   "https://l.top4top.io/p_3873so8x20.png"
+        eidAdha:   "https://e.top4top.io/p_3873nlc4v3.png"
     };
     // 🆕 أسامي الـ activity-alias بتاعة أيقونة سطح المكتب (Android) - لازم تتطابق حرفيًا
     // مع الأسامي المكتوبة في AndroidManifest.xml (شوف خطوة "إضافة أيقونات الموسم" في build.yml)
@@ -1073,6 +1073,7 @@
         localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value.trim());
         localStorage.setItem('gebhaly_lat', custLat);
         localStorage.setItem('gebhaly_lng', custLng);
+        sendPushTokenToServer(null); // دلوقتي بقى معانا رقم التليفون - نحاول نبعت التوكن المحفوظ لو موجود
 
         if (profileEditMode) { renderProfilePage(); switchPage('profile'); }
         else { switchPage('home'); }
@@ -2178,11 +2179,61 @@
         } catch (e) {}  
     }  
 
-    async function silentPermissionRecheck() {  
-        if (!isRunningInsideNativeApp() || document.visibilityState !== 'visible') return;  
-        const result = await checkGpsAndPermissionOk();  
-        if (!result.ok) { runMandatoryPermissionGate(); }  
-    }  
+    /* ================================================================
+       🆕 نظام الإشعارات اللحظية (Push Notifications) - عن طريق Firebase.
+       ده بيشتغل حتى لو التطبيق قافل تمامًا (زي المنبه/رسايل الـ SMS)، لأن
+       نظام التشغيل نفسه هو اللي بيستقبل الإشعار من جوجل مش التطبيق. بمجرد ما
+       العميل يديله صلاحية الإشعارات، بناخد "توكن" مميز للجهاز بتاعه ونبعته
+       للسيرفر (Google Apps Script) مربوط برقم تليفونه، عشان لما حالة الطلب
+       تتغيّر يقدر السيرفر يبعتله إشعار على الجهاز ده تحديدًا.
+       ================================================================ */
+    async function registerPushNotifications() {
+        if (!(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.PushNotifications)) return; // مش شغال جوه تطبيق أندرويد فعلي
+        const push = Capacitor.Plugins.PushNotifications;
+        try {
+            let status = await push.checkPermissions();
+            if (status.receive === 'prompt' || status.receive === 'prompt-with-rationale') {
+                status = await push.requestPermissions();
+            }
+            if (status.receive !== 'granted') return; // العميل رفض الصلاحية، مفيش داعي نكمل
+
+            // نسجّل مستمعين قبل ما نبدأ التسجيل عشان نضمن إننا مش هنفوّت أي حدث
+            push.removeAllListeners();
+            push.addListener('registration', (token) => {
+                sendPushTokenToServer(token.value);
+            });
+            push.addListener('registrationError', (err) => {
+                console.log('Push registration error', err);
+            });
+            push.addListener('pushNotificationReceived', () => {
+                // التطبيق فاتح والإشعار وصل - نحدّث حالة الطلب على طول من غير ما ننتظر الفحص الدوري
+                syncOrdersWithSheet();
+            });
+            push.addListener('pushNotificationActionPerformed', () => {
+                // العميل دوس على الإشعار من قائمة الإشعارات - نوديه لصفحة متابعة الطلبات
+                switchPage('active-orders');
+                syncOrdersWithSheet();
+            });
+
+            await push.register();
+        } catch (e) { console.log('registerPushNotifications error', e); }
+    }
+
+    // بعد ما ناخد التوكن من Firebase، نبعته للسيرفر مربوط برقم تليفون العميل عشان
+    // يقدر السيرفر يعرف يبعت الإشعار لمين بالظبط لما حالة طلبه تتغيّر. لو الرقم
+    // لسه مش متسجل (أول فتح للتطبيق)، بنحتفظ بالتوكن ونحاول تاني بعد ما يحفظ بياناته.
+    let lastReceivedPushToken = null;
+    let lastSentPushToken = null;
+    function sendPushTokenToServer(token) {
+        if (token) lastReceivedPushToken = token;
+        const tokenToSend = token || lastReceivedPushToken;
+        const phone = getCustomerPhone();
+        if (!phone || !tokenToSend || tokenToSend === lastSentPushToken) return;
+        lastSentPushToken = tokenToSend;
+        fetch(`${GOOGLE_SCRIPT_URL}?action=registerPushToken&phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(tokenToSend)}&_t=${Date.now()}`)
+            .catch(() => { lastSentPushToken = null; }); // فشل الإرسال - نسمح بمحاولة تانية لاحقًا
+    }
+
 
     document.addEventListener('DOMContentLoaded', () => {  
         fillRegisterFormFromStorage();  
@@ -2211,6 +2262,7 @@
         startAutoVersionCheck();
         startAutoAvailabilityCheck();
         startAutoSeasonCheck();
+        registerPushNotifications();
     });  
 
     function addNewItemRow() {  
