@@ -806,18 +806,31 @@
     /* ================================================================
        🆕 نظام "الموسم" - خلية D2 - بيغيّر شعار التطبيق تلقائي في كل
        الأماكن (شاشة البداية، العلامة المائية، شاشة "حول التطبيق"،
-       أيقونة الإشعارات) حسب اللي مكتوب في D2:
-       رمضان / عيد الفطر / الكريسماس / عيد الاضحي
-       أي نص تاني (أو "عادي" أو خلية فاضية) = الشعار الافتراضي العادي.
+       أيقونة الإشعارات، + أيقونة التطبيق على سطح المكتب) حسب اللي مكتوب
+       في D2: رمضان / عيد الفطر / الكريسماس / عيد الاضحي
+       أي نص تاني (أو "عادي" أو خلية فاضية) = الشكل الافتراضي العادي.
        ================================================================ */
     const DEFAULT_APP_LOGO = "https://f.top4top.io/p_3862qbbof0.png";
     const SEASON_LOGOS = {
+        default:   DEFAULT_APP_LOGO,
         ramadan:   "https://b.top4top.io/p_3872jmiab0.png",
         eidFitr:   "https://l.top4top.io/p_3873upp5u0.png",
         christmas: "https://f.top4top.io/p_3873rz6nm0.png",
         eidAdha:   "https://h.top4top.io/p_3873veh2s0.png"
     };
+    // 🆕 أسامي الـ activity-alias بتاعة أيقونة سطح المكتب (Android) - لازم تتطابق حرفيًا
+    // مع الأسامي المكتوبة في AndroidManifest.xml (شوف خطوة "إضافة أيقونات الموسم" في build.yml)
+    const SEASON_NATIVE_ICON_NAMES = {
+        default:   'IconDefault',
+        ramadan:   'IconRamadan',
+        eidFitr:   'IconFetr',
+        christmas: 'IconChristmas',
+        eidAdha:   'IconAdha'
+    };
+    const ALL_NATIVE_ICON_NAMES = Object.values(SEASON_NATIVE_ICON_NAMES);
     let currentAppLogo = DEFAULT_APP_LOGO;
+    let currentNativeIconName = null;
+    let nativeIconApplyInProgress = false;
     let seasonCheckInProgress = false;
 
     function normalizeArabicText(s) {
@@ -829,14 +842,14 @@
             .toLowerCase();
     }
 
-    function detectSeasonLogo(rawValue) {
+    function detectSeasonKey(rawValue) {
         const t = normalizeArabicText(rawValue);
-        if (!t) return DEFAULT_APP_LOGO;
-        if (t.includes('رمضان')) return SEASON_LOGOS.ramadan;
-        if (t.includes('فطر')) return SEASON_LOGOS.eidFitr;
-        if (t.includes('اضحي') || t.includes('اضحى')) return SEASON_LOGOS.eidAdha;
-        if (t.includes('كريسماس') || t.includes('كريسمس') || t.includes('christmas')) return SEASON_LOGOS.christmas;
-        return DEFAULT_APP_LOGO; // "عادي" أو أي نص تاني غير متعرّف عليه = الشكل الافتراضي
+        if (!t) return 'default';
+        if (t.includes('رمضان')) return 'ramadan';
+        if (t.includes('فطر')) return 'eidFitr';
+        if (t.includes('اضحي') || t.includes('اضحى')) return 'eidAdha';
+        if (t.includes('كريسماس') || t.includes('كريسمس') || t.includes('christmas')) return 'christmas';
+        return 'default'; // "عادي" أو أي نص تاني غير متعرّف عليه = الشكل الافتراضي
     }
 
     function applyAppLogo(url) {
@@ -847,12 +860,30 @@
         document.documentElement.style.setProperty('--app-logo-url', `url('${url}')`);
     }
 
+    // 🆕 تغيير أيقونة التطبيق على سطح المكتب (شاشة الهاتف الرئيسية) - شغالة بس جوه
+    // تطبيق الأندرويد المُثبّت (مش في المتصفح العادي)، وبدون أي إعادة تثبيت، لأن كل
+    // الأيقونات الأربعة + الافتراضية بتكون متضمّنة جوه التطبيق من وقت البناء أصلاً،
+    // وإحنا بس بنبدّل بينها وقت التشغيل عن طريق بلجن AppIcon.
+    function applyNativeAppIcon(name) {
+        if (name === currentNativeIconName) return;
+        if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppIcon)) return; // مش شغال جوه تطبيق أندرويد فعلي
+        if (nativeIconApplyInProgress) return;
+        nativeIconApplyInProgress = true;
+        const disableList = ALL_NATIVE_ICON_NAMES.filter(n => n !== name);
+        window.Capacitor.Plugins.AppIcon.change({ name: name, disable: disableList, suppressNotification: true })
+            .then(() => { currentNativeIconName = name; })
+            .catch(() => {})
+            .finally(() => { nativeIconApplyInProgress = false; });
+    }
+
     function checkSeasonNow() {
         if (seasonCheckInProgress) return;
         seasonCheckInProgress = true;
         fetch(`${GOOGLE_SCRIPT_URL}?action=checkSeason&_t=${Date.now()}`)
             .then(r => r.json()).then(data => {
-                applyAppLogo(detectSeasonLogo(data.season));
+                const key = detectSeasonKey(data.season);
+                applyAppLogo(SEASON_LOGOS[key]);
+                applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[key]);
                 seasonCheckInProgress = false;
             }).catch(() => { seasonCheckInProgress = false; });
     }
