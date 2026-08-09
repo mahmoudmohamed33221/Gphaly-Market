@@ -32,7 +32,7 @@
     .nav-item.active { color: var(--gold); }  
     .hero-gradient { background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); }  
     .menu-card { background: linear-gradient(145deg, var(--bg-card), var(--bg-elevated)); border: 1px solid var(--border); border-radius: 1.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.6); position: relative; overflow: hidden; }  
-    .menu-card::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background-image: url('https://f.top4top.io/p_3862qbbof0.png'); background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.04; pointer-events: none; z-index: 0; user-select: none; }  
+    .menu-card::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background-image: var(--app-logo-url, url('https://f.top4top.io/p_3862qbbof0.png')); background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.04; pointer-events: none; z-index: 0; user-select: none; }  
     .menu-card > * { position: relative; z-index: 1; }  
     .modal-input { width: 100%; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.8rem; color: var(--cream); outline: none; transition: border-color 0.3s; margin-top: 0.35rem; font-size: 1rem; }  
     .modal-input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.1); }  
@@ -234,7 +234,7 @@
 <body>  
 
 <div id="custom-splash" style="position:fixed; inset:0; z-index:999999; background:#000000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 2rem; overflow:hidden;">
-    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:110vw; max-width:700px; opacity:0.12; pointer-events:none; user-select:none;">
+    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="app-logo-dynamic" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:110vw; max-width:700px; opacity:0.12; pointer-events:none; user-select:none;">
     <div style="position:relative; z-index:1; font-family:'Amiri', serif; text-align:center; direction:rtl;">
         <div id="splash-line1" style="font-weight:800; font-size:2.4rem; color:var(--gold); margin-bottom:1.1rem; min-height:1.3em;"></div>
         <div id="splash-line2" style="font-weight:700; font-size:1.8rem; color:#FF9838; min-height:1.3em;"></div>
@@ -298,7 +298,7 @@
     <div class="absolute inset-0" style="z-index: 99998;"></div>
     <div class="menu-card p-7 max-w-sm w-full text-center space-y-5 relative z-[99999] update-pulse" onclick="event.stopPropagation()">
         <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--gold)] to-[var(--gold-dark)] flex items-center justify-center mx-auto shadow-lg overflow-hidden">
-            <img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="w-full h-full object-cover">
+            <img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="app-logo-dynamic w-full h-full object-cover">
         </div>
         <h2 class="font-amiri text-2xl font-bold text-[var(--gold)]">تحديث إجباري!</h2>
         <p class="text-[var(--muted)] text-sm leading-relaxed">لا يمكن استخدام التطبيق بالإصدار الحالي.</p>
@@ -421,7 +421,7 @@
 </div>
 
 <div id="page-home" class="app-page hero-gradient active flex flex-col justify-center items-center px-4 w-full relative overflow-hidden">  
-    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="bg-watermark">  
+    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="app-logo-dynamic bg-watermark">  
     <div class="text-center max-w-xl mx-auto z-10 w-full px-2 space-y-8 flex flex-col items-center justify-center relative pt-12">  
         <div>  
             <h1 class="font-amiri text-5xl font-bold text-[var(--gold)] mb-3">جبهالي ماركت</h1>  
@@ -502,18 +502,18 @@
 </div>  
 
 <div id="page-active-orders" class="app-page px-4 py-6 max-w-xl mx-auto w-full relative overflow-hidden">  
-    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="bg-watermark">
+    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="app-logo-dynamic bg-watermark">
     <div class="w-full"><h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-6"><i class="fas fa-spinner fa-spin ml-2 text-amber-500"></i>الطلبات الجارية</h2><div id="active-orders-list" class="space-y-4 w-full"></div></div>  
 </div>  
 
 <div id="page-history" class="app-page px-4 py-6 max-w-xl mx-auto w-full relative overflow-hidden">  
-    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="bg-watermark">
+    <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="app-logo-dynamic bg-watermark">
     <div class="w-full"><h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-6"><i class="fas fa-check-circle ml-2"></i>الطلبات السابقة</h2><div id="history-list" class="space-y-4 w-full"></div></div>  
 </div>  
 
 <div id="page-contact" class="app-page flex flex-col justify-center items-center px-4 py-8 w-full">  
     <div class="menu-card p-6 w-full max-sm mb-20 space-y-5">  
-        <div class="text-center"><div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--gold)] to-[var(--gold-dark)] flex items-center justify-center mx-auto shadow-lg overflow-hidden mb-3"><img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="w-full h-full object-cover"></div><h2 class="font-amiri text-3xl font-bold text-[var(--gold)]">جبهالي ماركت</h2><p class="text-[var(--gold-light)] text-sm font-medium mt-1">اطلب اوردرك وهيجيلك لحد باب بيتك في اسرع وقت ممكن</p></div>  
+        <div class="text-center"><div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--gold)] to-[var(--gold-dark)] flex items-center justify-center mx-auto shadow-lg overflow-hidden mb-3"><img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="app-logo-dynamic w-full h-full object-cover"></div><h2 class="font-amiri text-3xl font-bold text-[var(--gold)]">جبهالي ماركت</h2><p class="text-[var(--gold-light)] text-sm font-medium mt-1">اطلب اوردرك وهيجيلك لحد باب بيتك في اسرع وقت ممكن</p></div>  
         <div class="bg-[var(--bg-deep)] border border-[var(--border)] py-2.5 px-4 rounded-xl text-xs text-[var(--muted)] flex justify-between items-center"><span>الإصدار الحالي</span><span class="text-[var(--gold)] font-mono font-bold" id="app-version-display"></span></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-2 flex items-center justify-center gap-2"><i class="fas fa-info-circle"></i>حول التطبيق</h3><p class="text-[var(--muted)] text-xs leading-relaxed text-center">تطبيق جبهالي ماركت حل متكامل لتلبيت احتياجاتك الشخصيه من منزلك وسيصلك الطلب في وقت قصير وقياسي حسب طلبك. تم تصميم التطبيق للخدمه المنزليه بشكل عام ويمكن لاي احد استخدامه وتم تصميمه بوجه خاص ل كبار السن وذوي الاحتياجات الخاصه و ربات المنزل واي شخص غير قادر علي تلبت احتياجاتو بسبب ظرف ما او تاخر الوقت ليلاً او عدم التفرغ يمكنك الان عمل طلبك من مكانك وسيتم ايصاله الي منزلك في اقرب وقت ممكن. اتمني ان تنال الخدمه مستوي توقعاتكم.</p></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-3 flex items-center justify-center gap-2"><i class="fas fa-code"></i>مطور البرنامج</h3><div class="flex items-center justify-center gap-3 bg-[var(--bg-deep)] border border-[var(--border)] p-3 rounded-xl"><div class="w-10 h-10 rounded-full bg-[var(--gold)] text-[#111827] flex items-center justify-center font-bold text-lg shadow-md">م</div><div class="text-right"><span class="font-bold text-sm block">محمود جابر</span><span class="text-[10px] text-[var(--muted)]">Full-Stack Developer</span></div></div></div>  
@@ -586,13 +586,14 @@
 <script>  
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuu8JZjNkWpaggyMgez3i8DCuwu_t4lLokurac9n92pl8D_qCVN7FtPBxtRUEvu-1Lag/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
-    const APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
+    let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
     let currentPage = 'home';  
     let fastCheckInterval = null;  
     let slowCheckInterval = null;  
     let versionCheckInterval = null;
     let availabilityCheckInterval = null;
+    let seasonCheckInterval = null;
     let UPDATE_LINK = "";
     let UPDATE_SHOWN = false;
     let AVAILABILITY_BLOCKED = false;
@@ -800,6 +801,65 @@
     function startAutoAvailabilityCheck() {
         checkAvailabilityNow();
         availabilityCheckInterval = setInterval(checkAvailabilityNow, 1000);
+    }
+
+    /* ================================================================
+       🆕 نظام "الموسم" - خلية D2 - بيغيّر شعار التطبيق تلقائي في كل
+       الأماكن (شاشة البداية، العلامة المائية، شاشة "حول التطبيق"،
+       أيقونة الإشعارات) حسب اللي مكتوب في D2:
+       رمضان / عيد الفطر / الكريسماس / عيد الاضحي
+       أي نص تاني (أو "عادي" أو خلية فاضية) = الشعار الافتراضي العادي.
+       ================================================================ */
+    const DEFAULT_APP_LOGO = "https://f.top4top.io/p_3862qbbof0.png";
+    const SEASON_LOGOS = {
+        ramadan:   "https://b.top4top.io/p_3872jmiab0.png",
+        eidFitr:   "https://l.top4top.io/p_3873upp5u0.png",
+        christmas: "https://f.top4top.io/p_3873rz6nm0.png",
+        eidAdha:   "https://h.top4top.io/p_3873veh2s0.png"
+    };
+    let currentAppLogo = DEFAULT_APP_LOGO;
+    let seasonCheckInProgress = false;
+
+    function normalizeArabicText(s) {
+        return (s || '').toString().trim()
+            .replace(/[إأآا]/g, 'ا')
+            .replace(/[ىي]/g, 'ي')
+            .replace(/ة/g, 'ه')
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    }
+
+    function detectSeasonLogo(rawValue) {
+        const t = normalizeArabicText(rawValue);
+        if (!t) return DEFAULT_APP_LOGO;
+        if (t.includes('رمضان')) return SEASON_LOGOS.ramadan;
+        if (t.includes('فطر')) return SEASON_LOGOS.eidFitr;
+        if (t.includes('اضحي') || t.includes('اضحى')) return SEASON_LOGOS.eidAdha;
+        if (t.includes('كريسماس') || t.includes('كريسمس') || t.includes('christmas')) return SEASON_LOGOS.christmas;
+        return DEFAULT_APP_LOGO; // "عادي" أو أي نص تاني غير متعرّف عليه = الشكل الافتراضي
+    }
+
+    function applyAppLogo(url) {
+        if (url === currentAppLogo) return;
+        currentAppLogo = url;
+        APP_ICON = url; // نفس الشعار بيتستخدم في أيقونة إشعارات النظام
+        document.querySelectorAll('.app-logo-dynamic').forEach(el => { el.src = url; });
+        document.documentElement.style.setProperty('--app-logo-url', `url('${url}')`);
+    }
+
+    function checkSeasonNow() {
+        if (seasonCheckInProgress) return;
+        seasonCheckInProgress = true;
+        fetch(`${GOOGLE_SCRIPT_URL}?action=checkSeason&_t=${Date.now()}`)
+            .then(r => r.json()).then(data => {
+                applyAppLogo(detectSeasonLogo(data.season));
+                seasonCheckInProgress = false;
+            }).catch(() => { seasonCheckInProgress = false; });
+    }
+
+    function startAutoSeasonCheck() {
+        checkSeasonNow();
+        seasonCheckInterval = setInterval(checkSeasonNow, 15000); // كل 15 ثانية كفاية، مش لازم كل ثانية زي الفيرجن
     }
 
     /* ================================================================
@@ -2097,6 +2157,7 @@
         mgIntervalId = setInterval(silentPermissionRecheck, 5000);  
         startAutoVersionCheck();
         startAutoAvailabilityCheck();
+        startAutoSeasonCheck();
     });  
 
     function addNewItemRow() {  
