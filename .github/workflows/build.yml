@@ -82,7 +82,7 @@ jobs:
             # 78% من المساحة). لو الرسمة مالية الكانفاس 100% (زي ما كانت قبل كده)،
             # الحواف والنصوص القريبة من الحافة بتتقص فعليًا على الجهاز - مش مشكلة
             # كاش، ده سلوك أندرويد نفسه. فبنسيب هامش بسيط حوالين المحتوى.
-            convert "$SRC" -trim +repage -resize 310x310! -gravity center -background none -extent 432x432 "android/app/src/main/res/drawable-nodpi/ic_alt_${NAME}.png"
+            convert "$SRC" -trim +repage -resize 300x300! -gravity center -background none -extent 432x432 "android/app/src/main/res/drawable-nodpi/ic_alt_${NAME}.png"
           }
           generate_alt_icon resources/ramadan.png   ramadan
           generate_alt_icon resources/fetr.png      fetr
