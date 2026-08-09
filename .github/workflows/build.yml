@@ -58,7 +58,16 @@ jobs:
           cat "$MANIFEST"
 
       - name: Generate app icons
-        run: npx capacitor-assets generate --android
+        run: |
+          # 🆕 لو سبنا capacitor-assets تشتغل بـ "Easy Mode" (icon.png لوحدها من غير
+          # خلفية محددة)، بيحط تلقائيًا خلفية بيضا صريحة ورا الأيقونة الافتراضية على
+          # أندرويد (نفس السبب اللي كان بيحصل مع أيقونات المواسم قبل ما نظبطها).
+          # فبنولّد له "خلفية شفافة" صريحة عشان يستخدمها بدل الأبيض الافتراضي.
+          command -v convert >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y imagemagick)
+          convert resources/icon.png -resize 1024x1024 resources/icon-only.png
+          convert resources/icon.png -resize 1024x1024 resources/icon-foreground.png
+          convert -size 1024x1024 xc:none PNG32:resources/icon-background.png
+          npx capacitor-assets generate --android
 
       # 🆕 أيقونات "الموسم" لسطح المكتب (رمضان / عيد الفطر / الكريسماس / عيد الاضحي) -
       # بنولّد نسخة مربعة موحّدة من كل صورة في resources/ وبنحطها في drawable-nodpi
