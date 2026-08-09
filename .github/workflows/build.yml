@@ -69,10 +69,23 @@ jobs:
           mkdir -p android/app/src/main/res/drawable-nodpi
           mkdir -p android/app/src/main/res/mipmap-anydpi-v26
           command -v convert >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y imagemagick)
-          convert resources/ramadan.png   -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_ramadan.png
-          convert resources/fetr.png      -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_fetr.png
-          convert resources/adha.png      -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_adha.png
-          convert resources/christmas.png -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_christmas.png
+          # 🆕 صور المواسم شبه ماليه الكانفاس بتاعها بالكامل (فراغ شفاف ضئيل جدًا حواليها)،
+          # وبما إن الأيقونة بقت Adaptive حقيقية (foreground بيملأ الكانفاس زي ما هو من
+          # غير أندرويد يصغّره تلقائي زي الأيقونة القديمة)، فلازم إحنا نعمل الهامش الآمن
+          # بنفسنا يدويًا: نقص أي فراغ شفاف زايد (trim)، وبعدين نحط المحتوى في مساحة
+          # حوالي 68% من الكانفاس النهائي مع هامش شفاف حواليه - نفس النسبة اللي
+          # الأيقونة الافتراضية بتتولّد بيها، عشان الحجم يبقى متماثل مع باقي الأيقونات.
+          generate_alt_icon() {
+            SRC="$1"; NAME="$2"
+            # نقص أي فراغ شفاف زايد حوالين الرسمة، وبعدين نمططها (!) عشان تملا
+            # الأربع أضلاع بالظبط (432x432) - كل ضلع من الصورة يتمدد لحد ما يوصل
+            # لنفس ضلع الأيقونة، حتى لو استلزم تشويه بسيط في النسبة الأصلية.
+            convert "$SRC" -trim +repage -resize 432x432! "android/app/src/main/res/drawable-nodpi/ic_alt_${NAME}.png"
+          }
+          generate_alt_icon resources/ramadan.png   ramadan
+          generate_alt_icon resources/fetr.png      fetr
+          generate_alt_icon resources/adha.png      adha
+          generate_alt_icon resources/christmas.png christmas
           # 🆕 بنولّد "Adaptive Icon" حقيقي (خلفية شفافة + رسمة فوقها) لكل موسم بدل ما
           # نسيب الأيقونة "legacy" عادية. من غير كده، أندرويد 8+ (وبعض واجهات الأجهزة
           # زي MIUI/Samsung) بيحس إن الأيقونة قديمة (مالهاش background/foreground منفصلين)
