@@ -876,6 +876,18 @@
             .finally(() => { nativeIconApplyInProgress = false; });
     }
 
+    // 🆕 تخزين آخر "موسم" اتعرف عليه محليًا على الجهاز (localStorage) - عشان أول ما
+    // التطبيق يفتح يطبّق الشكل الصح على طول من غير ما يستنى رد السيرفر (اللي ممكن ياخد
+    // وقت أو يتأخر بسبب النت)، فمنمنع ظهور "ومضة" للشكل العادي قبل ما يتغيّر للموسم.
+    const SEASON_CACHE_KEY = 'gphaly_last_season_key';
+    function getCachedSeasonKey() {
+        try { const v = localStorage.getItem(SEASON_CACHE_KEY); return (v && SEASON_LOGOS[v]) ? v : 'default'; }
+        catch (e) { return 'default'; }
+    }
+    function setCachedSeasonKey(key) {
+        try { localStorage.setItem(SEASON_CACHE_KEY, key); } catch (e) {}
+    }
+
     function checkSeasonNow() {
         if (seasonCheckInProgress) return;
         seasonCheckInProgress = true;
@@ -884,9 +896,19 @@
                 const key = detectSeasonKey(data.season);
                 applyAppLogo(SEASON_LOGOS[key]);
                 applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[key]);
+                setCachedSeasonKey(key); // نحفظ الموسم الصحيح عشان الفتحة الجاية تطبّقه فورًا
                 seasonCheckInProgress = false;
             }).catch(() => { seasonCheckInProgress = false; });
     }
+
+    // 🆕 نطبّق آخر موسم محفوظ فورًا (قبل أي فتش على السيرفر) - ده اللي بيحل مشكلة
+    // ظهور الشكل العادي كومضة في كل مرة يفتح فيها التطبيق، حتى لو الموسم كان اتغيّر
+    // من قبل. بعد كده checkSeasonNow() هيتأكد من السيرفر ويحدّث لو حصل تغيير جديد.
+    (function applyCachedSeasonImmediately() {
+        const cachedKey = getCachedSeasonKey();
+        if (cachedKey !== 'default') applyAppLogo(SEASON_LOGOS[cachedKey]);
+        applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[cachedKey]);
+    })();
 
     function startAutoSeasonCheck() {
         checkSeasonNow();
