@@ -514,7 +514,7 @@
 <div id="page-contact" class="app-page flex flex-col justify-center items-center px-4 py-8 w-full">  
     <div class="menu-card p-6 w-full max-sm mb-20 space-y-5">  
         <div class="text-center"><div class="w-20 h-20 rounded-2xl bg-black flex items-center justify-center mx-auto shadow-lg overflow-hidden mb-3"><img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="app-logo-dynamic w-full h-full object-cover"></div><h2 class="font-amiri text-3xl font-bold text-[var(--gold)]">جبهالي ماركت</h2><p class="text-[var(--gold-light)] text-sm font-medium mt-1">اطلب اوردرك وهيجيلك لحد باب بيتك في اسرع وقت ممكن</p></div>  
-        <div class="bg-[var(--bg-deep)] border border-[var(--border)] py-2.5 px-4 rounded-xl text-xs text-[var(--muted)] flex justify-between items-center"><span>الإصدار الحالي</span><span class="text-[var(--gold)] font-mono font-bold" id="app-version-display"></span></div>  
+        <div class="bg-[var(--bg-deep)] border border-[var(--border)] py-2.5 px-4 rounded-xl text-xs text-[var(--muted)] flex justify-between items-center" onclick="handleVersionTap()"><span>الإصدار الحالي</span><span class="text-[var(--gold)] font-mono font-bold" id="app-version-display"></span></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-2 flex items-center justify-center gap-2"><i class="fas fa-info-circle"></i>حول التطبيق</h3><p class="text-[var(--muted)] text-xs leading-relaxed text-center">تطبيق جبهالي ماركت حل متكامل لتلبيت احتياجاتك الشخصيه من منزلك وسيصلك الطلب في وقت قصير وقياسي حسب طلبك. تم تصميم التطبيق للخدمه المنزليه بشكل عام ويمكن لاي احد استخدامه وتم تصميمه بوجه خاص ل كبار السن وذوي الاحتياجات الخاصه و ربات المنزل واي شخص غير قادر علي تلبت احتياجاتو بسبب ظرف ما او تاخر الوقت ليلاً او عدم التفرغ يمكنك الان عمل طلبك من مكانك وسيتم ايصاله الي منزلك في اقرب وقت ممكن. اتمني ان تنال الخدمه مستوي توقعاتكم.</p></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-3 flex items-center justify-center gap-2"><i class="fas fa-code"></i>مطور البرنامج</h3><div class="flex items-center justify-center gap-3 bg-[var(--bg-deep)] border border-[var(--border)] p-3 rounded-xl"><div class="w-10 h-10 rounded-full bg-[var(--gold)] text-[#111827] flex items-center justify-center font-bold text-lg shadow-md">م</div><div class="text-right"><span class="font-bold text-sm block">محمود جابر</span><span class="text-[10px] text-[var(--muted)]">Full-Stack Developer</span></div></div></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-3 flex items-center justify-center gap-2"><i class="fas fa-headset"></i>الدعم الفني</h3><div class="space-y-2.5"><button onclick="openSupportChat()" class="contact-link" style="border-color: rgba(212,175,55,0.45); background: linear-gradient(145deg, rgba(212,175,55,0.12), rgba(212,175,55,0.02));"><i class="fas fa-comments text-[var(--gold)]"></i><span class="font-semibold">تواصل لايف مع الدعم</span></button><a href="tel:+201067735647" class="contact-link"><i class="fas fa-phone-alt text-[var(--gold)]"></i><span class="font-semibold">تواصل عبر الفون</span></a><a href="https://wa.me/201067735647" target="_blank" class="contact-link" style="border-color: rgba(16,185,129,0.2);"><i class="fab fa-whatsapp text-green-500"></i><span class="font-semibold">تواصل عبر واتساب</span></a></div></div>  
@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzGle_xpD5tp7rpBbWEhuofTo7GLUlywrAR9NY8apHgt-nXUHeAJ1RFe4eIG-0JQQEIw/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -2188,22 +2188,30 @@
        تتغيّر يقدر السيرفر يبعتله إشعار على الجهاز ده تحديدًا.
        ================================================================ */
     async function registerPushNotifications() {
-        if (!(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.PushNotifications)) return; // مش شغال جوه تطبيق أندرويد فعلي
+        pushDebugLog('start', {});
+        if (!(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.PushNotifications)) {
+            pushDebugLog('plugin_not_found', {});
+            return; // مش شغال جوه تطبيق أندرويد فعلي، أو البلجن مش متربط في الـ APK
+        }
+        pushDebugLog('plugin_found', {});
         const push = Capacitor.Plugins.PushNotifications;
         try {
             let status = await push.checkPermissions();
+            pushDebugLog('checkPermissions', status);
             if (status.receive === 'prompt' || status.receive === 'prompt-with-rationale') {
                 status = await push.requestPermissions();
+                pushDebugLog('requestPermissions', status);
             }
-            if (status.receive !== 'granted') return; // العميل رفض الصلاحية، مفيش داعي نكمل
+            if (status.receive !== 'granted') { pushDebugLog('permission_denied', status); return; }
 
             // نسجّل مستمعين قبل ما نبدأ التسجيل عشان نضمن إننا مش هنفوّت أي حدث
             push.removeAllListeners();
             push.addListener('registration', (token) => {
+                pushDebugLog('registration_success', { token: token.value ? token.value.substring(0, 20) + '...' : '' });
                 sendPushTokenToServer(token.value);
             });
             push.addListener('registrationError', (err) => {
-                console.log('Push registration error', err);
+                pushDebugLog('registration_error', err);
             });
             push.addListener('pushNotificationReceived', () => {
                 // التطبيق فاتح والإشعار وصل - نحدّث حالة الطلب على طول من غير ما ننتظر الفحص الدوري
@@ -2216,7 +2224,31 @@
             });
 
             await push.register();
-        } catch (e) { console.log('registerPushNotifications error', e); }
+            pushDebugLog('register_called', {});
+        } catch (e) { pushDebugLog('exception', { message: e.message || String(e) }); }
+    }
+
+    // 🆕 سجل تشخيصي بسيط لخطوات تسجيل الإشعارات - بيتحفظ محليًا عشان نقدر نشوف
+    // فين بالظبط وقفت العملية من غير ما نحتاج أدوات مبرمجين. تقدر تشوفه بالدوس
+    // على "الإصدار الحالي" في صفحة الدعم 5 مرات متتالية بسرعة.
+    function pushDebugLog(step, details) {
+        try {
+            const log = JSON.parse(localStorage.getItem('push_debug_log') || '[]');
+            log.push({ t: new Date().toLocaleTimeString('ar-EG'), step, details });
+            while (log.length > 20) log.shift();
+            localStorage.setItem('push_debug_log', JSON.stringify(log));
+        } catch (e) {}
+    }
+    let versionTapCount = 0, versionTapTimer = null;
+    function handleVersionTap() {
+        versionTapCount++;
+        clearTimeout(versionTapTimer);
+        versionTapTimer = setTimeout(() => { versionTapCount = 0; }, 2000);
+        if (versionTapCount >= 5) {
+            versionTapCount = 0;
+            const log = JSON.parse(localStorage.getItem('push_debug_log') || '[]');
+            alert(log.length ? log.map(l => `[${l.t}] ${l.step} ${JSON.stringify(l.details)}`).join('\n') : 'مفيش أي سجل تشخيصي محفوظ - يعني registerPushNotifications() لسه ما اتنداهاش خالص');
+        }
     }
 
     // بعد ما ناخد التوكن من Firebase، نبعته للسيرفر مربوط برقم تليفون العميل عشان
