@@ -29,6 +29,23 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      # 🆕 بنركّب Firebase (لازم للإشعارات اللحظية Push Notifications اللي بتشتغل
+      # حتى لو التطبيق قافل تمامًا زي المنبه). ملف google-services.json مش سري
+      # (مجرد معرّفات عامة للمشروع)، فمخزّن في الريبو نفسه. بنحطه في مكانه الصح
+      # جوه مشروع أندرويد، وبنضيف الـ Google Services Gradle plugin يدويًا لأن
+      # فولدر android/ بيتولّد من الصفر في كل بيلد (مش موجود في الريبو أصلًا).
+      - name: Add Firebase (google-services)
+        run: |
+          cp google-services.json android/app/google-services.json
+          PROJECT_GRADLE="android/build.gradle"
+          APP_GRADLE="android/app/build.gradle"
+          sed -i "s#classpath 'com.android.tools.build:gradle:[^']*'#&\n        classpath 'com.google.gms:google-services:4.4.4'#" "$PROJECT_GRADLE"
+          sed -i "s#^apply plugin: 'com.android.application'#&\napply plugin: 'com.google.gms.google-services'#" "$APP_GRADLE"
+          echo "----- android/build.gradle بعد التعديل -----"
+          cat "$PROJECT_GRADLE"
+          echo "----- android/app/build.gradle بعد التعديل -----"
+          cat "$APP_GRADLE"
+
       # 🆕 كنا بنعتمد على إن Gradle "يلاقي" نسخة debug.keystore الثابتة في ~/.android بنفسه،
       # بس الطريقة دي مش مضمونة 100% لأنها بتعتمد على إن Gradle يدوّر في المكان ده بالظبط
       # وميستخدمش دالته الداخلية اللي بتولّد مفتاح عشوائي جديد لو حسّت إن في أي فرق.
@@ -50,10 +67,12 @@ jobs:
       # 🆕 بلجن @capacitor/geolocation مش بيضيف صلاحيات الموقع لملف الـ Manifest لوحده -
       # ده موضّح رسميًا في توثيق Capacitor إن المطوّر لازم يضيفها يدويًا. وبما إننا بنعمل
       # "cap add android" من الصفر في كل بيلد، بنضيف الصلاحيات هنا تلقائيًا بعد كل مرة.
+      # وضفنا كمان POST_NOTIFICATIONS - أندرويد 13+ (API 33) محتاجها صراحة عشان
+      # التطبيق يقدر يعرض إشعارات Push (زي المنبه) من غير ما يتفتح.
       - name: Add location permissions to AndroidManifest.xml
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />#' "$MANIFEST"
+          sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' "$MANIFEST"
           echo "----- AndroidManifest.xml بعد التعديل -----"
           cat "$MANIFEST"
 
