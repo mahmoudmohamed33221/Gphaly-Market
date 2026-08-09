@@ -77,10 +77,12 @@ jobs:
           # الأيقونة الافتراضية بتتولّد بيها، عشان الحجم يبقى متماثل مع باقي الأيقونات.
           generate_alt_icon() {
             SRC="$1"; NAME="$2"
-            # نقص أي فراغ شفاف زايد حوالين الرسمة، وبعدين نمططها (!) عشان تملا
-            # الأربع أضلاع بالظبط (432x432) - كل ضلع من الصورة يتمدد لحد ما يوصل
-            # لنفس ضلع الأيقونة، حتى لو استلزم تشويه بسيط في النسبة الأصلية.
-            convert "$SRC" -trim +repage -resize 432x432! "android/app/src/main/res/drawable-nodpi/ic_alt_${NAME}.png"
+            # 🆕 أندرويد بيطبّق دايمًا "قصة" (Mask دايرة/مربع بحواف دائرية) على أي
+            # Adaptive Icon، وبيقص أي جزء من الرسمة برة "المنطقة الآمنة" (تقريبًا
+            # 78% من المساحة). لو الرسمة مالية الكانفاس 100% (زي ما كانت قبل كده)،
+            # الحواف والنصوص القريبة من الحافة بتتقص فعليًا على الجهاز - مش مشكلة
+            # كاش، ده سلوك أندرويد نفسه. فبنسيب هامش بسيط حوالين المحتوى.
+            convert "$SRC" -trim +repage -resize 337x337! -gravity center -background none -extent 432x432 "android/app/src/main/res/drawable-nodpi/ic_alt_${NAME}.png"
           }
           generate_alt_icon resources/ramadan.png   ramadan
           generate_alt_icon resources/fetr.png      fetr
