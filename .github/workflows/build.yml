@@ -60,6 +60,120 @@ jobs:
       - name: Generate app icons
         run: npx capacitor-assets generate --android
 
+      # 🆕 أيقونات "الموسم" لسطح المكتب (رمضان / عيد الفطر / الكريسماس / عيد الاضحي) -
+      # بنولّد نسخة مربعة موحّدة من كل صورة في resources/ وبنحطها في drawable-nodpi
+      # عشان تظهر بنفس الجودة على أي كثافة شاشة، وبعدين بنربطها بالـ activity-alias
+      # المناسب في الخطوة اللي بعد كده.
+      - name: Generate alternate season app icons
+        run: |
+          mkdir -p android/app/src/main/res/drawable-nodpi
+          command -v convert >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y imagemagick)
+          convert resources/ramadan.png   -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_ramadan.png
+          convert resources/fetr.png      -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_fetr.png
+          convert resources/adha.png      -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_adha.png
+          convert resources/christmas.png -resize 432x432 android/app/src/main/res/drawable-nodpi/ic_alt_christmas.png
+          echo "----- الأيقونات اللي اتولّدت -----"
+          ls -la android/app/src/main/res/drawable-nodpi/
+
+      # 🆕 بنضيف activity-alias واحد لكل موسم (+ واحد افتراضي) في AndroidManifest.xml
+      # عشان بلجن @capacitor-community/app-icon يقدر يبدّل أيقونة سطح المكتب وقت التشغيل
+      # من غير أي إعادة تثبيت للتطبيق. الأسامي هنا (IconDefault, IconRamadan, IconFetr,
+      # IconAdha, IconChristmas) لازم تفضل مطابقة حرفيًا للأسامي في كود الجافاسكريبت
+      # (SEASON_NATIVE_ICON_NAMES) جوه www/index.html.
+      - name: Add app-icon activity-aliases to AndroidManifest.xml
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+
+          manifest_path = pathlib.Path("android/app/src/main/AndroidManifest.xml")
+          xml = manifest_path.read_text(encoding="utf-8")
+
+          # عطّل الـ LAUNCHER الأصلي بتاع MainActivity - هنستبدله بأليس "IconDefault"
+          # عشان نقدر نتحكم فيه بنفس الطريقة اللي بنتحكم بيها في باقي المواسم
+          launcher_category = '<category android:name="android.intent.category.LAUNCHER" />'
+          if launcher_category in xml:
+              xml = xml.replace(
+                  launcher_category,
+                  '<!-- ' + launcher_category + ' -->',
+                  1
+              )
+          else:
+              raise SystemExit("لم يتم العثور على LAUNCHER category في MainActivity - راجع الملف يدويًا")
+
+          aliases = '''
+              <activity-alias
+                  android:name=".IconDefault"
+                  android:label="@string/app_name"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:enabled="true"
+                  android:exported="true"
+                  android:targetActivity=".MainActivity">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+              </activity-alias>
+              <activity-alias
+                  android:name=".IconRamadan"
+                  android:label="@string/app_name"
+                  android:icon="@drawable/ic_alt_ramadan"
+                  android:roundIcon="@drawable/ic_alt_ramadan"
+                  android:enabled="false"
+                  android:exported="true"
+                  android:targetActivity=".MainActivity">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+              </activity-alias>
+              <activity-alias
+                  android:name=".IconFetr"
+                  android:label="@string/app_name"
+                  android:icon="@drawable/ic_alt_fetr"
+                  android:roundIcon="@drawable/ic_alt_fetr"
+                  android:enabled="false"
+                  android:exported="true"
+                  android:targetActivity=".MainActivity">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+              </activity-alias>
+              <activity-alias
+                  android:name=".IconAdha"
+                  android:label="@string/app_name"
+                  android:icon="@drawable/ic_alt_adha"
+                  android:roundIcon="@drawable/ic_alt_adha"
+                  android:enabled="false"
+                  android:exported="true"
+                  android:targetActivity=".MainActivity">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+              </activity-alias>
+              <activity-alias
+                  android:name=".IconChristmas"
+                  android:label="@string/app_name"
+                  android:icon="@drawable/ic_alt_christmas"
+                  android:roundIcon="@drawable/ic_alt_christmas"
+                  android:enabled="false"
+                  android:exported="true"
+                  android:targetActivity=".MainActivity">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.LAUNCHER" />
+                  </intent-filter>
+              </activity-alias>
+          '''
+
+          xml = xml.replace("</application>", aliases + "    </application>", 1)
+          manifest_path.write_text(xml, encoding="utf-8")
+          print("----- AndroidManifest.xml بعد إضافة الأليسات -----")
+          print(xml)
+          PYEOF
+
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
