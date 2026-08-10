@@ -2256,19 +2256,29 @@
     // لسه مش متسجل (أول فتح للتطبيق)، بنحتفظ بالتوكن ونحاول تاني بعد ما يحفظ بياناته.
     let lastReceivedPushToken = null;
     let lastSentPushToken = null;
-    function sendPushTokenToServer(token) {
+    function sendPushTokenToServer(token, attempt) {
+        attempt = attempt || 1;
         if (token) lastReceivedPushToken = token;
         const tokenToSend = token || lastReceivedPushToken;
         const phone = getCustomerPhone();
-        pushDebugLog('sendPushTokenToServer_called', { hasPhone: !!phone, hasToken: !!tokenToSend, alreadySent: tokenToSend === lastSentPushToken });
-        if (!phone || !tokenToSend || tokenToSend === lastSentPushToken) return;
-        lastSentPushToken = tokenToSend;
+        pushDebugLog('sendPushTokenToServer_called', { hasPhone: !!phone, hasToken: !!tokenToSend, alreadySent: tokenToSend === lastSentPushToken, attempt });
+        if (!phone || !tokenToSend || (tokenToSend === lastSentPushToken && attempt === 1)) return;
         const url = `${GOOGLE_SCRIPT_URL}?action=registerPushToken&phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(tokenToSend)}&_t=${Date.now()}`;
-        pushDebugLog('sendPushTokenToServer_fetching', { phone: phone });
+        pushDebugLog('sendPushTokenToServer_fetching', { phone: phone, attempt });
         fetch(url)
             .then(r => r.text())
-            .then(txt => { pushDebugLog('sendPushTokenToServer_response', { text: txt.substring(0, 100) }); })
-            .catch((err) => { lastSentPushToken = null; pushDebugLog('sendPushTokenToServer_FAILED', { message: err.message || String(err) }); }); // فشل الإرسال - نسمح بمحاولة تانية لاحقًا
+            .then(txt => {
+                lastSentPushToken = tokenToSend; // نجح فعلاً - دلوقتي بس نعتبره اتبعت
+                pushDebugLog('sendPushTokenToServer_response', { text: txt.substring(0, 100) });
+            })
+            .catch((err) => {
+                pushDebugLog('sendPushTokenToServer_FAILED', { message: err.message || String(err), attempt });
+                // 🆕 فشل مؤقت (زي انقطاع بسيط في النت أو ريلود حصل في نفس اللحظة) -
+                // نعيد المحاولة لحد 5 مرات بفاصل متزايد بدل ما نستسلم من أول مرة
+                if (attempt < 5) {
+                    setTimeout(() => sendPushTokenToServer(tokenToSend, attempt + 1), attempt * 3000);
+                }
+            });
     }
 
 
