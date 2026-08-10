@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyajg-1K0MetiUle19w2Q57-uS3RO31qrSL4e_jWe-tpgHlQyo4HDmBrybRCc5DdibwHg/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -1073,10 +1073,37 @@
         localStorage.setItem('gebhaly_landmark', document.getElementById('u_landmark').value.trim());
         localStorage.setItem('gebhaly_lat', custLat);
         localStorage.setItem('gebhaly_lng', custLng);
-        sendPushTokenToServer(null); // دلوقتي بقى معانا رقم التليفون - نحاول نبعت التوكن المحفوظ لو موجود
+
+        // 🆕 دلوقتي بيانات العميل بتتبعت للسيرفر فورًا لحظة الحفظ (مش لما يعمل أول
+        // طلب زي الأول)، وبيتسجل معاها توكن الإشعارات (لو وصل من فايربيز قبل كده)
+        // في نفس الخطوة - عشان العميل يبقى جاهز يستقبل إشعارات من أول لحظة.
+        sendProfileToServer(nameVal, pv, govEl.value.trim(),
+            document.getElementById('u_ezba').value.trim(),
+            document.getElementById('u_street').value.trim(),
+            document.getElementById('u_landmark').value.trim(),
+            custLat, custLng);
 
         if (profileEditMode) { renderProfilePage(); switchPage('profile'); }
         else { switchPage('home'); }
+    }
+
+    // 🆕 بيبعت بيانات العميل (اسم/تليفون/عنوان بالتفصيل) لورقة "العملاء" في الشيت
+    // فور ما يحفظ بروفايله، وبيرفق توكن الإشعارات لو موجود عشان يتسجلوا مع بعض
+    // بنفس الطريقة - بدل ما يستنوا لحد أول طلب.
+    function sendProfileToServer(name, phone, governorate, ezba, street, landmark, lat, lng) {
+        const locationLink = (lat && lng) ? `https://www.google.com/maps?q=${lat},${lng}` : '';
+        const body = JSON.stringify({
+            action: 'saveProfile', name, phone, governorate, ezba, street, landmark,
+            location: locationLink, token: lastReceivedPushToken || ''
+        });
+        fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' })
+            .then(r => r.text())
+            .then(() => { if (lastReceivedPushToken) lastSentPushToken = lastReceivedPushToken; })
+            .catch(() => {
+                // 🆕 لو فشل، مفيش داعي نستسلم - نجرب تاني بعد 5 ثواني، ولو التوكن
+                // كان موجود ووصل بعد كده هيتبعت لوحده عن طريق registerPushToken العادي
+                setTimeout(() => sendProfileToServer(name, phone, governorate, ezba, street, landmark, lat, lng), 5000);
+            });
     }
 
     function renderProfilePage() {
@@ -2353,7 +2380,15 @@
         updateOrderReviewVisibility();  
     }  
 
-    function submitOrderToServer() {  
+    // 🆕 مُعرّف فريد لمحاولة الطلب الحالية - بيتولّد مرة واحدة بس أول ما العميل يدوس
+    // "إرسال"، وبيفضل نفسه لو حصلت إعادة محاولة (شبكة ضعيفة/Failed to fetch) عشان
+    // السيرفر يقدر يعرف إن ده "نفس الطلب" ومنشلوش صف جديد فاضي في الشيت كل مرة.
+    // بيتصفّر بس لما الطلب ينجح فعلاً أو العميل يبدأ طلب جديد من الأول.
+    let pendingOrderClientId = null;
+    let orderSubmitInProgress = false; // 🆕 حماية إضافية من الدوس على الزرار مرتين بسرعة
+    function submitOrderToServer() {
+        if (orderSubmitInProgress) return; // 🆕 طلب سابق لسه بيتبعت - متجاهل أي دوسة تانية
+        orderSubmitInProgress = true;
         const st = selectedShopType;  
         const storeNameVal = (document.getElementById('u_store_name').value.trim()) || 'أي محل';  
         const storeAddrVal = document.getElementById('u_store_address').value.trim();  
@@ -2374,28 +2409,35 @@
         const storeLat = document.getElementById('u_store_lat').value, storeLng = document.getElementById('u_store_lng').value;  
         const customerLocationLink = (custLat && custLng) ? `https://www.google.com/maps?q=${custLat},${custLng}` : '';  
         const storeLocationLink = (storeLat && storeLng) ? `https://www.google.com/maps?q=${storeLat},${storeLng}` : '';  
-        const payload = { bon:0, name:custName, phone:custPhone, ezba:(custGov ? custGov + ' - ' : '') + custEzba, street:custStreet, landmark:custLandmark, customerLocation:customerLocationLink, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, storeLocation:storeLocationLink, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
+        if (!pendingOrderClientId) {
+            // 🆕 أول محاولة للطلب ده - نولّد المعرّف الفريد بتاعه دلوقتي بس
+            pendingOrderClientId = 'ord_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+        }
+        const payload = { action:'newOrder', clientOrderId:pendingOrderClientId, bon:0, name:custName, phone:custPhone, governorate:custGov, ezbaRaw:custEzba, ezba:(custGov ? custGov + ' - ' : '') + custEzba, street:custStreet, landmark:custLandmark, customerLocation:customerLocationLink, shopType:st, storeName:storeNameVal, storeAddress:storeAddrVal, storeLocation:storeLocationLink, orderDetails:fd, notes:document.getElementById('u_notes').value||"لا توجد ملاحظات", orderDayDate:`${days[now.getDay()]} (${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()})`, orderTime:`${h}:${m} ${ap}`, status:'pending', total:0, orderCost:0, deliveryCost:0, pilotName:'', pilotPhone:'' };  
         const sb = document.getElementById('btn-final-submit'); const ot = sb.innerHTML; sb.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i>جاري الإرسال...`; sb.disabled = true;  
         fetch(GOOGLE_SCRIPT_URL, { method:"POST", body:JSON.stringify(payload) })
     .then(r=>r.json())
     .then(d => {
-        if(d.status==="success"){ payload.bon=d.bon; processSuccess(payload); }
-        else if(d.status==="banned"){ showBannedModal(d.message); }
+        if(d.status==="success"){ pendingOrderClientId = null; payload.bon=d.bon; processSuccess(payload); }
+        else if(d.status==="banned"){ pendingOrderClientId = null; showBannedModal(d.message); }
         else alert("خطأ في الحفظ.");
     })
             .catch(() => {
                 /* ⚡ ممكن يكون الطلب اتحفظ فعلاً في الشيت والمشكلة بس في وصول الرد للمتصفح
                    (بيحصل أحيانًا في متصفحات الموبايل). قبل ما نقول للعميل إن الطلب فشل،
-                   بندور عليه في الشيت برقم تليفونه وتوقيت الإرسال، ولو لقيناه بنضيفه عادي. */
+                   بندور عليه في الشيت برقم تليفونه وتوقيت الإرسال، ولو لقيناه بنضيفه عادي.
+                   لو معرفناش نلاقيه وحاول العميل تاني، pendingOrderClientId هيفضل هو
+                   هو (متبدلش) عشان السيرفر يعرف يمنع تكرار نفس الطلب في الشيت. */
                 recoverOrderAfterNetworkError(payload);
             })
-            .finally(()=>{sb.innerHTML=ot;sb.disabled=false;});  
+            .finally(()=>{sb.innerHTML=ot;sb.disabled=false; orderSubmitInProgress=false;});  
     }  
 
     function recoverOrderAfterNetworkError(payload) {  
         const url = `${GOOGLE_SCRIPT_URL}?action=findMyOrder&phone=${encodeURIComponent(payload.phone)}&orderDayDate=${encodeURIComponent(payload.orderDayDate)}&orderTime=${encodeURIComponent(payload.orderTime)}&_t=${Date.now()}`;  
         fetch(url).then(r=>r.json()).then(res => {  
             if (res && res.found && res.bon) {  
+                pendingOrderClientId = null;
                 payload.bon = res.bon;  
                 processSuccess(payload);  
             } else {  
