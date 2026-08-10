@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzGle_xpD5tp7rpBbWEhuofTo7GLUlywrAR9NY8apHgt-nXUHeAJ1RFe4eIG-0JQQEIw/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -2268,6 +2268,7 @@
 
 
     document.addEventListener('DOMContentLoaded', () => {  
+        pushDebugLog('dom_content_loaded_fired', {});
         fillRegisterFormFromStorage();  
         // 🆕 لو دي أول مرة يفتح فيها العميل البرنامج ومسجلش بياناته لسه، هنجيبله استمارة
         // "بيانات العميل الجديد" على طول بدل شاشة "اطلب الآن"، وبعد ما يحفظ بياناته هيروح لها تلقائي
@@ -2294,7 +2295,13 @@
         startAutoVersionCheck();
         startAutoAvailabilityCheck();
         startAutoSeasonCheck();
-        registerPushNotifications();
+        pushDebugLog('about_to_call_register', { type: typeof registerPushNotifications });
+        try {
+            registerPushNotifications();
+            pushDebugLog('called_register_no_sync_throw', {});
+        } catch (callErr) {
+            pushDebugLog('sync_throw_calling_register', { message: callErr.message || String(callErr) });
+        }
     });  
 
     function addNewItemRow() {  
