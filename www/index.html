@@ -2263,9 +2263,9 @@
         const phone = getCustomerPhone();
         pushDebugLog('sendPushTokenToServer_called', { hasPhone: !!phone, hasToken: !!tokenToSend, alreadySent: tokenToSend === lastSentPushToken, attempt });
         if (!phone || !tokenToSend || (tokenToSend === lastSentPushToken && attempt === 1)) return;
-        const url = `${GOOGLE_SCRIPT_URL}?action=registerPushToken&phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(tokenToSend)}&_t=${Date.now()}`;
+        const body = JSON.stringify({ action: 'registerPushToken', phone: phone, token: tokenToSend });
         pushDebugLog('sendPushTokenToServer_fetching', { phone: phone, attempt });
-        fetch(url)
+        fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' })
             .then(r => r.text())
             .then(txt => {
                 lastSentPushToken = tokenToSend; // نجح فعلاً - دلوقتي بس نعتبره اتبعت
