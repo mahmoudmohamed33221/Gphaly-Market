@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzGle_xpD5tp7rpBbWEhuofTo7GLUlywrAR9NY8apHgt-nXUHeAJ1RFe4eIG-0JQQEIw/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -2235,7 +2235,7 @@
         try {
             const log = JSON.parse(localStorage.getItem('push_debug_log') || '[]');
             log.push({ t: new Date().toLocaleTimeString('ar-EG'), step, details });
-            while (log.length > 20) log.shift();
+            while (log.length > 40) log.shift();
             localStorage.setItem('push_debug_log', JSON.stringify(log));
         } catch (e) {}
     }
@@ -2269,13 +2269,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {  
         pushDebugLog('dom_content_loaded_fired', {});
-        fillRegisterFormFromStorage();  
+        try { fillRegisterFormFromStorage(); pushDebugLog('after_fillRegisterFormFromStorage', {}); } catch(e) { pushDebugLog('THROW_fillRegisterFormFromStorage', {message: e.message}); }
         // 🆕 لو دي أول مرة يفتح فيها العميل البرنامج ومسجلش بياناته لسه، هنجيبله استمارة
         // "بيانات العميل الجديد" على طول بدل شاشة "اطلب الآن"، وبعد ما يحفظ بياناته هيروح لها تلقائي
-        if (isProfileComplete()) { switchPage('home'); }
-        else { setRegisterPageMode(false); switchPage('register'); }
-        updateOrderReviewVisibility();
-        setupInputCheckmarks();
+        try {
+            if (isProfileComplete()) { switchPage('home'); }
+            else { setRegisterPageMode(false); switchPage('register'); }
+            pushDebugLog('after_profile_switchPage', {});
+        } catch(e) { pushDebugLog('THROW_profile_switchPage', {message: e.message}); }
+        try { updateOrderReviewVisibility(); pushDebugLog('after_updateOrderReviewVisibility', {}); } catch(e) { pushDebugLog('THROW_updateOrderReviewVisibility', {message: e.message}); }
+        try { setupInputCheckmarks(); pushDebugLog('after_setupInputCheckmarks', {}); } catch(e) { pushDebugLog('THROW_setupInputCheckmarks', {message: e.message}); }
         const orderPageEl = document.getElementById('page-order');
         if (orderPageEl) {
             orderPageEl.addEventListener('input', updateOrderReviewVisibility);
@@ -2287,14 +2290,15 @@
             registerPageEl.addEventListener('change', updateRegisterSaveVisibility);
             registerPageEl.addEventListener('click', () => setTimeout(updateRegisterSaveVisibility, 30));
         }
-        manageIntervals(); 
-        runMandatoryPermissionGate();  
+        pushDebugLog('after_listeners_wired', {});
+        try { manageIntervals(); pushDebugLog('after_manageIntervals', {}); } catch(e) { pushDebugLog('THROW_manageIntervals', {message: e.message}); }
+        try { runMandatoryPermissionGate(); pushDebugLog('after_runMandatoryPermissionGate', {}); } catch(e) { pushDebugLog('THROW_runMandatoryPermissionGate', {message: e.message}); }
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { silentPermissionRecheck(); } });  
         if (mgIntervalId) clearInterval(mgIntervalId);  
         mgIntervalId = setInterval(silentPermissionRecheck, 5000);  
-        startAutoVersionCheck();
-        startAutoAvailabilityCheck();
-        startAutoSeasonCheck();
+        try { startAutoVersionCheck(); pushDebugLog('after_startAutoVersionCheck', {}); } catch(e) { pushDebugLog('THROW_startAutoVersionCheck', {message: e.message}); }
+        try { startAutoAvailabilityCheck(); pushDebugLog('after_startAutoAvailabilityCheck', {}); } catch(e) { pushDebugLog('THROW_startAutoAvailabilityCheck', {message: e.message}); }
+        try { startAutoSeasonCheck(); pushDebugLog('after_startAutoSeasonCheck', {}); } catch(e) { pushDebugLog('THROW_startAutoSeasonCheck', {message: e.message}); }
         pushDebugLog('about_to_call_register', { type: typeof registerPushNotifications });
         try {
             registerPushNotifications();
