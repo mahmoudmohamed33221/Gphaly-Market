@@ -2260,10 +2260,15 @@
         if (token) lastReceivedPushToken = token;
         const tokenToSend = token || lastReceivedPushToken;
         const phone = getCustomerPhone();
+        pushDebugLog('sendPushTokenToServer_called', { hasPhone: !!phone, hasToken: !!tokenToSend, alreadySent: tokenToSend === lastSentPushToken });
         if (!phone || !tokenToSend || tokenToSend === lastSentPushToken) return;
         lastSentPushToken = tokenToSend;
-        fetch(`${GOOGLE_SCRIPT_URL}?action=registerPushToken&phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(tokenToSend)}&_t=${Date.now()}`)
-            .catch(() => { lastSentPushToken = null; }); // فشل الإرسال - نسمح بمحاولة تانية لاحقًا
+        const url = `${GOOGLE_SCRIPT_URL}?action=registerPushToken&phone=${encodeURIComponent(phone)}&token=${encodeURIComponent(tokenToSend)}&_t=${Date.now()}`;
+        pushDebugLog('sendPushTokenToServer_fetching', { phone: phone });
+        fetch(url)
+            .then(r => r.text())
+            .then(txt => { pushDebugLog('sendPushTokenToServer_response', { text: txt.substring(0, 100) }); })
+            .catch((err) => { lastSentPushToken = null; pushDebugLog('sendPushTokenToServer_FAILED', { message: err.message || String(err) }); }); // فشل الإرسال - نسمح بمحاولة تانية لاحقًا
     }
 
 
