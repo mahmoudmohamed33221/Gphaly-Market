@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyajg-1K0MetiUle19w2Q57-uS3RO31qrSL4e_jWe-tpgHlQyo4HDmBrybRCc5DdibwHg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc9-DTcykb_4yNY8bUTCeIwABjDbSDu5OjIQUpp1xkstw2DQK4vOSTDXQiy5KMRMaisg/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -2230,6 +2230,32 @@
                 pushDebugLog('requestPermissions', status);
             }
             if (status.receive !== 'granted') { pushDebugLog('permission_denied', status); return; }
+
+            // 🆕🔴 السبب الحقيقي وراء إن الإشعارات كانت بتوصل للتوكن في السيرفر
+            // بنجاح بس مبتظهرش في شريط إشعارات الموبايل لما البرنامج يبقى في
+            // الخلفية أو مقفول: من أندرويد 8 (Oreo) وطالع، أي إشعار لازم يتبعت
+            // لـ"قناة إشعارات" (Notification Channel) متسجلة على الجهاز مقدمًا،
+            // وإلا نظام التشغيل بيرفضه بصمت (من غير أي خطأ يظهر حتى في اللوج)
+            // لو البرنامج كان مفتوح وقتها. السيرفر بيبعت الإشعار على channelId
+            // اسمه "orders"، بس القناة دي مكانتش بتتعمل خالص على الجهاز - فكانت
+            // بتتفلتر برة تلقائيًا كل مرة إلا لو البرنامج فاتح على الواجهة (وقتها
+            // بيتلقفها الجافاسكريبت مباشرة زي إشعار داخلي عادي، مش من نظام التشغيل).
+            // إنشاء القناة ده لازم يحصل مرة واحدة قبل أي إشعار يوصل عليها.
+            try {
+                await push.createChannel({
+                    id: 'orders',
+                    name: 'إشعارات الطلبات',
+                    description: 'إشعارات حالة الطلب: قبول الطلب / جاري التحضير / جاري التوصيل / تم التسليم',
+                    importance: 5, // 🆕 IMPORTANCE_HIGH - إشعار منبثق (heads-up) + صوت، حتى لو البرنامج مقفول
+                    visibility: 1,
+                    sound: 'default',
+                    vibration: true,
+                    lights: true
+                });
+                pushDebugLog('channel_created', { id: 'orders' });
+            } catch (chErr) {
+                pushDebugLog('channel_create_error', { message: chErr.message || String(chErr) });
+            }
 
             // نسجّل مستمعين قبل ما نبدأ التسجيل عشان نضمن إننا مش هنفوّت أي حدث
             push.removeAllListeners();
