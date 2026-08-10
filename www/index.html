@@ -2278,8 +2278,23 @@
                 if (attempt < 5) {
                     setTimeout(() => sendPushTokenToServer(tokenToSend, attempt + 1), attempt * 3000);
                 }
+                // بعد الـ 5 محاولات مش هيبعت تاني إلا لو قفل التطبيق وفتحه تاني - وده مشكلة
+                // لو النت وقت فتح التطبيق (أول ثواني) كان لسه واصل/بيتوثق (زي الواي فاي بيعمل
+                // تسجيل دخول). الفحص الدوري تحت (كل 20 ثانية، من غير سقف محاولات) بيضمن إننا
+                // نفضل نحاول طول ما التطبيق فاتح لحد ما التوكن يوصل فعلاً.
             });
     }
+
+    // 🆕 محاولة دورية بدون سقف - شبكة الفحص الدوري ده بيستخدم نفس الرابط اللي إحنا
+    // عارفين إنه بيوصل للسيرفر بنجاح كل شوية (checkVersion وغيره)، فلو التوكن لسه ما
+    // اتبعتش (فشلت أول 5 محاولات وقت فتح التطبيق بسبب نت لسه بيتوثق مثلاً)، الفحص ده
+    // هيكمل يحاول كل 20 ثانية طول ما التطبيق فاتح، من غير ما يستسلم خالص.
+    setInterval(() => {
+        if (lastReceivedPushToken && lastReceivedPushToken !== lastSentPushToken) {
+            pushDebugLog('sendPushTokenToServer_periodic_retry', {});
+            sendPushTokenToServer(lastReceivedPushToken, 1);
+        }
+    }, 20000);
 
 
     document.addEventListener('DOMContentLoaded', () => {  
