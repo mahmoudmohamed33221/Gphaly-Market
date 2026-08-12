@@ -229,15 +229,58 @@
     /* 🆕 لما يوصل فعليًا (100%)، بتختفي العلامة المتحركة ويظهر النص ده تحت أيقونة الوجهة بلون أخضر فسفوري */
     .track-arrived-label { position: absolute; top: 100%; left: 0; margin-top: 6px; font-size: 9.5px; font-weight: 900; color: #39FF14; text-shadow: 0 0 6px rgba(57,255,20,.85), 0 0 2px rgba(57,255,20,.6); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
-    /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/فوانيس/بالونات/خرفان) - شكل خفيف في الخلفية بس،
-       ورا كل المحتوى (نص/أيقونات/كروت) مش فوقه، وباستمرار طول ما البرنامج مفتوح - شوف startSeasonalParticles() */
-    .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: -1; user-select: none; opacity: 0; will-change: transform, opacity; filter: grayscale(15%); }
+    /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/فوانيس/بالونات/خرفان) - بيتساقط فوق سطح
+       الكروت (زي ما طلبت)، لكن لسه ورا أي نص أو مربع كتابة أو زرار (كل دول عندهم
+       z-index:1 أو أعلى أصلاً في تصميم الكروت الحالي) - شوف startSeasonalParticles() */
+    .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: 0; user-select: none; opacity: 0; will-change: transform, opacity; filter: grayscale(15%); }
     @keyframes gphalySeasonFall {
         0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
         10%  { opacity: 0.22; }
         90%  { opacity: 0.22; }
         100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(180deg); opacity: 0; }
     }
+    /* 🆕 ديزاين "الجليد المتساقط" فوق كل مربع كتابة وكل زرار - بيظهر بس وقت الكريسماس
+       (لما season = christmas). عبارة عن "طبقة ثلج" فوق حافة العنصر + صف صغير من
+       "قناديل الجليد" (icicles) نازلة منها. كل عنصر بيتحط عليه اتنين ::before/::after
+       عشان الطبقتين (الثلج الصلب + القناديل) - مش محتاجين أي صورة خارجية، كله CSS. */
+    body.gphaly-season-christmas .modal-input,
+    body.gphaly-season-christmas select.modal-input,
+    body.gphaly-season-christmas .btn-oval-gold,
+    body.gphaly-season-christmas .gphaly-icy-target {
+        position: relative;
+        overflow: visible;
+    }
+    body.gphaly-season-christmas .modal-input::before,
+    body.gphaly-season-christmas select.modal-input::before,
+    body.gphaly-season-christmas .btn-oval-gold::before,
+    body.gphaly-season-christmas .gphaly-icy-target::before {
+        content: '';
+        position: absolute;
+        top: -8px; left: 6%; right: 6%; height: 9px;
+        background: #eef7ff;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        pointer-events: none;
+        z-index: 3;
+    }
+    body.gphaly-season-christmas .modal-input::after,
+    body.gphaly-season-christmas select.modal-input::after,
+    body.gphaly-season-christmas .btn-oval-gold::after,
+    body.gphaly-season-christmas .gphaly-icy-target::after {
+        content: '';
+        position: absolute;
+        top: 1px; left: 6%; right: 6%; height: 11px;
+        background:
+            linear-gradient(135deg, transparent 50%, #eef7ff 52%) 0 0 / 13px 13px repeat-x,
+            linear-gradient(225deg, transparent 50%, #eef7ff 52%) 6.5px 0 / 13px 13px repeat-x;
+        filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
+        pointer-events: none;
+        z-index: 3;
+    }
+    /* 🆕 زرار الموقع (حدد موقعك على الخريطة) استثناء - الثلج بيبقى في الزاوية الشمال
+       بدل ما يكون في النص زي باقي العناصر، عشان شكل الزرار ده مختلف عن الباقي */
+    body.gphaly-season-christmas .location-pick-btn::before,
+    body.gphaly-season-christmas .location-pick-btn::after { left: 8px; right: auto; width: 46px; }
 </style>
 </head>  
 <body>  
@@ -940,6 +983,14 @@
         seasonalParticleTimer = setInterval(spawnOne, 700); // 🆕 كثافة مستمرة - قطعة جديدة كل ٠.٧ ثانية
     }
 
+    // 🆕 تفعيل/إلغاء ديزاين الجليد (على المربعات والأزرار) حسب الموسم - دلوقتي بس مفعّل
+    // وقت الكريسماس (christmas)، وسايبين المكان مفتوح لو حبينا نضيف ديزاين تاني لموسم تاني بعدين.
+    const SEASON_VISUAL_THEME_CLASSES = ['gphaly-season-christmas'];
+    function applySeasonVisualTheme(key) {
+        SEASON_VISUAL_THEME_CLASSES.forEach(c => document.body.classList.remove(c));
+        if (key === 'christmas') document.body.classList.add('gphaly-season-christmas');
+    }
+
     // 🆕 تخزين آخر "موسم" اتعرف عليه محليًا على الجهاز (localStorage) - عشان أول ما
     // التطبيق يفتح يطبّق الشكل الصح على طول من غير ما يستنى رد السيرفر (اللي ممكن ياخد
     // وقت أو يتأخر بسبب النت)، فمنمنع ظهور "ومضة" للشكل العادي قبل ما يتغيّر للموسم.
@@ -969,6 +1020,7 @@
                 applyAppLogo(SEASON_LOGOS[key]);
                 applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[key]);
                 startSeasonalParticles(key); // 🆕 تساقط احتفالي مستمر (ثلج/فوانيس/بالونات/خرفان) حسب الموسم
+                applySeasonVisualTheme(key); // 🆕 ديزاين الجليد على المربعات والأزرار وقت الكريسماس
                 setCachedSeasonKey(key); // نحفظ الموسم الصحيح عشان الفتحة الجاية تطبّقه فورًا
                 seasonCheckInProgress = false;
             }).catch(() => { seasonCheckInProgress = false; });
@@ -983,6 +1035,7 @@
         if (cachedKey !== 'default') applyAppLogo(SEASON_LOGOS[cachedKey]);
         applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[cachedKey]);
         startSeasonalParticles(cachedKey); // 🆕 تساقط احتفالي فوري من الكاش (من غير ما نستنى السيرفر)
+        applySeasonVisualTheme(cachedKey); // 🆕 ديزاين الجليد فوري من الكاش
     })();
 
     function startAutoSeasonCheck() {
