@@ -230,7 +230,7 @@
     .track-arrived-label { position: absolute; top: 100%; left: 0; margin-top: 6px; font-size: 9.5px; font-weight: 900; color: #39FF14; text-shadow: 0 0 6px rgba(57,255,20,.85), 0 0 2px rgba(57,255,20,.6); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
     /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/فوانيس/بالونات/خرفان) - شكل خفيف في الخلفية بس،
-       ورا كل المحتوى (نص/أيقونات/كروت) مش فوقه - شوف spawnSeasonalParticles() */
+       ورا كل المحتوى (نص/أيقونات/كروت) مش فوقه، وباستمرار طول ما البرنامج مفتوح - شوف startSeasonalParticles() */
     .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: -1; user-select: none; opacity: 0; will-change: transform, opacity; filter: grayscale(15%); }
     @keyframes gphalySeasonFall {
         0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
@@ -909,34 +909,38 @@
         eidAdha:   ['🐑']
         // default: مفيش تأثير خالص
     };
-    let seasonalParticlesSpawned = false;
-    function spawnSeasonalParticles(key) {
+    let seasonalParticleTimer = null;
+    let seasonalParticleLaneIndex = 0;
+    // 🆕 بدل ما نرمي دفعة واحدة وتخلص وتختفي، دلوقتي بنولّد قطعة جديدة كل شوية وباستمرار
+    // طول ما البرنامج مفتوح - عشان يبقى تساقط مستمر في كل صفحة، مش بس أول ما يفتح البرنامج.
+    // برضو بنلف على "الممرات" بالترتيب (مش عشوائي) عشان يفضل فيه تباعد حقيقي بينهم حتى مع
+    // الاستمرارية والكثافة، ومع أحجام مختلفة لكل قطعة.
+    function startSeasonalParticles(key) {
         const emojis = SEASON_PARTICLE_EMOJIS[key];
-        if (!emojis || seasonalParticlesSpawned) return;
-        seasonalParticlesSpawned = true;
-        // 🆕 عدد أقل + توزيع بـ"ممرات" (lanes) بدل مواقع عشوائية بحتة - كده مبيحصلش
-        // تكدس/تراكب بين شكلين قريبين من بعض، وبيفضلوا متباعدين بشكل مريح للعين
-        const count = 10;
-        const laneWidth = 100 / count;
-        for (let i = 0; i < count; i++) {
+        if (!emojis) return; // الوضع العادي = بدون تأثير خالص
+        if (seasonalParticleTimer) return; // شغال أصلاً - منكررش
+        const laneCount = 12;
+        const laneWidth = 100 / laneCount;
+        function spawnOne() {
             const el = document.createElement('div');
             el.className = 'gphaly-season-particle';
             el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            const size = 13 + Math.random() * 10;
-            const duration = 9 + Math.random() * 6;
-            const delay = Math.random() * 6;
-            // موقع عشوائي جوه الممر بتاعه بس (مع هامش أمان صغير) عشان يفضل متباعد عن جيرانه
-            const left = (i * laneWidth) + (laneWidth * 0.2) + (Math.random() * laneWidth * 0.6);
+            const size = 12 + Math.random() * 22; // 🆕 تنوّع أوضح في الأحجام (صغيرة وكبيرة مع بعض)
+            const duration = 11 + Math.random() * 8;
+            const left = (seasonalParticleLaneIndex * laneWidth) + (laneWidth * 0.15) + (Math.random() * laneWidth * 0.7);
+            seasonalParticleLaneIndex = (seasonalParticleLaneIndex + 1) % laneCount;
             el.style.left = left + 'vw';
             el.style.fontSize = size + 'px';
-            el.style.setProperty('--gphaly-drift', (Math.random() * 40 - 20) + 'px');
-            el.style.animation = `gphalySeasonFall ${duration}s linear ${delay}s 1 forwards`;
+            el.style.setProperty('--gphaly-drift', (Math.random() * 50 - 25) + 'px');
+            el.style.animation = `gphalySeasonFall ${duration}s linear 0s 1 forwards`;
             document.body.appendChild(el);
-            setTimeout(() => el.remove(), (duration + delay) * 1000 + 400);
+            setTimeout(() => el.remove(), duration * 1000 + 300);
         }
+        spawnOne();
+        seasonalParticleTimer = setInterval(spawnOne, 700); // 🆕 كثافة مستمرة - قطعة جديدة كل ٠.٧ ثانية
     }
 
-    
+    // 🆕 تخزين آخر "موسم" اتعرف عليه محليًا على الجهاز (localStorage) - عشان أول ما
     // التطبيق يفتح يطبّق الشكل الصح على طول من غير ما يستنى رد السيرفر (اللي ممكن ياخد
     // وقت أو يتأخر بسبب النت)، فمنمنع ظهور "ومضة" للشكل العادي قبل ما يتغيّر للموسم.
     const SEASON_CACHE_KEY = 'gphaly_last_season_key';
@@ -964,7 +968,7 @@
                 const key = detectSeasonKey(data.season);
                 applyAppLogo(SEASON_LOGOS[key]);
                 applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[key]);
-                spawnSeasonalParticles(key); // 🆕 تساقط احتفالي (ثلج/بالونات/خرفان) حسب الموسم - مرة واحدة بس في الجلسة
+                startSeasonalParticles(key); // 🆕 تساقط احتفالي مستمر (ثلج/فوانيس/بالونات/خرفان) حسب الموسم
                 setCachedSeasonKey(key); // نحفظ الموسم الصحيح عشان الفتحة الجاية تطبّقه فورًا
                 seasonCheckInProgress = false;
             }).catch(() => { seasonCheckInProgress = false; });
@@ -978,7 +982,7 @@
         if (cachedKey === null) return; // 🔧 أول تثبيت حقيقي - مفيش كاش لسه، منعملش أي تغيير أيقونة دلوقتي، نستنى checkSeasonNow() تطبّق مرة واحدة بس
         if (cachedKey !== 'default') applyAppLogo(SEASON_LOGOS[cachedKey]);
         applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[cachedKey]);
-        spawnSeasonalParticles(cachedKey); // 🆕 تساقط احتفالي فوري من الكاش (من غير ما نستنى السيرفر)
+        startSeasonalParticles(cachedKey); // 🆕 تساقط احتفالي فوري من الكاش (من غير ما نستنى السيرفر)
     })();
 
     function startAutoSeasonCheck() {
