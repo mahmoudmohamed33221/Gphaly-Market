@@ -229,12 +229,14 @@
     /* 🆕 لما يوصل فعليًا (100%)، بتختفي العلامة المتحركة ويظهر النص ده تحت أيقونة الوجهة بلون أخضر فسفوري */
     .track-arrived-label { position: absolute; top: 100%; left: 0; margin-top: 6px; font-size: 9.5px; font-weight: 900; color: #39FF14; text-shadow: 0 0 6px rgba(57,255,20,.85), 0 0 2px rgba(57,255,20,.6); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
-    /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/بالونات وهدايا/خرفان) - شوف spawnSeasonalParticles() */
-    .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: 1000000; user-select: none; opacity: 0; will-change: transform, opacity; }
+    /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/فوانيس/بالونات/خرفان) - شكل خفيف في الخلفية بس،
+       ورا كل المحتوى (نص/أيقونات/كروت) مش فوقه - شوف spawnSeasonalParticles() */
+    .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: -1; user-select: none; opacity: 0; will-change: transform, opacity; filter: grayscale(15%); }
     @keyframes gphalySeasonFall {
         0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
-        8%   { opacity: 0.95; }
-        100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(320deg); opacity: 0.9; }
+        10%  { opacity: 0.22; }
+        90%  { opacity: 0.22; }
+        100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(180deg); opacity: 0; }
     }
 </style>
 </head>  
@@ -912,17 +914,22 @@
         const emojis = SEASON_PARTICLE_EMOJIS[key];
         if (!emojis || seasonalParticlesSpawned) return;
         seasonalParticlesSpawned = true;
-        const count = 22;
+        // 🆕 عدد أقل + توزيع بـ"ممرات" (lanes) بدل مواقع عشوائية بحتة - كده مبيحصلش
+        // تكدس/تراكب بين شكلين قريبين من بعض، وبيفضلوا متباعدين بشكل مريح للعين
+        const count = 10;
+        const laneWidth = 100 / count;
         for (let i = 0; i < count; i++) {
             const el = document.createElement('div');
             el.className = 'gphaly-season-particle';
             el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            const size = 14 + Math.random() * 16;
-            const duration = 5 + Math.random() * 4;
-            const delay = Math.random() * 4;
-            el.style.left = (Math.random() * 100) + 'vw';
+            const size = 13 + Math.random() * 10;
+            const duration = 9 + Math.random() * 6;
+            const delay = Math.random() * 6;
+            // موقع عشوائي جوه الممر بتاعه بس (مع هامش أمان صغير) عشان يفضل متباعد عن جيرانه
+            const left = (i * laneWidth) + (laneWidth * 0.2) + (Math.random() * laneWidth * 0.6);
+            el.style.left = left + 'vw';
             el.style.fontSize = size + 'px';
-            el.style.setProperty('--gphaly-drift', (Math.random() * 80 - 40) + 'px');
+            el.style.setProperty('--gphaly-drift', (Math.random() * 40 - 20) + 'px');
             el.style.animation = `gphalySeasonFall ${duration}s linear ${delay}s 1 forwards`;
             document.body.appendChild(el);
             setTimeout(() => el.remove(), (duration + delay) * 1000 + 400);
