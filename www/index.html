@@ -229,6 +229,13 @@
     /* 🆕 لما يوصل فعليًا (100%)، بتختفي العلامة المتحركة ويظهر النص ده تحت أيقونة الوجهة بلون أخضر فسفوري */
     .track-arrived-label { position: absolute; top: 100%; left: 0; margin-top: 6px; font-size: 9.5px; font-weight: 900; color: #39FF14; text-shadow: 0 0 6px rgba(57,255,20,.85), 0 0 2px rgba(57,255,20,.6); white-space: nowrap; }
     .track-arrived-banner { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: #4ADE80; font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.8; }
+    /* 🆕 تأثير تساقط احتفالي حسب الموسم (ثلج/بالونات وهدايا/خرفان) - شوف spawnSeasonalParticles() */
+    .gphaly-season-particle { position: fixed; top: -8vh; pointer-events: none; z-index: 1000000; user-select: none; opacity: 0; will-change: transform, opacity; }
+    @keyframes gphalySeasonFall {
+        0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+        8%   { opacity: 0.95; }
+        100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(320deg); opacity: 0.9; }
+    }
 </style>
 </head>  
 <body>  
@@ -889,13 +896,54 @@
             .finally(() => { nativeIconApplyInProgress = false; });
     }
 
-    // 🆕 تخزين آخر "موسم" اتعرف عليه محليًا على الجهاز (localStorage) - عشان أول ما
+    // 🆕 تأثير احتفالي بسيط بيتساقط من فوق الشاشة حسب الموسم: ثلج في الكريسماس، بالونات
+    // وهدايا في عيد الفطر، خرفان صغيرة في عيد الأضحى. مفيش أي حاجة في رمضان أو الوضع العادي.
+    // بيشتغل مرة واحدة بس في كل جلسة (لما يفتح البرنامج)، ومش هيفضل شغال للأبد عشان مايأثرش
+    // على البطارية/الأداء - كل قطعة بتوصف وتتشال من الصفحة لوحدها.
+    const SEASON_PARTICLE_EMOJIS = {
+        ramadan:   ['🏮', '🌙', '⭐'],
+        christmas: ['❄️'],
+        eidFitr:   ['🎈', '🎁'],
+        eidAdha:   ['🐑']
+        // default: مفيش تأثير خالص
+    };
+    let seasonalParticlesSpawned = false;
+    function spawnSeasonalParticles(key) {
+        const emojis = SEASON_PARTICLE_EMOJIS[key];
+        if (!emojis || seasonalParticlesSpawned) return;
+        seasonalParticlesSpawned = true;
+        const count = 22;
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'gphaly-season-particle';
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            const size = 14 + Math.random() * 16;
+            const duration = 5 + Math.random() * 4;
+            const delay = Math.random() * 4;
+            el.style.left = (Math.random() * 100) + 'vw';
+            el.style.fontSize = size + 'px';
+            el.style.setProperty('--gphaly-drift', (Math.random() * 80 - 40) + 'px');
+            el.style.animation = `gphalySeasonFall ${duration}s linear ${delay}s 1 forwards`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), (duration + delay) * 1000 + 400);
+        }
+    }
+
+    
     // التطبيق يفتح يطبّق الشكل الصح على طول من غير ما يستنى رد السيرفر (اللي ممكن ياخد
     // وقت أو يتأخر بسبب النت)، فمنمنع ظهور "ومضة" للشكل العادي قبل ما يتغيّر للموسم.
     const SEASON_CACHE_KEY = 'gphaly_last_season_key';
+    // 🔧 لازم نفرّق بين "مفيش كاش خالص لسه" (أول تثبيت حقيقي) و"الكاش موجود ومكتوب فيه
+    // default فعلاً" - قبل كده الحالتين كانوا بيترجعوا 'default' بالظبط، فكانت
+    // applyCachedSeasonImmediately() بتنادي applyNativeAppIcon() في أول تثبيت حتى لو
+    // مفيش داعي خالص (الأيقونة الافتراضية مركبة على الجهاز أصلاً)، وبعدين checkSeasonNow()
+    // بعد شوية بينادي تاني بالموسم الحقيقي من الشيت - يعني نداءين لتغيير الأيقونة (٢ ومضة
+    // إغلاق/فتح) في أول تثبيت بدل نداء واحد بس. دلوقتي getCachedSeasonKey() بترجع null لو
+    // مفيش كاش خالص، وapplyCachedSeasonImmediately() بتتجاهل التطبيق تمامًا في الحالة دي
+    // وبتسيب checkSeasonNow() تطبّق الموسم الصحيح مرة واحدة بس أول ما يوصل رد السيرفر.
     function getCachedSeasonKey() {
-        try { const v = localStorage.getItem(SEASON_CACHE_KEY); return (v && SEASON_LOGOS[v]) ? v : 'default'; }
-        catch (e) { return 'default'; }
+        try { const v = localStorage.getItem(SEASON_CACHE_KEY); return (v && SEASON_LOGOS[v]) ? v : null; }
+        catch (e) { return null; }
     }
     function setCachedSeasonKey(key) {
         try { localStorage.setItem(SEASON_CACHE_KEY, key); } catch (e) {}
@@ -909,6 +957,7 @@
                 const key = detectSeasonKey(data.season);
                 applyAppLogo(SEASON_LOGOS[key]);
                 applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[key]);
+                spawnSeasonalParticles(key); // 🆕 تساقط احتفالي (ثلج/بالونات/خرفان) حسب الموسم - مرة واحدة بس في الجلسة
                 setCachedSeasonKey(key); // نحفظ الموسم الصحيح عشان الفتحة الجاية تطبّقه فورًا
                 seasonCheckInProgress = false;
             }).catch(() => { seasonCheckInProgress = false; });
@@ -919,8 +968,10 @@
     // من قبل. بعد كده checkSeasonNow() هيتأكد من السيرفر ويحدّث لو حصل تغيير جديد.
     (function applyCachedSeasonImmediately() {
         const cachedKey = getCachedSeasonKey();
+        if (cachedKey === null) return; // 🔧 أول تثبيت حقيقي - مفيش كاش لسه، منعملش أي تغيير أيقونة دلوقتي، نستنى checkSeasonNow() تطبّق مرة واحدة بس
         if (cachedKey !== 'default') applyAppLogo(SEASON_LOGOS[cachedKey]);
         applyNativeAppIcon(SEASON_NATIVE_ICON_NAMES[cachedKey]);
+        spawnSeasonalParticles(cachedKey); // 🆕 تساقط احتفالي فوري من الكاش (من غير ما نستنى السيرفر)
     })();
 
     function startAutoSeasonCheck() {
