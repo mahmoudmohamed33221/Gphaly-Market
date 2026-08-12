@@ -514,7 +514,7 @@
 <div id="page-contact" class="app-page flex flex-col justify-center items-center px-4 py-8 w-full">  
     <div class="menu-card p-6 w-full max-sm mb-20 space-y-5">  
         <div class="text-center"><div class="w-20 h-20 rounded-2xl bg-black flex items-center justify-center mx-auto shadow-lg overflow-hidden mb-3"><img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="app-logo-dynamic w-full h-full object-cover"></div><h2 class="font-amiri text-3xl font-bold text-[var(--gold)]">جبهالي ماركت</h2><p class="text-[var(--gold-light)] text-sm font-medium mt-1">اطلب اوردرك وهيجيلك لحد باب بيتك في اسرع وقت ممكن</p></div>  
-        <div class="bg-[var(--bg-deep)] border border-[var(--border)] py-2.5 px-4 rounded-xl text-xs text-[var(--muted)] flex justify-between items-center" onclick="handleVersionTap()"><span>الإصدار الحالي</span><span class="text-[var(--gold)] font-mono font-bold" id="app-version-display"></span></div>  
+        <div class="bg-[var(--bg-deep)] border border-[var(--border)] py-2.5 px-4 rounded-xl text-xs text-[var(--muted)] flex justify-between items-center"><span>الإصدار الحالي</span><span class="text-[var(--gold)] font-mono font-bold" id="app-version-display"></span></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-2 flex items-center justify-center gap-2"><i class="fas fa-info-circle"></i>حول التطبيق</h3><p class="text-[var(--muted)] text-xs leading-relaxed text-center">تطبيق جبهالي ماركت حل متكامل لتلبيت احتياجاتك الشخصيه من منزلك وسيصلك الطلب في وقت قصير وقياسي حسب طلبك. تم تصميم التطبيق للخدمه المنزليه بشكل عام ويمكن لاي احد استخدامه وتم تصميمه بوجه خاص ل كبار السن وذوي الاحتياجات الخاصه و ربات المنزل واي شخص غير قادر علي تلبت احتياجاتو بسبب ظرف ما او تاخر الوقت ليلاً او عدم التفرغ يمكنك الان عمل طلبك من مكانك وسيتم ايصاله الي منزلك في اقرب وقت ممكن. اتمني ان تنال الخدمه مستوي توقعاتكم.</p></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-3 flex items-center justify-center gap-2"><i class="fas fa-code"></i>مطور البرنامج</h3><div class="flex items-center justify-center gap-3 bg-[var(--bg-deep)] border border-[var(--border)] p-3 rounded-xl"><div class="w-10 h-10 rounded-full bg-[var(--gold)] text-[#111827] flex items-center justify-center font-bold text-lg shadow-md">م</div><div class="text-right"><span class="font-bold text-sm block">محمود جابر</span><span class="text-[10px] text-[var(--muted)]">Full-Stack Developer</span></div></div></div>  
         <div class="border-t border-[var(--border)] pt-4"><h3 class="text-[var(--gold-light)] font-bold text-sm mb-3 flex items-center justify-center gap-2"><i class="fas fa-headset"></i>الدعم الفني</h3><div class="space-y-2.5"><button onclick="openSupportChat()" class="contact-link" style="border-color: rgba(212,175,55,0.45); background: linear-gradient(145deg, rgba(212,175,55,0.12), rgba(212,175,55,0.02));"><i class="fas fa-comments text-[var(--gold)]"></i><span class="font-semibold">تواصل لايف مع الدعم</span></button><a href="tel:+201067735647" class="contact-link"><i class="fas fa-phone-alt text-[var(--gold)]"></i><span class="font-semibold">تواصل عبر الفون</span></a><a href="https://wa.me/201067735647" target="_blank" class="contact-link" style="border-color: rgba(16,185,129,0.2);"><i class="fab fa-whatsapp text-green-500"></i><span class="font-semibold">تواصل عبر واتساب</span></a></div></div>  
@@ -584,7 +584,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwuTvNZyI94Z-FSdAEr3ffjlutargegUpd13z8qB2rXKXWP1UJzLiK2UTY4HW9E3-zcXg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLWU24YvK-UFmdvLrcjwqEuaoHmlqSImjKbuKIylAWDx-XLjn7WiCsaFEs5rcA379G_Q/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -829,7 +829,20 @@
     };
     const ALL_NATIVE_ICON_NAMES = Object.values(SEASON_NATIVE_ICON_NAMES);
     let currentAppLogo = DEFAULT_APP_LOGO;
-    let currentNativeIconName = null;
+    // 🔧 كانت currentNativeIconName بتتصفّر (null) في كل فتحة جديدة للبرنامج، فكانت
+    // applyNativeAppIcon() بتنادي بلجن AppIcon.change() في كل مرة يتفتح فيها البرنامج
+    // حتى لو الأيقونة الفعلية على الجهاز مظبوطة أصلاً صح من قبل - وده اللي كان بيحصل
+    // معاه إغلاق/إعادة فتح خفيفة للبرنامج (Activity restart) في كل فتحة، مش بس وقت
+    // تغيير الموسم فعليًا. دلوقتي بنقرأ آخر أيقونة اتطبّقت فعليًا (وترجعت بنجاح من
+    // البلجن) من localStorage، فمنناديش AppIcon.change() غير لما فعلاً في تغيير حقيقي.
+    const NATIVE_ICON_APPLIED_KEY = 'gphaly_last_applied_native_icon';
+    function getLastAppliedNativeIcon() {
+        try { return localStorage.getItem(NATIVE_ICON_APPLIED_KEY) || null; } catch (e) { return null; }
+    }
+    function setLastAppliedNativeIcon(name) {
+        try { localStorage.setItem(NATIVE_ICON_APPLIED_KEY, name); } catch (e) {}
+    }
+    let currentNativeIconName = getLastAppliedNativeIcon();
     let nativeIconApplyInProgress = false;
     let seasonCheckInProgress = false;
 
@@ -871,7 +884,7 @@
         nativeIconApplyInProgress = true;
         const disableList = ALL_NATIVE_ICON_NAMES.filter(n => n !== name);
         window.Capacitor.Plugins.AppIcon.change({ name: name, disable: disableList, suppressNotification: true })
-            .then(() => { currentNativeIconName = name; })
+            .then(() => { currentNativeIconName = name; setLastAppliedNativeIcon(name); })
             .catch(() => {})
             .finally(() => { nativeIconApplyInProgress = false; });
     }
@@ -955,7 +968,12 @@
 
     function manageIntervals() {  
         clearInterval(fastCheckInterval); clearInterval(slowCheckInterval);  
-        if (currentPage === 'active-orders') { syncOrdersWithSheet(); fastCheckInterval = setInterval(syncOrdersWithSheet, 7000); }
+        // 🔧 كنا بنستدعي syncOrdersWithSheet() فورًا بس لو المستخدم واقف في صفحة "الحاليه"،
+        // وفي أي صفحة تانية كان بيستنى لحد 15 ثانية (أول Interval tick) قبل أول تحديث -
+        // ده كان سبب رئيسي في "التأخير" اللي بيحس بيه المستخدم وهو بيفتح البرنامج.
+        // دلوقتي بنعمل فحص فوري في الحالتين، والفرق بس في سرعة التكرار بعد كده.
+        syncOrdersWithSheet();
+        if (currentPage === 'active-orders') { fastCheckInterval = setInterval(syncOrdersWithSheet, 7000); }
         else { slowCheckInterval = setInterval(syncOrdersWithSheet, 15000); }
     }  
 
@@ -2242,8 +2260,18 @@
             // بيتلقفها الجافاسكريبت مباشرة زي إشعار داخلي عادي، مش من نظام التشغيل).
             // إنشاء القناة ده لازم يحصل مرة واحدة قبل أي إشعار يوصل عليها.
             try {
+                // 🔧 مشكلة "الإشعار بيوصل من غير صوت": قنوات الإشعارات في أندرويد (Notification
+                // Channel) إعداداتها بتتقفل نهائيًا أول ما تتعمل بنفس الـ id - أي نداء تاني بعد
+                // كده لـ createChannel بنفس الـ id ("orders") إعداداته بيتجاهلها أندرويد تمامًا،
+                // حتى لو غيّرنا الكود وحطينا sound فيه. يعني أي جهاز كانت القناة اتعملتله قبل
+                // كده من غير صوت (نسخة قديمة من البرنامج)، هيفضل من غير صوت للأبد حتى بعد التحديث.
+                // الحل الوحيد المضمون: قناة بـ id جديد كليًا ("orders_v2") عشان تتعمل من الصفر
+                // بإعدادات الصوت الصح على كل الأجهزة. (لازم نفس الـ id يتظبط في السيرفر - في
+                // Apps Script جوه sendPushToToken_ - وإلا الإشعار مش هيوصل خالص لو اتبعت لقناة
+                // مش موجودة على الجهاز).
+                try { await push.deleteChannel({ id: 'orders' }); } catch (delErr) {}
                 await push.createChannel({
-                    id: 'orders',
+                    id: 'orders_v2',
                     name: 'إشعارات الطلبات',
                     description: 'إشعارات حالة الطلب: قبول الطلب / جاري التحضير / جاري التوصيل / تم التسليم',
                     importance: 5, // 🆕 IMPORTANCE_HIGH - إشعار منبثق (heads-up) + صوت، حتى لو البرنامج مقفول
@@ -2252,7 +2280,7 @@
                     vibration: true,
                     lights: true
                 });
-                pushDebugLog('channel_created', { id: 'orders' });
+                pushDebugLog('channel_created', { id: 'orders_v2' });
             } catch (chErr) {
                 pushDebugLog('channel_create_error', { message: chErr.message || String(chErr) });
             }
@@ -2292,17 +2320,10 @@
             localStorage.setItem('push_debug_log', JSON.stringify(log));
         } catch (e) {}
     }
-    let versionTapCount = 0, versionTapTimer = null;
-    function handleVersionTap() {
-        versionTapCount++;
-        clearTimeout(versionTapTimer);
-        versionTapTimer = setTimeout(() => { versionTapCount = 0; }, 2000);
-        if (versionTapCount >= 5) {
-            versionTapCount = 0;
-            const log = JSON.parse(localStorage.getItem('push_debug_log') || '[]');
-            alert(log.length ? log.map(l => `[${l.t}] ${l.step} ${JSON.stringify(l.details)}`).join('\n') : 'مفيش أي سجل تشخيصي محفوظ - يعني registerPushNotifications() لسه ما اتنداهاش خالص');
-        }
-    }
+    // 🔧 اتشالت خاصية "الدوس 5 مرات على الإصدار الحالي" بناءً على طلبك - مبقتش لازمة.
+    // (سايبين pushDebugLog() شغالة لوحدها في الخلفية بصمت، مفيهاش أي واجهة تظهر للمستخدم،
+    // ومحتفظة بآخر 40 خطوة تسجيل دخول فقط - مش بتاخد مساحة تقريبًا ومفيدة لو احتجنا نشخّص
+    // مشكلة إشعارات في المستقبل عن طريق الكونسول مباشرة).
 
     // بعد ما ناخد التوكن من Firebase، نبعته للسيرفر مربوط برقم تليفون العميل عشان
     // يقدر السيرفر يعرف يبعت الإشعار لمين بالظبط لما حالة طلبه تتغيّر. لو الرقم
@@ -2393,7 +2414,16 @@
         pushDebugLog('after_listeners_wired', {});
         try { manageIntervals(); pushDebugLog('after_manageIntervals', {}); } catch(e) { pushDebugLog('THROW_manageIntervals', {message: e.message}); }
         try { runMandatoryPermissionGate(); pushDebugLog('after_runMandatoryPermissionGate', {}); } catch(e) { pushDebugLog('THROW_runMandatoryPermissionGate', {message: e.message}); }
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { silentPermissionRecheck(); } });  
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                silentPermissionRecheck();
+                // 🔧 لما المستخدم يرجع للبرنامج (من الخلفية أو بعد ما كان قافل شاشته) نعمل
+                // فحص فوري لحالة الطلبات بدل ما نستنى الـ Interval العادي (7 أو 15 ثانية) -
+                // ده بيحل مشكلة "الحالة بتتأخر تظهر لما بيفتح البرنامج" اللي كانت بتحصل رغم
+                // إن الإشعار والتحديث كانا وصلوا فعلاً للشيت من زمان.
+                syncOrdersWithSheet();
+            }
+        });  
         if (mgIntervalId) clearInterval(mgIntervalId);  
         mgIntervalId = setInterval(silentPermissionRecheck, 5000);  
     });  
