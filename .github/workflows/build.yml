@@ -61,6 +61,21 @@ jobs:
           echo "----- app/build.gradle بعد التعديل -----"
           cat "$GRADLE_FILE"
 
+      # 🔧 إلغاء تثبيت البرنامج وتثبيته تاني (بدون تفريغ بيانات) مش بيمسح localStorage/الكاش
+      # فعليًا زي ما المفروض، لأن أندرويد بيعمل "Auto Backup" تلقائي لبيانات التطبيق (بما فيها
+      # ملفات WebView اللي فيها localStorage) على حساب جوجل بتاع المستخدم، وبيرجعها تلقائي أول
+      # ما يتثبت التطبيق تاني - حتى لو كان "تثبيت جديد" فعليًا. ده اللي كان بيسبب مشكلة ظهور
+      # "موسم" قديم (كاش قديم) لحظة بعد إعادة التثبيت قبل ما يتظبط على القيمة الصحيحة من
+      # السيرفر، وبيعمل "ومضتين" غلق/فتح بدل ومضة واحدة. allowBackup="false" بيقفل الخاصية
+      # دي خالص عشان أي تثبيت جديد يبدأ فعليًا فاضي زي ما المفروض.
+      - name: Disable Android auto-backup (so a real reinstall starts truly clean)
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's/android:allowBackup="true"/android:allowBackup="false"/' "$MANIFEST"
+          grep -q 'android:allowBackup="false"' "$MANIFEST" || sed -i 's#<application #<application android:allowBackup="false" #' "$MANIFEST"
+          echo "----- AndroidManifest.xml بعد تعطيل الـ Auto Backup -----"
+          cat "$MANIFEST"
+
       - name: Sync Capacitor
         run: npx cap sync android
 
