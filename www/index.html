@@ -264,8 +264,8 @@
     /* 🔧 اتصلح تغطية الجليد: كان بياخد 46% بس من عرض الصندوق (background-size: 46%)
        فبيبان ناقص وواقف في نص العنصر - دلوقتي بياخد عرض الصندوق بالكامل (100%)
        من الحافة الشمال للحافة اليمين عشان يغطي كل الصندوق زي ما المفروض.
-       🆕 اترفعت 2 مم زيادة تانية لفوق، واتمطت لتحت 3 مم زيادة تالتة، ولسه متلفة
-       نص درجة عكس اتجاه عقارب الساعة. */
+       🆕 التكست بكس (gphaly-icy-wrap) سايبينه زي ما هو مظبوط. الأزرار والجروب
+       بكسات (button, gphaly-icy-card) اترفعوا 1.5 مم زيادة لفوق عن التكست بكس. */
     body.gphaly-season-christmas .gphaly-icy-wrap::after,
     body.gphaly-season-christmas button::after,
     body.gphaly-season-christmas .gphaly-icy-card::after {
@@ -281,8 +281,13 @@
         transform: rotate(-0.5deg);
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
+    /* 🆕 الجليد بتاع الأزرار والجروب بكسات بس (مش التكست بكس) اترفع 1.5 مم زيادة */
+    body.gphaly-season-christmas button::after,
+    body.gphaly-season-christmas .gphaly-icy-card::after {
+        top: calc(-4px - 2.5mm - 1.5mm);
+    }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
-    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 9mm); top: calc(-5px - 2.5mm); }
+    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 9mm); top: calc(-5px - 2.5mm - 1.5mm); }
     /* 🆕 عشان الجليد الأكبر ده متغطيش على أي لابل أو نص، وقت الكريسماس بس بنزود
        الفراغ بين كل حقل واللي جاي بعده (بين كل input-container والتاني، وقبل
        أول حقل جوه أي مجموعة)، عشان يبقى فيه مسافة تنفس كافية للجليد. */
