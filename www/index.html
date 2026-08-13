@@ -264,21 +264,21 @@
     /* 🔧 اتصلح تغطية الجليد: كان بياخد 46% بس من عرض الصندوق (background-size: 46%)
        فبيبان ناقص وواقف في نص العنصر - دلوقتي بياخد عرض الصندوق بالكامل (100%)
        من الحافة الشمال للحافة اليمين عشان يغطي كل الصندوق زي ما المفروض.
-       🆕 وكمان اتمطت شوية بسيطة (سنتيت) يمين وشمال (left/right: -6px) واتلفت درجة
-       واحدة مع اتجاه عقارب الساعة (transform: rotate(1deg)) زي ما طلبت. */
+       🆕 وكمان اتمطت شوية زيادة يمين وشمال (left/right: -12px) واتلفت نص درجة
+       عكس اتجاه عقارب الساعة (transform: rotate(-0.5deg)) زي ما طلبت. */
     body.gphaly-season-christmas .gphaly-icy-wrap::after,
     body.gphaly-season-christmas button::after,
     body.gphaly-season-christmas .gphaly-icy-card::after {
         content: '';
         position: absolute;
-        top: -2px; left: -6px; right: -6px; height: 26px;
+        top: -2px; left: -12px; right: -12px; height: 26px;
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top center;
         background-size: 100% 100%;
         pointer-events: none;
         z-index: 3;
-        transform: rotate(1deg);
+        transform: rotate(-0.5deg);
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
