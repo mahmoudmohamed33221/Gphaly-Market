@@ -264,15 +264,14 @@
     /* 🔧 اتصلح تغطية الجليد: كان بياخد 46% بس من عرض الصندوق (background-size: 46%)
        فبيبان ناقص وواقف في نص العنصر - دلوقتي بياخد عرض الصندوق بالكامل (100%)
        من الحافة الشمال للحافة اليمين عشان يغطي كل الصندوق زي ما المفروض.
-       🆕 اترفعت شوية لفوق (top: -4px)، وقل المط من اليمين والشمال شوية بسيطة
-       (left/right: -8px بدل -12px)، واتمطت لتحت 3 مم زيادة (height: 26px + 3mm)،
-       ولسه متلفة نص درجة عكس اتجاه عقارب الساعة. */
+       🆕 اترفعت 2 مم زيادة لفوق (top: -4px - 2mm)، واتمطت لتحت 3 مم زيادة تاني
+       (height: 26px + 3mm + 3mm)، ولسه متلفة نص درجة عكس اتجاه عقارب الساعة. */
     body.gphaly-season-christmas .gphaly-icy-wrap::after,
     body.gphaly-season-christmas button::after,
     body.gphaly-season-christmas .gphaly-icy-card::after {
         content: '';
         position: absolute;
-        top: -4px; left: -8px; right: -8px; height: calc(26px + 3mm);
+        top: calc(-4px - 2mm); left: -8px; right: -8px; height: calc(26px + 3mm + 3mm);
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top center;
@@ -283,7 +282,7 @@
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
-    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 3mm); top: -5px; }
+    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 3mm + 3mm); top: calc(-5px - 2mm); }
 </style>
 </head>  
 <body>  
