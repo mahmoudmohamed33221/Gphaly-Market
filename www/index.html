@@ -252,33 +252,31 @@
     .gphaly-icy-wrap { display: contents; }
     body.gphaly-season-christmas .gphaly-icy-wrap,
     body.gphaly-season-christmas .gphaly-icy-target,
-    body.gphaly-season-christmas .location-pick-btn,
     body.gphaly-season-christmas .menu-card {
         position: relative;
     }
     /* 🔧 وقت الكريسماس بس، الـ wrap بيتحول لصندوق حقيقي عشان الجليد يظهر عليه */
     body.gphaly-season-christmas .gphaly-icy-wrap { display: block; }
     body.gphaly-season-christmas .gphaly-icy-wrap.flex-1 { display: flex; flex: 1 1 0%; }
+    /* 🔧 نازلها شوية (top أقرب للصفر) عشان تمشي بالظبط على الحد العلوي للعنصر بدل ما
+       تعلو فوق وتغطي النص (اللابل) اللي فوقه. وبقت بس لحد نص العرض (background-size
+       width 50%) بدل ما تتمد لآخر العنصر. */
     body.gphaly-season-christmas .gphaly-icy-wrap::after,
     body.gphaly-season-christmas .gphaly-icy-target::after,
-    body.gphaly-season-christmas .location-pick-btn::after,
     body.gphaly-season-christmas .menu-card::after {
         content: '';
         position: absolute;
-        top: -20px; left: 0; right: 0; height: 32px;
+        top: -9px; left: 0; right: 0; height: 20px;
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top left;
-        background-size: 100% 100%; /* بيتمدد يملأ عرض العنصر أيًا كان حجمه، زي ما هو بالظبط بس بمقاس مختلف */
+        background-size: 50% 100%; /* بس لحد نص عرض العنصر، مش لآخره */
         pointer-events: none;
         z-index: 3;
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
-    /* 🆕 زرار الموقع (حدد موقعك على الخريطة) استثناء - الثلج بيبقى في الزاوية الشمال
-       بدل ما يمتد على عرض الزرار كله زي باقي العناصر، عشان شكل الزرار ده مختلف عن الباقي */
-    body.gphaly-season-christmas .location-pick-btn::after { left: 8px; right: auto; width: 80px; height: 24px; top: -15px; }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
-    body.gphaly-season-christmas .menu-card::after { height: 46px; top: -28px; }
+    body.gphaly-season-christmas .menu-card::after { height: 30px; top: -14px; }
 </style>
 </head>  
 <body>  
