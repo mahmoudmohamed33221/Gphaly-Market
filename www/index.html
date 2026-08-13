@@ -239,6 +239,45 @@
         90%  { opacity: 0.22; }
         100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(180deg); opacity: 0; }
     }
+    /* 🆕 نفس نزول الثلج بالظبط، بس بحركة التفاف (تمايل يمين وشمال) بدل اللفة
+       الثابتة - مخصوصة لشجرة الكريسماس عشان تحس إنها بتلف وهي نازلة. */
+    @keyframes gphalySeasonFallTree {
+        0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+        8%   { opacity: 0.22; }
+        20%  { transform: translateY(23vh) translateX(calc(var(--gphaly-drift, 0px) * 0.2)) rotate(14deg); }
+        40%  { transform: translateY(46vh) translateX(calc(var(--gphaly-drift, 0px) * 0.4)) rotate(-14deg); }
+        60%  { transform: translateY(69vh) translateX(calc(var(--gphaly-drift, 0px) * 0.6)) rotate(10deg); }
+        80%  { transform: translateY(92vh) translateX(calc(var(--gphaly-drift, 0px) * 0.8)) rotate(-8deg); }
+        92%  { opacity: 0.22; }
+        100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(0deg); opacity: 0; }
+    }
+    /* 🆕 عشان تأكيد إن الثلج بيتساقط في واجهة البداية المتحركة (page-home) بردو - ده
+       طبقة تساقط مخصوصة جوه الصفحة دي بالظبط، مستقلة عن تأثير الجسيمات العام،
+       عشان تضمن إنها شغالة هناك دايمًا وقت الكريسماس مهما حصل. */
+    .gphaly-home-snow { display: none; }
+    body.gphaly-season-christmas #page-home .gphaly-home-snow {
+        display: block; position: absolute; top: -10%; font-size: 18px; opacity: 0.5;
+        color: #E8F4FF; pointer-events: none; z-index: 1; user-select: none;
+        animation: gphalyHomeSnowFallTree linear infinite;
+        text-shadow: 0 0 6px rgba(255,255,255,.4);
+    }
+    @keyframes gphalyHomeSnowFall {
+        0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+        8%   { opacity: 0.55; }
+        92%  { opacity: 0.55; }
+        100% { transform: translateY(120vh) translateX(var(--gphaly-drift, 0px)) rotate(200deg); opacity: 0; }
+    }
+    /* 🆕 نفس فكرة gphalySeasonFallTree بس لطبقة ثلج صفحة البداية تحديدًا */
+    @keyframes gphalyHomeSnowFallTree {
+        0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+        8%   { opacity: 0.55; }
+        20%  { transform: translateY(24vh) translateX(calc(var(--gphaly-drift, 0px) * 0.2)) rotate(14deg); }
+        40%  { transform: translateY(48vh) translateX(calc(var(--gphaly-drift, 0px) * 0.4)) rotate(-14deg); }
+        60%  { transform: translateY(72vh) translateX(calc(var(--gphaly-drift, 0px) * 0.6)) rotate(10deg); }
+        80%  { transform: translateY(96vh) translateX(calc(var(--gphaly-drift, 0px) * 0.8)) rotate(-8deg); }
+        92%  { opacity: 0.55; }
+        100% { transform: translateY(120vh) translateX(var(--gphaly-drift, 0px)) rotate(0deg); opacity: 0; }
+    }
     /* 🆕 ديزاين "الجليد المتساقط" - بيظهر بس وقت الكريسماس (season = christmas)،
        وموجود بس على: (1) كل مربع كتابة input/select/textarea (عن طريق لفه بـ
        gphaly-icy-wrap - دور على wrapForIcyEffect بالجافاسكريبت)، (2) كل زرار
@@ -271,7 +310,7 @@
     body.gphaly-season-christmas .gphaly-icy-card::after {
         content: '';
         position: absolute;
-        top: calc(-4px - 3.25mm); left: -8px; right: -8px; height: calc(26px + 9mm);
+        top: calc(-4px - 2.25mm); left: -8px; right: -8px; height: calc(26px + 9mm);
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top center;
@@ -281,8 +320,11 @@
         transform: rotate(-0.5deg);
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
-    /* 🆕 الجليد بتاع الأزرار والجروب بكسات بس (مش التكست بكس) اترفع 1.5 مم زيادة */
-    body.gphaly-season-christmas button::after,
+    /* 🆕 الجليد بتاع الأزرار والجروب بكسات بس (مش التكست بكس) اترفع 1.5 مم زيادة،
+       وبعدين نزل تلج الأزرار بس ملي، فبقى الأزرار على -4mm والجروب بكسات فاضلة -5mm */
+    body.gphaly-season-christmas button::after {
+        top: calc(-4px - 4mm);
+    }
     body.gphaly-season-christmas .gphaly-icy-card::after {
         top: calc(-4px - 5mm);
     }
@@ -496,6 +538,15 @@
 
 <div id="page-home" class="app-page hero-gradient active flex flex-col justify-center items-center px-4 w-full relative overflow-hidden">  
     <img src="https://f.top4top.io/p_3862qbbof0.png" alt="" class="app-logo-dynamic bg-watermark">  
+    <span class="gphaly-home-snow" style="left:5%; font-size:14px; animation-name:gphalyHomeSnowFallTree; animation-duration:9s; animation-delay:0s; --gphaly-drift:20px;">❄️</span>
+    <span class="gphaly-home-snow" style="left:16%; font-size:22px; animation-name:gphalyHomeSnowFallTree; animation-duration:13s; animation-delay:1.5s; --gphaly-drift:-30px;">🎄</span>
+    <span class="gphaly-home-snow" style="left:28%; font-size:16px; animation-name:gphalyHomeSnowFallTree; animation-duration:10.5s; animation-delay:3s; --gphaly-drift:15px;">❄️</span>
+    <span class="gphaly-home-snow" style="left:40%; font-size:18px; animation-name:gphalyHomeSnowFallTree; animation-duration:12s; animation-delay:0.8s; --gphaly-drift:-18px;">🎁</span>
+    <span class="gphaly-home-snow" style="left:52%; font-size:15px; animation-name:gphalyHomeSnowFallTree; animation-duration:9.5s; animation-delay:4.2s; --gphaly-drift:25px;">❄️</span>
+    <span class="gphaly-home-snow" style="left:64%; font-size:21px; animation-name:gphalyHomeSnowFallTree; animation-duration:14s; animation-delay:2.1s; --gphaly-drift:-22px;">🎄</span>
+    <span class="gphaly-home-snow" style="left:75%; font-size:17px; animation-name:gphalyHomeSnowFallTree; animation-duration:11s; animation-delay:5s; --gphaly-drift:18px;">⛄</span>
+    <span class="gphaly-home-snow" style="left:86%; font-size:19px; animation-name:gphalyHomeSnowFallTree; animation-duration:10s; animation-delay:1.2s; --gphaly-drift:-15px;">❄️</span>
+    <span class="gphaly-home-snow" style="left:94%; font-size:13px; animation-name:gphalyHomeSnowFallTree; animation-duration:8.5s; animation-delay:3.6s; --gphaly-drift:20px;">❄️</span>
     <div class="text-center max-w-xl mx-auto z-10 w-full px-2 space-y-8 flex flex-col items-center justify-center relative pt-12">  
         <div>  
             <h1 class="font-amiri text-5xl font-bold text-[var(--gold)] mb-3">جبهالي ماركت</h1>  
@@ -969,7 +1020,10 @@
     // على البطارية/الأداء - كل قطعة بتوصف وتتشال من الصفحة لوحدها.
     const SEASON_PARTICLE_EMOJIS = {
         ramadan:   ['🏮', '🌙', '⭐'],
-        christmas: ['❄️'],
+        // 🆕 رجعنا الشكل الأساسي بس للتلج (❄️) وشلنا مصاصة العكاز، وضفنا شجرة كريسماس
+        // (بحركة التفاف بسيطة أثناء نزولها) وهدية ورجل ثلج صغير - الرقاقة العادية
+        // هي الغالبة والباقي بيظهر أقل عشان الشكل يفضل هادي.
+        christmas: ['❄️', '❄️', '❄️', '❄️', '❄️', '❄️', '🎄', '🎁', '⛄'],
         eidFitr:   ['🎈', '🎁'],
         eidAdha:   ['🐑']
         // default: مفيش تأثير خالص
@@ -1000,7 +1054,8 @@
         function spawnOne() {
             const el = document.createElement('div');
             el.className = 'gphaly-season-particle';
-            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            el.textContent = emoji;
             const size = 12 + Math.random() * 22; // 🆕 تنوّع أوضح في الأحجام (صغيرة وكبيرة مع بعض)
             const duration = 11 + Math.random() * 8;
             const lane = nextSeasonalLane(laneCount); // 🔧 عشوائي مع ضمان التباعد
@@ -1008,7 +1063,9 @@
             el.style.left = left + 'vw';
             el.style.fontSize = size + 'px';
             el.style.setProperty('--gphaly-drift', (Math.random() * 50 - 25) + 'px');
-            el.style.animation = `gphalySeasonFall ${duration}s linear 0s 1 forwards`;
+            // 🆕 كل القطع (مش الشجرة بس) بقت بتاخد حركة الالتفاف الدائرية البسيطة
+            // أثناء نزولها.
+            el.style.animation = `gphalySeasonFallTree ${duration}s linear 0s 1 forwards`;
             document.body.appendChild(el);
             setTimeout(() => el.remove(), duration * 1000 + 300);
         }
