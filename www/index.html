@@ -241,9 +241,9 @@
     }
     /* 🆕 ديزاين "الجليد المتساقط" فوق كل مربع كتابة وكل زرار وكل كارت (زي كروت الطلبات
        اللي بتتعمل بالكلاس menu-card) - بيظهر بس وقت الكريسماس (season = christmas).
-       طبقة ثلج واحدة (::after) فيها "ريدج" ثلج صلب + صف قناديل جليد (icicles) نازلة
-       منه، كله CSS من غير أي صورة خارجية. استخدمنا ::after بس (مش ::before) عشان
-       menu-card أصلاً بتستخدم ::before للعلامة المائية، فمنكسرش حاجة موجودة.
+       دلوقتي بنستخدم صورة PNG حقيقية بتاعتك (img/gphaly-icy-frame.png) بدل ما نرسم
+       الشكل بالـ CSS (اللي طلع شكله بايظ زي شريط أسنان). استخدمنا ::after بس (مش
+       ::before) عشان menu-card أصلاً بتستخدم ::before للعلامة المائية، فمنكسرش حاجة موجودة.
        ملحوظة: عناصر <input> و<select> مبتدعمش ::before/::after في المتصفح خالص -
        عشان كده بنلفهم بـ <div class="gphaly-icy-wrap"> عن طريق جافاسكريبت (دور على
        wrapForIcyEffect في الكود) وبنحط التأثير على الـ wrap مش على الـ input نفسه. */
@@ -265,20 +265,20 @@
     body.gphaly-season-christmas .menu-card::after {
         content: '';
         position: absolute;
-        top: -10px; left: 6%; right: 6%; height: 13px;
+        top: -20px; left: 0; right: 0; height: 32px;
+        background-image: url('img/gphaly-icy-frame.png');
+        background-repeat: no-repeat;
+        background-position: top left;
+        background-size: 100% 100%; /* بيتمدد يملأ عرض العنصر أيًا كان حجمه، زي ما هو بالظبط بس بمقاس مختلف */
         pointer-events: none;
         z-index: 3;
-        background:
-            linear-gradient(180deg, #eef7ff 0 55%, transparent 56%) top / 100% 10px no-repeat,
-            linear-gradient(135deg, transparent 50%, #eef7ff 52%) 0 3px / 13px 13px repeat-x,
-            linear-gradient(225deg, transparent 50%, #eef7ff 52%) 6.5px 3px / 13px 13px repeat-x;
-        filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
+        filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
     /* 🆕 زرار الموقع (حدد موقعك على الخريطة) استثناء - الثلج بيبقى في الزاوية الشمال
-       بدل ما يكون في النص زي باقي العناصر، عشان شكل الزرار ده مختلف عن الباقي */
-    body.gphaly-season-christmas .location-pick-btn::after { left: 8px; right: auto; width: 46px; }
-    /* 🆕 كارت أكبر (menu-card) بياخد "ريدج" ثلج أعرض شوية يليق بحجمه */
-    body.gphaly-season-christmas .menu-card::after { left: 4%; right: 4%; height: 16px; top: -12px; }
+       بدل ما يمتد على عرض الزرار كله زي باقي العناصر، عشان شكل الزرار ده مختلف عن الباقي */
+    body.gphaly-season-christmas .location-pick-btn::after { left: 8px; right: auto; width: 80px; height: 24px; top: -15px; }
+    /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
+    body.gphaly-season-christmas .menu-card::after { height: 46px; top: -28px; }
 </style>
 </head>  
 <body>  
