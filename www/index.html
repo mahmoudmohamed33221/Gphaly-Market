@@ -239,48 +239,46 @@
         90%  { opacity: 0.22; }
         100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(180deg); opacity: 0; }
     }
-    /* 🆕 ديزاين "الجليد المتساقط" فوق كل مربع كتابة وكل زرار - بيظهر بس وقت الكريسماس
-       (لما season = christmas). عبارة عن "طبقة ثلج" فوق حافة العنصر + صف صغير من
-       "قناديل الجليد" (icicles) نازلة منها. كل عنصر بيتحط عليه اتنين ::before/::after
-       عشان الطبقتين (الثلج الصلب + القناديل) - مش محتاجين أي صورة خارجية، كله CSS. */
-    body.gphaly-season-christmas .modal-input,
-    body.gphaly-season-christmas select.modal-input,
-    body.gphaly-season-christmas .btn-oval-gold,
-    body.gphaly-season-christmas .gphaly-icy-target {
+    /* 🆕 ديزاين "الجليد المتساقط" فوق كل مربع كتابة وكل زرار وكل كارت (زي كروت الطلبات
+       اللي بتتعمل بالكلاس menu-card) - بيظهر بس وقت الكريسماس (season = christmas).
+       طبقة ثلج واحدة (::after) فيها "ريدج" ثلج صلب + صف قناديل جليد (icicles) نازلة
+       منه، كله CSS من غير أي صورة خارجية. استخدمنا ::after بس (مش ::before) عشان
+       menu-card أصلاً بتستخدم ::before للعلامة المائية، فمنكسرش حاجة موجودة.
+       ملحوظة: عناصر <input> و<select> مبتدعمش ::before/::after في المتصفح خالص -
+       عشان كده بنلفهم بـ <div class="gphaly-icy-wrap"> عن طريق جافاسكريبت (دور على
+       wrapForIcyEffect في الكود) وبنحط التأثير على الـ wrap مش على الـ input نفسه. */
+    /* 🆕 الوضع الافتراضي (أي موسم غير الكريسماس): الـ wrap شفاف تمامًا في التخطيط
+       (زي إنه مش موجود) عشان مايكسرش صفوف "أصناف الطلب" (flex) ولا أي تخطيط تاني. */
+    .gphaly-icy-wrap { display: contents; }
+    body.gphaly-season-christmas .gphaly-icy-wrap,
+    body.gphaly-season-christmas .gphaly-icy-target,
+    body.gphaly-season-christmas .location-pick-btn,
+    body.gphaly-season-christmas .menu-card {
         position: relative;
-        overflow: visible;
     }
-    body.gphaly-season-christmas .modal-input::before,
-    body.gphaly-season-christmas select.modal-input::before,
-    body.gphaly-season-christmas .btn-oval-gold::before,
-    body.gphaly-season-christmas .gphaly-icy-target::before {
+    /* 🔧 وقت الكريسماس بس، الـ wrap بيتحول لصندوق حقيقي عشان الجليد يظهر عليه */
+    body.gphaly-season-christmas .gphaly-icy-wrap { display: block; }
+    body.gphaly-season-christmas .gphaly-icy-wrap.flex-1 { display: flex; flex: 1 1 0%; }
+    body.gphaly-season-christmas .gphaly-icy-wrap::after,
+    body.gphaly-season-christmas .gphaly-icy-target::after,
+    body.gphaly-season-christmas .location-pick-btn::after,
+    body.gphaly-season-christmas .menu-card::after {
         content: '';
         position: absolute;
-        top: -8px; left: 6%; right: 6%; height: 9px;
-        background: #eef7ff;
-        border-radius: 0 0 8px 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        top: -10px; left: 6%; right: 6%; height: 13px;
         pointer-events: none;
         z-index: 3;
-    }
-    body.gphaly-season-christmas .modal-input::after,
-    body.gphaly-season-christmas select.modal-input::after,
-    body.gphaly-season-christmas .btn-oval-gold::after,
-    body.gphaly-season-christmas .gphaly-icy-target::after {
-        content: '';
-        position: absolute;
-        top: 1px; left: 6%; right: 6%; height: 11px;
         background:
-            linear-gradient(135deg, transparent 50%, #eef7ff 52%) 0 0 / 13px 13px repeat-x,
-            linear-gradient(225deg, transparent 50%, #eef7ff 52%) 6.5px 0 / 13px 13px repeat-x;
+            linear-gradient(180deg, #eef7ff 0 55%, transparent 56%) top / 100% 10px no-repeat,
+            linear-gradient(135deg, transparent 50%, #eef7ff 52%) 0 3px / 13px 13px repeat-x,
+            linear-gradient(225deg, transparent 50%, #eef7ff 52%) 6.5px 3px / 13px 13px repeat-x;
         filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
-        pointer-events: none;
-        z-index: 3;
     }
     /* 🆕 زرار الموقع (حدد موقعك على الخريطة) استثناء - الثلج بيبقى في الزاوية الشمال
        بدل ما يكون في النص زي باقي العناصر، عشان شكل الزرار ده مختلف عن الباقي */
-    body.gphaly-season-christmas .location-pick-btn::before,
     body.gphaly-season-christmas .location-pick-btn::after { left: 8px; right: auto; width: 46px; }
+    /* 🆕 كارت أكبر (menu-card) بياخد "ريدج" ثلج أعرض شوية يليق بحجمه */
+    body.gphaly-season-christmas .menu-card::after { left: 4%; right: 4%; height: 16px; top: -12px; }
 </style>
 </head>  
 <body>  
@@ -443,7 +441,7 @@
                     <input type="hidden" id="u_customer_lat"><input type="hidden" id="u_customer_lng">
                 </div>
             </div>
-            <button type="button" id="btn-save-profile" onclick="saveProfile()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
+            <button type="button" id="btn-save-profile" onclick="saveProfile()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg gphaly-icy-target"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
             <button type="button" id="btn-cancel-edit-profile" onclick="switchPage('profile')" style="display:none;" class="w-full bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">إلغاء</button>
         </div>
     </div>
@@ -953,11 +951,22 @@
         // default: مفيش تأثير خالص
     };
     let seasonalParticleTimer = null;
-    let seasonalParticleLaneIndex = 0;
     // 🆕 بدل ما نرمي دفعة واحدة وتخلص وتختفي، دلوقتي بنولّد قطعة جديدة كل شوية وباستمرار
     // طول ما البرنامج مفتوح - عشان يبقى تساقط مستمر في كل صفحة، مش بس أول ما يفتح البرنامج.
-    // برضو بنلف على "الممرات" بالترتيب (مش عشوائي) عشان يفضل فيه تباعد حقيقي بينهم حتى مع
-    // الاستمرارية والكثافة، ومع أحجام مختلفة لكل قطعة.
+    // 🔧 الممرات دلوقتي بترتيب عشوائي (مش تصاعدي ثابت من الشمال لليمين زي الأول) - بس
+    // برضو بنضمن إن كل الـ 12 ممر بياخدوا دورهم مرة واحدة بالظبط قبل ما أي ممر يتكرر
+    // (نظام "الكيس" shuffled bag)، وده هو الشرط اللي بيحافظ على التباعد ومنع التكدس.
+    let seasonalParticleLaneBag = [];
+    function nextSeasonalLane(laneCount) {
+        if (seasonalParticleLaneBag.length === 0) {
+            seasonalParticleLaneBag = Array.from({ length: laneCount }, (_, i) => i);
+            for (let i = seasonalParticleLaneBag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [seasonalParticleLaneBag[i], seasonalParticleLaneBag[j]] = [seasonalParticleLaneBag[j], seasonalParticleLaneBag[i]];
+            }
+        }
+        return seasonalParticleLaneBag.pop();
+    }
     function startSeasonalParticles(key) {
         const emojis = SEASON_PARTICLE_EMOJIS[key];
         if (!emojis) return; // الوضع العادي = بدون تأثير خالص
@@ -970,8 +979,8 @@
             el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
             const size = 12 + Math.random() * 22; // 🆕 تنوّع أوضح في الأحجام (صغيرة وكبيرة مع بعض)
             const duration = 11 + Math.random() * 8;
-            const left = (seasonalParticleLaneIndex * laneWidth) + (laneWidth * 0.15) + (Math.random() * laneWidth * 0.7);
-            seasonalParticleLaneIndex = (seasonalParticleLaneIndex + 1) % laneCount;
+            const lane = nextSeasonalLane(laneCount); // 🔧 عشوائي مع ضمان التباعد
+            const left = (lane * laneWidth) + (laneWidth * 0.15) + (Math.random() * laneWidth * 0.7);
             el.style.left = left + 'vw';
             el.style.fontSize = size + 'px';
             el.style.setProperty('--gphaly-drift', (Math.random() * 50 - 25) + 'px');
@@ -990,6 +999,26 @@
         SEASON_VISUAL_THEME_CLASSES.forEach(c => document.body.classList.remove(c));
         if (key === 'christmas') document.body.classList.add('gphaly-season-christmas');
     }
+
+    // 🔧 السبب اللي كان بيمنع ظهور الجليد فوق مربعات الكتابة: عناصر <input> و<select>
+    // ببساطة مبيدعموش ::before/::after في أي متصفح خالص (قاعدة معروفة في الـ CSS - مش
+    // حاجة غلط في كودنا كان لازم نلف حواليهم). الحل: بنلف كل عنصر منهم بـ <div> بسيطة
+    // (مادام مش ملفوف قبل كده)، وعلى الـ div دي بيتحط تأثير الجليد بدل الـ input نفسه.
+    // display:contents افتراضيًا يخلي الـ wrap "شفاف" تمامًا في التخطيط (زي إنه مش موجود)
+    // عشان مايكسرش صفوف الـ flex بتاعة "أصناف الطلب" - وبس وقت الكريسماس بيتحول لصندوق
+    // حقيقي (display:block) عشان الجليد يظهر عليه.
+    function wrapForIcyEffect(el) {
+        if (!el || (el.parentElement && el.parentElement.classList.contains('gphaly-icy-wrap'))) return; // ملفوف أصلاً
+        const wrap = document.createElement('div');
+        wrap.className = 'gphaly-icy-wrap';
+        if (el.classList.contains('flex-1')) wrap.classList.add('flex-1'); // 🔧 محافظين على تمدد صف "الصنف" جنب زرار الحذف
+        el.parentNode.insertBefore(wrap, el);
+        wrap.appendChild(el);
+    }
+    function wrapAllInputsForIcyEffect() {
+        document.querySelectorAll('input.modal-input, select.modal-input, textarea.modal-input').forEach(wrapForIcyEffect);
+    }
+    wrapAllInputsForIcyEffect();
 
     // 🆕 تخزين آخر "موسم" اتعرف عليه محليًا على الجهاز (localStorage) - عشان أول ما
     // التطبيق يفتح يطبّق الشكل الصح على طول من غير ما يستنى رد السيرفر (اللي ممكن ياخد
@@ -2547,6 +2576,7 @@
         const c = document.getElementById('items-container'); const r = document.createElement('div'); r.className = 'flex flex-col item-row-container';  
         r.innerHTML = `<div class="flex items-center gap-3 item-row"><input type="text" required class="modal-input item-name !mt-0 flex-1 h-[48px]" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"><button type="button" onclick="this.closest('.item-row-container').remove(); updateOrderReviewVisibility();" class="text-red-500 font-bold px-2 text-2xl hover:text-red-400 transition">&times;</button></div><span class="error-msg item-error-msg"></span>`;  
         c.appendChild(r);  
+        wrapForIcyEffect(r.querySelector('.item-name')); // 🆕 عشان صف الصنف الجديد ده ياخد تأثير الجليد برضو
         wrapInputWithCheck(r.querySelector('.item-name'));
         updateOrderReviewVisibility();  
     }  
