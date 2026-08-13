@@ -294,6 +294,10 @@
     body.gphaly-season-christmas .space-y-5 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 2.1rem !important; }
     body.gphaly-season-christmas .menu-card h2 { margin-bottom: 14px !important; }
     body.gphaly-season-christmas .menu-card > p { margin-bottom: 20px !important; }
+    /* 🆕 اللابلات (زي "اسم العميل الثلاثي" و"رقم تليفون") اترفعت 2 مم لفوق عشان
+       تحس إنها لازقة في الجليد اللي فوقها، من غير ما تحرك صندوق الكتابة نفسه
+       (translateY بس، مش margin، عشان محدش يتحرك تحتها). */
+    body.gphaly-season-christmas .input-container > label { transform: translateY(-2mm); }
 </style>
 </head>  
 <body>  
