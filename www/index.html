@@ -264,14 +264,14 @@
     /* 🔧 اتصلح تغطية الجليد: كان بياخد 46% بس من عرض الصندوق (background-size: 46%)
        فبيبان ناقص وواقف في نص العنصر - دلوقتي بياخد عرض الصندوق بالكامل (100%)
        من الحافة الشمال للحافة اليمين عشان يغطي كل الصندوق زي ما المفروض.
-       🆕 اترفعت 2 مم زيادة لفوق (top: -4px - 2mm)، واتمطت لتحت 3 مم زيادة تاني
-       (height: 26px + 3mm + 3mm)، ولسه متلفة نص درجة عكس اتجاه عقارب الساعة. */
+       🆕 اترفعت 2 مم زيادة تانية لفوق، واتمطت لتحت 3 مم زيادة تالتة، ولسه متلفة
+       نص درجة عكس اتجاه عقارب الساعة. */
     body.gphaly-season-christmas .gphaly-icy-wrap::after,
     body.gphaly-season-christmas button::after,
     body.gphaly-season-christmas .gphaly-icy-card::after {
         content: '';
         position: absolute;
-        top: calc(-4px - 2mm); left: -8px; right: -8px; height: calc(26px + 3mm + 3mm);
+        top: calc(-4px - 4mm); left: -8px; right: -8px; height: calc(26px + 9mm);
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top center;
@@ -282,7 +282,18 @@
         filter: drop-shadow(0 2px 3px rgba(0,0,0,.4));
     }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
-    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 3mm + 3mm); top: calc(-5px - 2mm); }
+    body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 9mm); top: calc(-5px - 4mm); }
+    /* 🆕 عشان الجليد الأكبر ده متغطيش على أي لابل أو نص، وقت الكريسماس بس بنزود
+       الفراغ بين كل حقل واللي جاي بعده (بين كل input-container والتاني، وقبل
+       أول حقل جوه أي مجموعة)، عشان يبقى فيه مسافة تنفس كافية للجليد. */
+    body.gphaly-season-christmas .space-y-3,
+    body.gphaly-season-christmas .space-y-4,
+    body.gphaly-season-christmas .space-y-5 { padding-top: 14px !important; }
+    body.gphaly-season-christmas .space-y-3 > *:not([hidden]) ~ *:not([hidden]),
+    body.gphaly-season-christmas .space-y-4 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 1.75rem !important; }
+    body.gphaly-season-christmas .space-y-5 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 2.1rem !important; }
+    body.gphaly-season-christmas .menu-card h2 { margin-bottom: 14px !important; }
+    body.gphaly-season-christmas .menu-card > p { margin-bottom: 20px !important; }
 </style>
 </head>  
 <body>  
