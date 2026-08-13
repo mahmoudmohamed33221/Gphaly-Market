@@ -240,29 +240,36 @@
         100% { transform: translateY(115vh) translateX(var(--gphaly-drift, 0px)) rotate(180deg); opacity: 0; }
     }
     /* 🆕 ديزاين "الجليد المتساقط" - بيظهر بس وقت الكريسماس (season = christmas)،
-       وبقى مقصور بس على: كروت الطلبات (كلاس gphaly-icy-card بيتحط على كارت الطلب
-       الجاري وكارت الطلب المكتمل) + صفحة "حول التطبيق" (gphaly-icy-card برضو) +
-       شريط القائمة السفلي اللي قدامك على طول (bottom-nav). اتشال تمامًا من أي
-       مربع كتابة (input/select/textarea) ومن أي زرار، وكمان من باقي كروت
-       menu-card التانية (الفورمات والبوب أب... إلخ) عشان محدش يغطي على نص أو حقل.
-       دلوقتي بنستخدم صورة PNG حقيقية بتاعتك (img/gphaly-icy-frame.png). استخدمنا
-       ::after بس (مش ::before) عشان menu-card أصلاً بتستخدم ::before للعلامة
-       المائية، فمنكسرش حاجة موجودة. */
+       وموجود بس على: (1) كل مربع كتابة input/select/textarea (عن طريق لفه بـ
+       gphaly-icy-wrap - دور على wrapForIcyEffect بالجافاسكريبت)، (2) كل زرار
+       <button> في البرنامج، (3) كروت الطلبات (كلاس gphaly-icy-card بيتحط على
+       كارت الطلب الجاري وكارت الطلب المكتمل)، (4) صفحة "حول التطبيق"
+       (gphaly-icy-card برضو). اتشال بس من باقي كروت menu-card التانية (الفورمات
+       والبوب أب زي كارت التحديث/الإيقاف/الحظر وكارت استمارة الطلب... إلخ) - دي
+       الـ"جروب بكسات" اللي مش عايزها. استخدمنا ::after بس (مش ::before) عشان
+       menu-card أصلاً بتستخدم ::before للعلامة المائية، فمنكسرش حاجة موجودة.
+       ملحوظة: <input>/<select> مبيدعموش ::before/::after في المتصفح خالص - عشان
+       كده بنلفهم بـ <div class="gphaly-icy-wrap"> عن طريق جافاسكريبت. */
+    /* 🆕 الوضع الافتراضي (أي موسم غير الكريسماس): الـ wrap شفاف تمامًا في التخطيط
+       (زي إنه مش موجود) عشان مايكسرش صفوف "أصناف الطلب" (flex) ولا أي تخطيط تاني. */
     .gphaly-icy-wrap { display: contents; }
-    /* ملحوظة: .bottom-nav متعملها position:fixed أصلاً (سطر 29) وده كافي إنها تبقى
-       "positioning context" للـ ::after بتاعها - مبنغيرهاش لـ relative عشان
-       الشريط ميطلعش من مكانه التحت. */
+    body.gphaly-season-christmas .gphaly-icy-wrap,
+    body.gphaly-season-christmas button,
     body.gphaly-season-christmas .gphaly-icy-card {
         position: relative;
     }
+    /* 🔧 وقت الكريسماس بس، الـ wrap بيتحول لصندوق حقيقي عشان الجليد يظهر عليه */
+    body.gphaly-season-christmas .gphaly-icy-wrap { display: block; }
+    body.gphaly-season-christmas .gphaly-icy-wrap.flex-1 { display: flex; flex: 1 1 0%; }
     /* 🔧 اتصلح تغطية الجليد: كان بياخد 46% بس من عرض الصندوق (background-size: 46%)
        فبيبان ناقص وواقف في نص العنصر - دلوقتي بياخد عرض الصندوق بالكامل (100%)
        من الحافة الشمال للحافة اليمين عشان يغطي كل الصندوق زي ما المفروض. */
-    body.gphaly-season-christmas .gphaly-icy-card::after,
-    body.gphaly-season-christmas .bottom-nav::after {
+    body.gphaly-season-christmas .gphaly-icy-wrap::after,
+    body.gphaly-season-christmas button::after,
+    body.gphaly-season-christmas .gphaly-icy-card::after {
         content: '';
         position: absolute;
-        top: -2px; left: 0; right: 0; height: 38px;
+        top: -2px; left: 0; right: 0; height: 26px;
         background-image: url('img/gphaly-icy-frame.png');
         background-repeat: no-repeat;
         background-position: top center;
@@ -273,8 +280,6 @@
     }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
     body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: 52px; top: -3px; }
-    /* 🆕 شريط القائمة السفلي: الجليد بيتدلى من حده العلوي لجوه الشريط */
-    body.gphaly-season-christmas .bottom-nav::after { top: -1px; height: 30px; z-index: 1001; }
 </style>
 </head>  
 <body>  
@@ -342,7 +347,7 @@
 
 <div id="update-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center px-4" style="display: none; z-index: 99999;">  
     <div class="absolute inset-0" style="z-index: 99998;"></div>
-    <div class="menu-card p-7 max-w-sm w-full text-center space-y-5 relative z-[99999] update-pulse" onclick="event.stopPropagation()">
+    <div class="menu-card gphaly-icy-card p-7 max-w-sm w-full text-center space-y-5 relative z-[99999] update-pulse" onclick="event.stopPropagation()">
         <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--gold)] to-[var(--gold-dark)] flex items-center justify-center mx-auto shadow-lg overflow-hidden">
             <img src="https://f.top4top.io/p_3862qbbof0.png" alt="جبهالي" class="app-logo-dynamic w-full h-full object-cover">
         </div>
@@ -365,7 +370,7 @@
 
 <div id="availability-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center px-4" style="display: none; z-index: 99998;">  
     <div class="absolute inset-0" style="z-index: 99997;"></div>
-    <div class="menu-card p-7 max-w-sm w-full text-center space-y-5 relative z-[99998] stop-pulse" onclick="event.stopPropagation()">
+    <div class="menu-card gphaly-icy-card p-7 max-w-sm w-full text-center space-y-5 relative z-[99998] stop-pulse" onclick="event.stopPropagation()">
         <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto shadow-lg">
             <i class="fas fa-hand-paper text-white text-3xl"></i>
         </div>
@@ -383,7 +388,7 @@
 
 <div id="banned-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center px-4" style="display: none; z-index: 100000;">  
     <div class="absolute inset-0" style="z-index: 99999;"></div>
-    <div class="menu-card p-7 max-w-sm w-full text-center space-y-5 relative z-[100000] stop-pulse" onclick="event.stopPropagation()">
+    <div class="menu-card gphaly-icy-card p-7 max-w-sm w-full text-center space-y-5 relative z-[100000] stop-pulse" onclick="event.stopPropagation()">
         <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center mx-auto shadow-lg">
             <i class="fas fa-ban text-white text-3xl"></i>
         </div>
@@ -401,7 +406,7 @@
 </div>  
 
 <div id="page-register" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
-    <div class="menu-card p-6 w-full max-w-xl">
+    <div class="menu-card gphaly-icy-card p-6 w-full max-w-xl">
         <h2 id="register-page-title" class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-user-plus ml-2"></i>بيانات العميل الجديد</h2>
         <p id="register-page-sub" class="text-[var(--muted)] text-xs text-center mb-4">من فضلك املأ بياناتك مرة واحدة وهنحتفظ بيها، عشان متكتبهاش تاني في كل أوردر</p>
         <div class="space-y-4">
@@ -483,7 +488,7 @@
 </div>  
 
 <div id="page-order" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">  
-    <div class="menu-card p-6 w-full max-w-xl">  
+    <div class="menu-card gphaly-icy-card p-6 w-full max-w-xl">  
         <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1">استمارة طلب اوردر</h2>  
         <p class="text-[var(--muted)] text-xs text-center mb-4">حدد نوع المحل واكتب طلباتك، وهنجيبهولك بسرعة</p>
         <form id="multiStepForm" onsubmit="event.preventDefault(); goToOrderReview();" novalidate>  
