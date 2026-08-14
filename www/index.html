@@ -539,7 +539,7 @@
 <div id="page-profile" class="app-page flex flex-col justify-between items-center px-4 py-6 w-full">
     <div class="w-full max-w-xl">
         <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-4"><i class="fas fa-id-card ml-2"></i>ملفي الشخصي</h2>
-        <div class="menu-card p-6 w-full">
+        <div class="menu-card gphaly-icy-card p-6 w-full">
             <div id="profile-view-content" class="space-y-3 text-base"></div>
         </div>
     </div>
@@ -1080,14 +1080,20 @@
             const emoji = emojis[Math.floor(Math.random() * emojis.length)];
             el.textContent = emoji;
             const size = 12 + Math.random() * 22; // 🆕 تنوّع أوضح في الأحجام (صغيرة وكبيرة مع بعض)
-            // 🆕 بنحسب طول الصفحة الفعلي (مش بس الشاشة الظاهرة) عشان القطعة تكمل
-            // نزولها لآخر الصفحة حتى لو كانت طويلة وقابلة للسكرول، وبنكبّر مدة
-            // النزول بنفس النسبة عشان السرعة تفضل طبيعية ومش تجري بسرعة غريبة.
-            const pageHeight = Math.max(
-                document.documentElement.scrollHeight,
-                document.body.scrollHeight,
+            // 🔧 مهم: بنستخدم ارتفاع الصفحة النشطة الحالية بس (مش document.body كله) -
+            // كان فيه باج خطير هنا: document.body.scrollHeight بيتأثر بالجسيمات
+            // نفسها (لأنها absolute وبتتحرك بمسافة كبيرة)، فكل قطعة جديدة كانت
+            // بتخلي طول الصفحة "يزيد" شوية، وده كان بيخلي القطعة اللي بعدها تاخد
+            // مسافة أكبر، وهكذا... حلقة مفرغة كانت بتخلي أي صفحة (حتى اللي مش
+            // محتاجة سكرول خالص زي "اطلب الآن") تكبر وتبقى فيها سكرول طويل غريب.
+            // الحل: نقيس ارتفاع الصفحة النشطة (.app-page.active) نفسها بس، اللي
+            // مش بتتأثر بالجسيمات لأنها مش جواها أصلاً (الجسيمات بتتحط في body مباشرة).
+            const activePageEl = document.querySelector('.app-page.active, .app-page.block-active');
+            const rawPageHeight = Math.max(
+                activePageEl ? activePageEl.scrollHeight : 0,
                 window.innerHeight
             );
+            const pageHeight = Math.min(rawPageHeight, window.innerHeight * 6); // 🆕 سقف أمان إضافي يمنع أي نمو غير طبيعي
             const speedRatio = pageHeight / window.innerHeight;
             const duration = (11 + Math.random() * 8) * speedRatio;
             const lane = nextSeasonalLane(laneCount); // 🔧 عشوائي مع ضمان التباعد
@@ -1392,11 +1398,11 @@
         const landmark = localStorage.getItem('gebhaly_landmark') || '';
         const hasLoc = !!(localStorage.getItem('gebhaly_lat') && localStorage.getItem('gebhaly_lng'));
         c.innerHTML = `
-            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold text-lg">${escapeHtml(name)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold text-lg">${escapeHtml(phone)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-marker-alt ml-1"></i>المحافظة</span><span class="font-bold text-lg">${escapeHtml(gov)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-pin ml-1"></i>العنوان</span><span class="font-bold text-lg">${escapeHtml(ezba)} - ${escapeHtml(street)}</span><br><span class="text-[var(--muted)] text-sm">${escapeHtml(landmark)}</span></div>
-            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-location-crosshairs ml-1"></i>الموقع على الخريطة</span><span class="font-bold text-lg ${hasLoc ? 'text-[var(--success)]' : 'text-red-400'}">${hasLoc ? 'تم تحديد الموقع ✅' : 'لم يتم التحديد بعد'}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] gphaly-icy-card"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold text-lg">${escapeHtml(name)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] gphaly-icy-card"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold text-lg">${escapeHtml(phone)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] gphaly-icy-card"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-marker-alt ml-1"></i>المحافظة</span><span class="font-bold text-lg">${escapeHtml(gov)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] gphaly-icy-card"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-map-pin ml-1"></i>العنوان</span><span class="font-bold text-lg">${escapeHtml(ezba)} - ${escapeHtml(street)}</span><br><span class="text-[var(--muted)] text-sm">${escapeHtml(landmark)}</span></div>
+            <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] gphaly-icy-card"><span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-location-crosshairs ml-1"></i>الموقع على الخريطة</span><span class="font-bold text-lg ${hasLoc ? 'text-[var(--success)]' : 'text-red-400'}">${hasLoc ? 'تم تحديد الموقع ✅' : 'لم يتم التحديد بعد'}</span></div>
         `;
     }
 
