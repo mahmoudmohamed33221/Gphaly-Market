@@ -24,7 +24,7 @@
     html { overscroll-behavior: none; }
     body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: var(--cream); margin: 0; padding-bottom: 70px; overflow-x: hidden; overscroll-behavior-y: contain; touch-action: pan-y; }  
     .font-amiri { font-family: 'Amiri', serif; }  
-    .app-page { display: none !important; min-height: calc(100vh - 70px); }  
+    .app-page { display: none !important; min-height: calc(100vh - 70px); position: relative; }  
     .app-page.active { display: flex !important; }  
     .app-page.block-active { display: block !important; }  
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #000000; border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 1000; }  
@@ -1081,28 +1081,41 @@
         const emojis = SEASON_PARTICLE_EMOJIS[key];
         if (!emojis) return; // الوضع العادي = بدون تأثير خالص
         if (seasonalParticleTimer) return; // شغال أصلاً - منكررش
+        // 🆕 السبب الحقيقي لإحساس "في سكرول غريب حتى في الصفحات اللي مش محتاجة":
+        // الجسيمات كانت بتتحط جوه <body> مباشرة، فأي حركة ليها (حتى لو محسوبة صح)
+        // ممكن تخلي body "يحس" إن فيه محتوى زيادة تحت وتفتح مساحة سحب وهمية.
+        // 🔧 الحل: كل صفحة (.app-page) بقى ليها طبقة جسيمات خاصة بيها جوّاها بالظبط
+        // (overlay بـ position:absolute + overflow:hidden مربوطة بحجم الصفحة نفسها)
+        // بدل طبقة واحدة عامة. كده الجسيمات بتتحرك جوه حدود صفحتها بس ومستحيل
+        // تأثر على ارتفاع body أو تعمل سكرول وهمي - وبرضو بتفضل تتحرك مع الصفحة
+        // وهي بتتسكرول (عكس لو كانت position:fixed)، فبتوصل لآخرها لو كانت طويلة.
+        function getParticleLayerForActivePage() {
+            const activePageEl = document.querySelector('.app-page.active, .app-page.block-active');
+            if (!activePageEl) return null;
+            let layer = activePageEl.querySelector(':scope > .gphaly-particle-overlay');
+            if (!layer) {
+                layer = document.createElement('div');
+                layer.className = 'gphaly-particle-overlay';
+                layer.style.cssText = 'position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0;';
+                activePageEl.appendChild(layer);
+            }
+            return { layer, activePageEl };
+        }
         const laneCount = 12;
         const laneWidth = 100 / laneCount;
         function spawnOne() {
+            const ctx = getParticleLayerForActivePage();
+            if (!ctx) return; // مفيش صفحة نشطة دلوقتي (نادر) - نتخطى القطعة دي بس
+            const { layer, activePageEl } = ctx;
             const el = document.createElement('div');
             el.className = 'gphaly-season-particle';
             const emoji = emojis[Math.floor(Math.random() * emojis.length)];
             el.textContent = emoji;
             const size = 12 + Math.random() * 22; // 🆕 تنوّع أوضح في الأحجام (صغيرة وكبيرة مع بعض)
-            // 🔧 مهم: بنستخدم ارتفاع الصفحة النشطة الحالية بس (مش document.body كله) -
-            // كان فيه باج خطير هنا: document.body.scrollHeight بيتأثر بالجسيمات
-            // نفسها (لأنها absolute وبتتحرك بمسافة كبيرة)، فكل قطعة جديدة كانت
-            // بتخلي طول الصفحة "يزيد" شوية، وده كان بيخلي القطعة اللي بعدها تاخد
-            // مسافة أكبر، وهكذا... حلقة مفرغة كانت بتخلي أي صفحة (حتى اللي مش
-            // محتاجة سكرول خالص زي "اطلب الآن") تكبر وتبقى فيها سكرول طويل غريب.
-            // الحل: نقيس ارتفاع الصفحة النشطة (.app-page.active) نفسها بس، اللي
-            // مش بتتأثر بالجسيمات لأنها مش جواها أصلاً (الجسيمات بتتحط في body مباشرة).
-            const activePageEl = document.querySelector('.app-page.active, .app-page.block-active');
-            const rawPageHeight = Math.max(
-                activePageEl ? activePageEl.scrollHeight : 0,
-                window.innerHeight
-            );
-            const pageHeight = Math.min(rawPageHeight, window.innerHeight * 6); // 🆕 سقف أمان إضافي يمنع أي نمو غير طبيعي
+            // 🔧 طول صفحة النشطة نفسها (اللي الجسيمة جواها فعليًا) - عشان تكمل نزولها
+            // لآخرها لو كانت طويلة، من غير ما تأثر على ارتفاع الصفحة أو body خالص،
+            // لأن الطبقة overflow:hidden بتقصها عند حدود الصفحة برضو كضمان إضافي.
+            const pageHeight = Math.max(activePageEl.scrollHeight, window.innerHeight);
             const speedRatio = pageHeight / window.innerHeight;
             const duration = (11 + Math.random() * 8) * speedRatio;
             const lane = nextSeasonalLane(laneCount); // 🔧 عشوائي مع ضمان التباعد
@@ -1114,7 +1127,7 @@
             // 🆕 كل القطع (مش الشجرة بس) بقت بتاخد حركة الالتفاف الدائرية البسيطة
             // أثناء نزولها.
             el.style.animation = `gphalySeasonFallTree ${duration}s linear 0s 1 forwards`;
-            document.body.appendChild(el);
+            layer.appendChild(el);
             setTimeout(() => el.remove(), duration * 1000 + 300);
         }
         spawnOne();
