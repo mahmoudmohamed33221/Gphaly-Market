@@ -21,7 +21,8 @@
         --cream: #F3F4F6; --muted: #9CA3AF; --border: rgba(212, 175, 55, 0.2);  
         --success: #10B981; --error: #EF4444; --neon: #39FF14;  
     }  
-    body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: var(--cream); margin: 0; padding-bottom: 70px; overflow-x: hidden; }  
+    html { overscroll-behavior: none; }
+    body { font-family: 'Tajawal', sans-serif; background: var(--bg-deep); color: var(--cream); margin: 0; padding-bottom: 70px; overflow-x: hidden; overscroll-behavior-y: contain; touch-action: pan-y; }  
     .font-amiri { font-family: 'Amiri', serif; }  
     .app-page { display: none !important; min-height: calc(100vh - 70px); }  
     .app-page.active { display: flex !important; }  
