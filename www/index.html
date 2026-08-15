@@ -771,7 +771,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLWU24YvK-UFmdvLrcjwqEuaoHmlqSImjKbuKIylAWDx-XLjn7WiCsaFEs5rcA379G_Q/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWoJwn1t72RB2HiFAzbTHzM0DJoLN59feNkMnb4Xq2Mxhr76ud4NLYvcpJpq7D4-pJNA/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -1540,29 +1540,27 @@
         const notes = document.getElementById('u_notes').value.trim();
         // 🆕 نفس تصميم كروت "ملفي الشخصي": عنوان صغير باهت فوق، والقيمة تحته بخط غامق -
         // عشان يبقى شكل موحّد وكل حاجة واضحة ومظبوطة، مش نص متلخبط على اليمين
-        // 🔧 الكلام بقى أكبر (label و القيمة)، وكل مجموعة بيانات مرتبطة ببعض (بيانات
-        // العميل مع بعض - بيانات المحل مع بعض) بقت قريبة من بعضها جوه نفسها، مع
-        // الحفاظ على الفاصل الطبيعي بينها وبين المجموعة اللي بعدها. بيانات العميل
-        // من غير أي لون (عادي زي ما هي)، وبيانات المحل بقت بلون برتقالي زي زرار
-        // "تعديل بيانات الطلب"، والملحوظة فضلت زي ما هي من غير لون.
+        // 🔧 الكارت بقى مقسّم بالألوان بالظبط زي ما اتطلب: بيانات العميل (الاسم/الرقم/
+        // العنوان) مجموعة واحدة بلون أزرق سماوي، بيانات المحل (الاسم/العنوان) + الطلب
+        // بالأصناف مجموعة واحدة بلون برتقالي (لأنهم مع بعض بيمثلوا "طلب المحل")،
+        // والملحوظة لوحدها بلون أصفر.
         c.innerHTML = `
             <div class="space-y-1.5">
-                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-0.5"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold text-base">${escapeHtml(name)}</span></div>
-                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-0.5"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold text-base">${escapeHtml(phone)}</span></div>
-                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-0.5"><i class="fas fa-map-pin ml-1"></i>عنوان العميل</span><span class="font-bold text-base">${escapeHtml(gov)} - ${escapeHtml(ezba)}</span><br><span class="text-[var(--muted)] text-sm">${escapeHtml(street)}${landmark ? ' - ' + escapeHtml(landmark) : ''}</span></div>
+                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-sky-500/30"><span class="text-sky-400 text-sm block mb-0.5"><i class="fas fa-user ml-1"></i>الاسم</span><span class="font-bold text-base text-sky-300">${escapeHtml(name)}</span></div>
+                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-sky-500/30"><span class="text-sky-400 text-sm block mb-0.5"><i class="fas fa-phone ml-1"></i>رقم الهاتف</span><span class="font-bold text-base text-sky-300">${escapeHtml(phone)}</span></div>
+                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-sky-500/30"><span class="text-sky-400 text-sm block mb-0.5"><i class="fas fa-map-pin ml-1"></i>عنوان العميل</span><span class="font-bold text-base text-sky-300">${escapeHtml(gov)} - ${escapeHtml(ezba)}</span><br><span class="text-sky-400/80 text-sm">${escapeHtml(street)}${landmark ? ' - ' + escapeHtml(landmark) : ''}</span></div>
             </div>
             <div class="border-t border-[var(--border)]"></div>
             <div class="space-y-1.5">
                 <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-orange-500/30"><span class="text-orange-400 text-sm block mb-0.5"><i class="fas fa-store ml-1"></i>اسم المحل</span><span class="font-bold text-base text-orange-300">${escapeHtml(storeName)}</span></div>
                 <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-orange-500/30"><span class="text-orange-400 text-sm block mb-0.5"><i class="fas fa-map-marker-alt ml-1"></i>عنوان المحل</span><span class="font-bold text-base text-orange-300">${escapeHtml(storeAddress)}</span></div>
+                <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-orange-500/30">
+                    <span class="text-orange-400 text-sm block mb-1"><i class="fas fa-list-ul ml-1"></i>الطلب بالأصناف</span>
+                    <ul class="space-y-1">${items.map(it => `<li class="font-bold text-base text-orange-300">• ${escapeHtml(it)}</li>`).join('')}</ul>
+                </div>
             </div>
             <div class="border-t border-[var(--border)]"></div>
-            <div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]">
-                <span class="text-[var(--muted)] text-sm block mb-1"><i class="fas fa-list-ul ml-1"></i>الطلب بالأصناف</span>
-                <ul class="space-y-1">${items.map(it => `<li class="font-bold text-base">• ${escapeHtml(it)}</li>`).join('')}</ul>
-            </div>
-            <div class="border-t border-[var(--border)]"></div>
-            ${notes ? `<div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-[var(--border)]"><span class="text-[var(--muted)] text-sm block mb-0.5"><i class="fas fa-note-sticky ml-1"></i>ملحوظة</span><span class="font-bold text-base">${escapeHtml(notes)}</span></div>` : `<div class="text-[var(--muted)] text-sm text-center">لا توجد ملحوظة</div>`}
+            ${notes ? `<div class="bg-[var(--bg-deep)]/60 p-3 rounded-xl border border-yellow-500/30"><span class="text-yellow-400 text-sm block mb-0.5"><i class="fas fa-note-sticky ml-1"></i>ملحوظة</span><span class="font-bold text-base text-yellow-300">${escapeHtml(notes)}</span></div>` : `<div class="text-[var(--muted)] text-sm text-center">لا توجد ملحوظة</div>`}
         `;
     }
 
