@@ -368,6 +368,22 @@
     }
     /* 🆕 كارت أكبر (menu-card) بياخد جليد أكبر شوية يليق بحجمه */
     body.gphaly-season-christmas .gphaly-icy-card.menu-card::after { height: calc(52px + 9mm); top: calc(-5px - 5mm); }
+    /* 🆕 مربعات "طلباتك بالعدد" بس (item-name) - الجليد اترفع فوقيها 2 مم زيادة عن
+       باقي التكست بكسات العادية (اللي على -2.25mm)، فبقى على -4.25mm. */
+    body.gphaly-season-christmas .gphaly-icy-wrap:has(.item-name)::after {
+        top: calc(-4px - 4.25mm);
+    }
+    /* 🔧 كروت "الطلبات الجارية" و"الطلبات السابقة" (#active-orders-list, #history-list)
+       بتاخد كلاس menu-card برضو (عشان تظبيطات تانية)، فكانت بتاخد نفس الجليد
+       الكبير بتاع البوب أب (52px+9mm) رغم إنها كروت أصغر (padding أقل)، فكان
+       الجليد بيطول لتحت ويغطي على سطر "اسم المحل (بون: ...)" اللي في أول الكارت.
+       هنا بنرجّعها لارتفاع الجليد العادي ونعليها أكتر عن مستواها القديم (-5mm)
+       عشان الحافة العلوية بتاعتها تبقى واضحة وميغطيش على الكلام تحتها. */
+    body.gphaly-season-christmas #active-orders-list .gphaly-icy-card.menu-card::after,
+    body.gphaly-season-christmas #history-list .gphaly-icy-card.menu-card::after {
+        height: calc(26px + 9mm);
+        top: calc(-4px - 7mm);
+    }
     /* 🆕 عشان الجليد الأكبر ده متغطيش على أي لابل أو نص، وقت الكريسماس بس بنزود
        الفراغ بين كل حقل واللي جاي بعده (بين كل input-container والتاني، وقبل
        أول حقل جوه أي مجموعة)، عشان يبقى فيه مسافة تنفس كافية للجليد. */
@@ -771,7 +787,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWoJwn1t72RB2HiFAzbTHzM0DJoLN59feNkMnb4Xq2Mxhr76ud4NLYvcpJpq7D4-pJNA/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhjo5dTbfmw7GnUXncdBLs4Mu7Ij-ONAnq0CYBH6BJAPE_PI5zA08PkZSWDm6S0EeRfQ/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -811,13 +827,41 @@
     let audioCtx = null;
     function getAudioCtx() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     }
+    // 🆕 حل مشكلة "الإشعار بيوصل من غير أي صوت خالص": المتصفح/الواجهة بيمنع أي
+    // صوت (AudioContext) من الشغل فعليًا لحد ما يحصل تفاعل حقيقي (لمسة/دوسة) من
+    // المستخدم مع الصفحة - وده بيفضل "معلّق" (suspended) طول ما محدش لمس التطبيق.
+    // المشكلة إن fireNotification بيتنادى تلقائيًا من فحص دوري في الخلفية (مش من
+    // ضغطة مستخدم)، فلو أول مرة بتتنادى فيها كان المستخدم لسه ملمسش التطبيق
+    // خالص من وقت ما اتفتح، الصوت كان بيتجدول عادي بره غير ما يحصل أي error، بس
+    // فعليًا بيتشغّل بصفر صوت لأن الـ AudioContext لسه مقفول. الحل: نفتح القفل
+    // بدري بأول لمسة/دوسة في التطبيق كله (زي ما هو متبع في برنامج الريدر بالظبط)،
+    // وكمان لو حصل واتنادت playNotifSound والقفل لسه موجود، نأجل تشغيلها لحد
+    // أول لمسة جاية بدل ما تضيع بصمت للأبد.
+    let audioUnlocked = false;
+    function unlockAudioCtx() {
+        if (audioUnlocked) return;
+        try {
+            const ctx = getAudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            audioUnlocked = (ctx.state === 'running');
+        } catch(e) {}
+    }
+    ['touchstart', 'pointerdown', 'click', 'keydown'].forEach(evt => document.addEventListener(evt, unlockAudioCtx, { passive: true }));
 
     function playNotifSound() {
         try {
             const ctx = getAudioCtx();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+                // 🆕 لسه مقفول ومفيش لمسة حصلت لحد دلوقتي - نأجل الصوت لحد أول لمسة
+                // بدل ما يضيع، عشان المستخدم يسمع الإشعار أول ما يفتح/يلمس الشاشة
+                const retry = () => playNotifSound();
+                document.addEventListener('touchstart', retry, { once: true, passive: true });
+                document.addEventListener('click', retry, { once: true });
+                return;
+            }
             const t = ctx.currentTime;
             function beep(offset) {
                 const o1 = ctx.createOscillator();
@@ -2585,18 +2629,18 @@
             // بيتلقفها الجافاسكريبت مباشرة زي إشعار داخلي عادي، مش من نظام التشغيل).
             // إنشاء القناة ده لازم يحصل مرة واحدة قبل أي إشعار يوصل عليها.
             try {
-                // 🔧 مشكلة "الإشعار بيوصل من غير صوت": قنوات الإشعارات في أندرويد (Notification
-                // Channel) إعداداتها بتتقفل نهائيًا أول ما تتعمل بنفس الـ id - أي نداء تاني بعد
-                // كده لـ createChannel بنفس الـ id ("orders") إعداداته بيتجاهلها أندرويد تمامًا،
-                // حتى لو غيّرنا الكود وحطينا sound فيه. يعني أي جهاز كانت القناة اتعملتله قبل
-                // كده من غير صوت (نسخة قديمة من البرنامج)، هيفضل من غير صوت للأبد حتى بعد التحديث.
-                // الحل الوحيد المضمون: قناة بـ id جديد كليًا ("orders_v2") عشان تتعمل من الصفر
-                // بإعدادات الصوت الصح على كل الأجهزة. (لازم نفس الـ id يتظبط في السيرفر - في
-                // Apps Script جوه sendPushToToken_ - وإلا الإشعار مش هيوصل خالص لو اتبعت لقناة
-                // مش موجودة على الجهاز).
+                // 🔧 نفس المشكلة ممكن تتكرر: لو نسخة قديمة من البرنامج (قبل ما نضيف
+                // sound فيها) كانت خلاص عملت قناة "orders_v2" على جهازك من غير صوت،
+                // فأي تعديل تاني في الكود بنفس الـ id ده هيتجاهله أندرويد للأبد -
+                // بالظبط زي ما حصل مع "orders" الأول. فبنعمل قناة بـ id جديد تالت
+                // ("orders_v3") عشان نضمن 100% إنها هتتعمل من الصفر بإعدادات الصوت
+                // الصح، مهما كانت أي نسخة قديمة عملت ايه قبل كده. (غيّرنا نفس الـ id
+                // في السيرفر جوه Apps Script برضو - sendPushToToken_ - وإلا الإشعار
+                // مش هيوصل خالص لو اتبعت لقناة مش موجودة على الجهاز).
                 try { await push.deleteChannel({ id: 'orders' }); } catch (delErr) {}
+                try { await push.deleteChannel({ id: 'orders_v2' }); } catch (delErr) {}
                 await push.createChannel({
-                    id: 'orders_v2',
+                    id: 'orders_v3',
                     name: 'إشعارات الطلبات',
                     description: 'إشعارات حالة الطلب: قبول الطلب / جاري التحضير / جاري التوصيل / تم التسليم',
                     importance: 5, // 🆕 IMPORTANCE_HIGH - إشعار منبثق (heads-up) + صوت، حتى لو البرنامج مقفول
@@ -2605,7 +2649,7 @@
                     vibration: true,
                     lights: true
                 });
-                pushDebugLog('channel_created', { id: 'orders_v2' });
+                pushDebugLog('channel_created', { id: 'orders_v3' });
             } catch (chErr) {
                 pushDebugLog('channel_create_error', { message: chErr.message || String(chErr) });
             }
