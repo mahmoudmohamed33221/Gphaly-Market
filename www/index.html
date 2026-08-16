@@ -430,7 +430,9 @@
     .rc-chat-overlay.show { display: flex; }
     .rc-chat-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-elevated); flex-shrink: 0; }
     .rc-chat-header .rc-back-btn { color: var(--gold); font-size: 1.1rem; flex-shrink: 0; }
-    .rc-chat-header .rc-title { font-weight: 800; font-size: 0.95rem; color: var(--gold-light); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rc-chat-header .rc-title { font-weight: 800; font-size: 0.9rem; color: var(--gold-light); flex: 1; min-width: 0; }
+    .rc-chat-header .rc-title .rc-title-line1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rc-chat-header .rc-title .rc-title-line2 { font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .rc-chat-header .rc-call-btn { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--success), #059669); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
     .rc-chat-body { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
     .rc-bubble { max-width: 78%; padding: 0.55rem 0.9rem; border-radius: 1.1rem; font-size: 0.85rem; line-height: 1.45; word-break: break-word; }
@@ -460,15 +462,23 @@
 </style>
 
 <style>
-    /* 🔧 عناصر الشات (زرار الرجوع، الرسايل الجاهزة، زرار الإرسال، وزراري الاتصال/
-       الشات في كارت المتابعة) مينفعش يبقى عليهم تلج خالص - مش من تصميم الشات
-       أصلاً، وده كان بيحصل تلقائيًا لأي <button> عادي بيقع تحت قاعدة الجليد
-       العامة (body.gphaly-season-christmas button::after). بنلغي الجليد نهائيًا
-       عن العناصر دي هنا (specificity الكلاس أعلى من التاج فبتغلب تلقائيًا).
-       زرار الاتصال بقى أخضر وزرار الشات بقى برتقالي زي ما اتطلب. */
-    body.gphaly-season-christmas .rc-back-btn::after,
-    body.gphaly-season-christmas .rc-quick-pill::after,
-    body.gphaly-season-christmas .rc-send-btn::after,
+    /* 🔧 مفيش تلج خالص جوه أي صفحة شات - سواء الدعم الفني (#page-support + شريط
+       الرد المتصق تحت #support-reply-bar) أو شات المندوب والعميل (.rc-chat-overlay).
+       ده بيشمل أي زرار (رجوع/إرسال/إنهاء المحادثة/الرسايل الجاهزة)، أي تكست بكس
+       (زي مربع الكتابة)، وأي كارت أو ملحوظة (زي "تم إرسال رسالتك برجاء الانتظار")
+       - كل دول كانوا بياخدوا التلج تلقائيًا لأنهم بيستخدموا نفس كلاسات التصميم
+       العامة (button, .contact-link, .gphaly-icy-wrap) اللي بتاخد تلج في كل
+       حتة تانية في التطبيق. بنلغيه هنا تحديدًا بس لأي حاجة جوه الشاشتين دول.
+       وزرار الاتصال في كارت المتابعة بقى أخضر وزرار الشات بقى برتقالي زي ما اتطلب. */
+    body.gphaly-season-christmas #page-support button::after,
+    body.gphaly-season-christmas #page-support .contact-link::after,
+    body.gphaly-season-christmas #page-support .gphaly-icy-wrap::after,
+    body.gphaly-season-christmas #page-support .gphaly-icy-card::after,
+    body.gphaly-season-christmas .support-reply-bar button::after,
+    body.gphaly-season-christmas .support-reply-bar .gphaly-icy-wrap::after,
+    body.gphaly-season-christmas .rc-chat-overlay button::after,
+    body.gphaly-season-christmas .rc-chat-overlay .gphaly-icy-wrap::after,
+    body.gphaly-season-christmas .rc-chat-overlay .contact-link::after,
     body.gphaly-season-christmas .track-call-btn::after {
         content: none;
     }
@@ -551,12 +561,11 @@
 <div id="rc-chat-overlay" class="rc-chat-overlay">
     <div class="rc-chat-header">
         <button type="button" class="rc-back-btn" onclick="closeRCChat()"><i class="fas fa-arrow-right"></i></button>
-        <div class="rc-title" id="rc-chat-title"><i class="fas fa-motorcycle ml-1"></i>الطيار</div>
+        <div class="rc-title" id="rc-chat-title">الطيار</div>
         <a href="#" id="rc-chat-call-btn" class="rc-call-btn"><i class="fas fa-phone-alt"></i></a>
     </div>
     <div class="rc-chat-body" id="rc-chat-body"></div>
     <div id="rc-typing-indicator" class="rc-typing-indicator" style="display:none;margin:0 1rem 0.4rem;"><span>بيكتب الآن</span><div class="rc-typing-dots"><span></span><span></span><span></span></div></div>
-    <div class="rc-quick-bar" id="rc-quick-bar"></div>
     <div class="rc-input-row">
         <input type="text" id="rc-chat-input" placeholder="اكتب رسالتك..." oninput="notifyRCTyping()" onkeydown="if(event.key==='Enter'){sendRCChat();}">
         <button type="button" class="rc-send-btn" onclick="sendRCChat()"><i class="fas fa-paper-plane"></i></button>
@@ -862,7 +871,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkdXBrSz8xdc2YhM3zCsmcodpFp9CahvM7aNaJMGewDW2eNAYE_h6Uzng2j16p08_G/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyeCHmyjYBF8EZULzd0F6V8JeuGrRxAF-kjjG5jGwyksvWr6ePP1YAYBJOKWwUNuefMKQ/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -3053,17 +3062,8 @@
     // =========================================================================
     // 🆕 شات المندوب والعميل - لايف فوري، الاتنين يقدروا يبعتوا في أي وقت من غير
     // انتظار رد التاني. نفس فكرة الدعم الفني اللايف بس مباشر بين الطرفين.
+    // 🔧 الرسايل الجاهزة مخصصة للطيار بس (شايفها في برنامج الريدر) - مش موجودة هنا خالص
     // =========================================================================
-    const RC_QUICK_MESSAGES = [
-        'السلام عليكم',
-        'أنا في الطريق إليك الآن',
-        'لا يمكنني الوصول إلى موقعك، برجاء توضيح العنوان',
-        'لقد وصلت',
-        'هناك مشكلة، برجاء التواصل',
-        'لا يمكنني الوصول إليك هاتفيًا',
-        'برجاء استلام الطلب، لقد وصلت الآن',
-        'شكرًا لك'
-    ];
     let rcChatBon = null;
     let rcChatMessages = [];
     let rcChatPollTimer = null;
@@ -3084,12 +3084,12 @@
         rcPendingMessages = [];
         rcOtherStatus = { seenRow: 0, readRow: 0 };
         const titleEl = document.getElementById('rc-chat-title');
-        if (titleEl) titleEl.innerHTML = `<i class="fas fa-motorcycle ml-1"></i>${escHtml(pilotName || 'الطيار')}`;
+        if (titleEl) titleEl.innerHTML = `<div class="rc-title-line1"><i class="fas fa-motorcycle ml-1"></i>الطيار: ${escHtml(pilotName || 'الطيار')}</div><div class="rc-title-line2"><i class="fas fa-receipt"></i>رقم البون: #${bon}</div>`;
         const callBtn = document.getElementById('rc-chat-call-btn');
         if (callBtn) callBtn.href = pilotPhone ? `tel:${pilotPhone}` : '#';
         const input = document.getElementById('rc-chat-input'); if (input) input.value = '';
         const typingEl = document.getElementById('rc-typing-indicator'); if (typingEl) typingEl.style.display = 'none';
-        renderRCQuickBar();
+        // 🔧 الرسايل الجاهزة كانت مخصصة للطيار بس - عند العميل مفيش شريط رسايل جاهزة خالص
         renderRCChatBody();
         const overlay = document.getElementById('rc-chat-overlay'); if (overlay) overlay.classList.add('show');
         startRCChatPoll();
@@ -3189,11 +3189,6 @@
         rcLastTypingSentAt = Date.now();
         const body = JSON.stringify({ action: 'setRCTypingStatus', bon: rcChatBon, role: 'customer', stop: !!stop });
         fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' }).catch(() => {});
-    }
-
-    function renderRCQuickBar() {
-        const bar = document.getElementById('rc-quick-bar'); if (!bar) return;
-        bar.innerHTML = RC_QUICK_MESSAGES.map(m => `<button type="button" class="rc-quick-pill" onclick='sendRCChat(${JSON.stringify(m)})'>${escHtml(m)}</button>`).join('');
     }
 
     // 🆕 أيقونة حالة الرسالة (بدل المثلث الأصفر القديم): ساعة وقت الإرسال، صح
