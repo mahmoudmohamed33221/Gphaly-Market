@@ -877,7 +877,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJEDAbIzgvn2Z-WNAfQYT8ZOy-BcUOYGw6em-zXoJGMn8-ufgVRG_vC7hj9SFwyGIFjg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOubBCqFjFLY7Ysul-eyWB8KKi7GB96tiQYm8hAno4OYyI2rlSpWmBJACYp7xqg97bQg/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -1473,8 +1473,10 @@
         // ده كان سبب رئيسي في "التأخير" اللي بيحس بيه المستخدم وهو بيفتح البرنامج.
         // دلوقتي بنعمل فحص فوري في الحالتين، والفرق بس في سرعة التكرار بعد كده.
         syncOrdersWithSheet();
-        if (currentPage === 'active-orders') { fastCheckInterval = setInterval(syncOrdersWithSheet, 7000); }
-        else { slowCheckInterval = setInterval(syncOrdersWithSheet, 15000); }
+        // 🆕 السرعة: من 7/15 ثانية لـ 5/10 ثواني (باعتدال، لإنه فحص شغال طول
+        // الوقت لكل عميل فاتح البرنامج، مش محدود بشاشة معيّنة)
+        if (currentPage === 'active-orders') { fastCheckInterval = setInterval(syncOrdersWithSheet, 5000); }
+        else { slowCheckInterval = setInterval(syncOrdersWithSheet, 10000); }
     }  
 
     function showError(el, msg) { el.classList.add('input-error'); const c = el.closest('.input-container') || el.closest('.item-row-container'); if (c) { const e = c.querySelector('.error-msg') || c.querySelector('.item-error-msg'); if (e) e.textContent = msg; } }  
@@ -3188,13 +3190,33 @@
         rcChatBon = null;
         const overlay = document.getElementById('rc-chat-overlay'); if (overlay) overlay.classList.remove('show');
     }
-    function startRCChatPoll() { stopRCChatPoll(); fetchRCChat(); rcChatPollTimer = setInterval(fetchRCChat, 3000); }
+    // 🆕 السرعة: قللنا فترة الفحص لأقصى حد ممكن، مع حارس ذكي: لو التطبيق في
+    // الخلفية بنبطّئ تلقائيًا لمرة كل ~4 ثواني بدل الضغط على السيرفر وهو مش
+    // لازم أصلاً. الفحص السريع شغال بس لما الشات فعلاً مفتوح وظاهر قدام
+    // المستخدم - محدود بعدد المحادثات المفتوحة فعليًا، مش كل المستخدمين
+    let rcLastChatFetchAt = 0;
+    function startRCChatPoll() {
+        stopRCChatPoll(); fetchRCChat();
+        rcChatPollTimer = setInterval(() => {
+            if (document.hidden && (Date.now() - rcLastChatFetchAt) < 4000) return;
+            fetchRCChat();
+        }, 1200);
+    }
     function stopRCChatPoll() { if (rcChatPollTimer) { clearInterval(rcChatPollTimer); rcChatPollTimer = null; } }
-    function startRCTypingPoll() { stopRCTypingPoll(); pollRCTypingStatus(); pollRCMessageStatus(); rcTypingPollTimer = setInterval(() => { pollRCTypingStatus(); pollRCMessageStatus(); }, 2500); }
+    let rcLastTypingPollAt = 0;
+    function startRCTypingPoll() {
+        stopRCTypingPoll(); pollRCTypingStatus(); pollRCMessageStatus();
+        rcTypingPollTimer = setInterval(() => {
+            if (document.hidden && (Date.now() - rcLastTypingPollAt) < 4000) return;
+            rcLastTypingPollAt = Date.now();
+            pollRCTypingStatus(); pollRCMessageStatus();
+        }, 1000);
+    }
     function stopRCTypingPoll() { if (rcTypingPollTimer) { clearInterval(rcTypingPollTimer); rcTypingPollTimer = null; } if (rcTypingHeartbeat) { clearInterval(rcTypingHeartbeat); rcTypingHeartbeat = null; } }
 
     function fetchRCChat() {
         if (!rcChatBon) return;
+        rcLastChatFetchAt = Date.now();
         fetch(`${GOOGLE_SCRIPT_URL}?action=getRiderCustomerChat&bon=${encodeURIComponent(rcChatBon)}`, { redirect: 'follow' })
             .then(r => r.text()).then(text => {
                 if (!rcChatBon) return; // اتقفلت الشاشة أثناء الطلب
@@ -3290,7 +3312,7 @@
     function startRCPresenceHeartbeat() {
         if (rcPresenceHeartbeatTimer) return;
         sendRCPresencePing();
-        rcPresenceHeartbeatTimer = setInterval(sendRCPresencePing, 15000);
+        rcPresenceHeartbeatTimer = setInterval(sendRCPresencePing, 10000); // 🆕 من 15 لـ 10 ثواني
         document.addEventListener('visibilitychange', () => { if (!document.hidden) sendRCPresencePing(); });
     }
     function sendRCPresencePing() {
@@ -3300,7 +3322,8 @@
         const body = JSON.stringify({ action: 'setPresence', role: 'customer', identifier: phone });
         fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' }).catch(() => {});
     }
-    // بيتبعت بمعدل مرة كل 1.2 ثانية بس (مش كل حرف) لما العميل يكتب
+    // 🆕 السرعة: بقى بيتبعت بمعدل مرة كل ٨٠٠ مللي ثانية بدل ١٫٢ ثانية (لسه في
+    // هامش أمان تحت مهلة السيرفر ٤ ثواني)
     function notifyRCTyping() {
         if (!rcChatBon) return;
         const input = document.getElementById('rc-chat-input');
@@ -3309,11 +3332,11 @@
                 const el = document.getElementById('rc-chat-input');
                 if (!el) { clearInterval(rcTypingHeartbeat); rcTypingHeartbeat = null; return; }
                 if (el.value.trim().length > 0) sendRCTypingPing(false); else notifyRCStoppedTyping();
-            }, 1500);
+            }, 1000);
         }
         if (input && !input.value.trim()) { notifyRCStoppedTyping(); return; }
         const now = Date.now();
-        if (now - rcLastTypingSentAt < 1200) return;
+        if (now - rcLastTypingSentAt < 800) return;
         sendRCTypingPing(false);
     }
     function notifyRCStoppedTyping() { if (rcChatBon) sendRCTypingPing(true); }
@@ -3601,9 +3624,10 @@
         switchPage('contact');
     }
 
-    function startSupportPoll() { stopSupportPoll(); fetchSupportChats(); supportPollTimer = setInterval(fetchSupportChats, 5000); }
+    // 🆕 السرعة: 5 ثواني -> 2.5 ثانية لفحص شات الدعم، و 3 ثواني -> 1.2 ثانية لحالة "بيكتب" (مفتوحين بس والعميل واقف في شاشة الدعم)
+    function startSupportPoll() { stopSupportPoll(); fetchSupportChats(); supportPollTimer = setInterval(fetchSupportChats, 2500); }
     function stopSupportPoll() { if (supportPollTimer) { clearInterval(supportPollTimer); supportPollTimer = null; } }
-    function startSupportTypingPoll() { stopSupportTypingPoll(); supportTypingPollTimer = setInterval(pollEmployeeTyping, 3000); }
+    function startSupportTypingPoll() { stopSupportTypingPoll(); supportTypingPollTimer = setInterval(pollEmployeeTyping, 1200); }
     function stopSupportTypingPoll() { if (supportTypingPollTimer) { clearInterval(supportTypingPollTimer); supportTypingPollTimer = null; } }
 
     function fetchSupportChats() {
@@ -3656,7 +3680,7 @@
         const body = JSON.stringify({ action: 'setCustomerTypingStatus', chatId: supportActiveChatId, stop: true });
         fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' }).catch(() => {});
     }
-    // 🆕 نبضة بتتكرر كل 1.5 ثانية طول ما لسه فيه نص في مربع الرد - عشان "بيكتب الآن" يفضل
+    // 🆕 نبضة بتتكرر كل ٩٠٠ مللي ثانية (كانت 1.5 ثانية) طول ما لسه فيه نص في مربع الرد - عشان "بيكتب الآن" يفضل
     // ظاهر عند موظف الدعم طول ما العميل واقف عند كلامه من غير ما يكمل كتابة (من غير كده كان
     // بيختفي المؤشر بعد 4 ثواني حتى لو لسه في كلام مكتوب ماتبعتش). بتوقف نفسها لوحدها لو
     // مربع الرد اتشال من الشاشة (خرج من الشات).
@@ -3666,7 +3690,7 @@
             const el = document.getElementById('supportReplyInput');
             if (!el) { clearInterval(marketTypingHeartbeat); marketTypingHeartbeat = null; return; }
             if (el.value.trim().length > 0) notifyCustomerTyping();
-        }, 1500);
+        }, 900);
     }
 
     function renderSupportView() {
