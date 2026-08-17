@@ -456,8 +456,8 @@
     @keyframes rcTypingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
     /* 🆕 أيقونات حالة الرسالة (بدل المثلث الأصفر): ساعة/صح/صحين */
     /* 🆕 سطر واحد موحّد للوقت + علامة الحالة جمب بعض (زي واتساب) */
-    .rc-msg-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 3px; }
-    .rc-bubble.them .rc-msg-meta { justify-content: flex-start; }
+    .rc-msg-meta { display: flex; align-items: center; justify-content: right; gap: 4px; margin-top: 3px; }
+    .rc-bubble.them .rc-msg-meta { justify-content: left; }
     .rc-status-icon { font-size: 10px; color: rgba(17,24,39,0.55); line-height: 1; }
     .rc-status-icon.rc-double { letter-spacing: -3px; font-weight: 900; }
     .rc-status-icon.rc-triple { letter-spacing: -3px; font-weight: 900; }
@@ -568,11 +568,10 @@
 <div id="rc-chat-overlay" class="rc-chat-overlay">
     <div class="rc-chat-header">
         <button type="button" class="rc-back-btn" onclick="closeRCChat()"><i class="fas fa-arrow-right"></i></button>
-        <div class="rc-title" id="rc-chat-title">الطيار</div>
+        <div class="rc-title" id="rc-chat-title"> الطيار</div>
         <a href="#" id="rc-chat-call-btn" class="rc-call-btn"><i class="fas fa-phone-alt"></i></a>
     </div>
     <div class="rc-chat-body" id="rc-chat-body"></div>
-    <div id="rc-typing-indicator" class="rc-typing-indicator" style="display:none;margin:0 1rem 0.4rem;"><span>بيكتب الآن</span><div class="rc-typing-dots"><span></span><span></span><span></span></div></div>
     <div class="rc-input-row">
         <input type="text" id="rc-chat-input" placeholder="اكتب رسالتك..." oninput="notifyRCTyping()" onkeydown="if(event.key==='Enter' && !event.isComposing){event.preventDefault();sendRCChat();}">
         <button type="button" id="rc-chat-send-btn" class="rc-send-btn" onclick="sendRCChat()"><i class="fas fa-paper-plane"></i></button>
@@ -3109,6 +3108,7 @@
     let rcOtherStatus = { seenRow: 0, readRow: 0, notifiedRow: 0 }; // حالة آخر رسالة شافها/قراها الطيار من رسايلي أنا
     let rcOtherOnline = false; // 🆕 الطيار فاتح البرنامج بشكل عام دلوقتي؟ (مش شرط جوه الشات بالذات)
     let rcOtherPhone = ''; // 🆕 تليفون الطيار - أساس فحص "الحضور" العام بتاعه
+    let rcOtherTyping = false; // 🆕 الطيار بيكتب دلوقتي؟ - بقى بيتعرض جوه تدفق الشات نفسه مش عائم لوحده
 
     // =========================================================================
     // 🆕 كاش محلي مؤقت لشات كل طلب (بالبون) - بدل ما فتح الشات يبان فاضي ويعمل
@@ -3164,12 +3164,13 @@
         rcOtherPhone = pilotPhone || '';
         // 🆕 دخل الشات ده بالذات - نصفّر عداد الرسايل الجديدة بتاعه فورًا
         rcUnreadCounts[bon] = 0; renderRCUnreadBadge();
+        rcOtherTyping = false;
         const titleEl = document.getElementById('rc-chat-title');
-        if (titleEl) titleEl.innerHTML = `<div class="rc-title-line1"><i class="fas fa-motorcycle ml-1"></i>الطيار: ${escHtml(pilotName || 'الطيار')}</div><div class="rc-title-line2"><i class="fas fa-receipt"></i>رقم البون: #${bon}</div>`;
+        // 🆕 مسافات واضحة بين الأيقونة واسم "الطيار" والنقطتين والاسم نفسه
+        if (titleEl) titleEl.innerHTML = `<div class="rc-title-line1"><i class="fas fa-motorcycle ml-1"></i> الطيار : ${escHtml(pilotName || 'الطيار')}</div><div class="rc-title-line2"><i class="fas fa-receipt"></i> رقم البون : #${bon}</div>`;
         const callBtn = document.getElementById('rc-chat-call-btn');
         if (callBtn) callBtn.href = pilotPhone ? `tel:${pilotPhone}` : '#';
         const input = document.getElementById('rc-chat-input'); if (input) input.value = '';
-        const typingEl = document.getElementById('rc-typing-indicator'); if (typingEl) typingEl.style.display = 'none';
         // 🔧 الرسايل الجاهزة كانت مخصصة للطيار بس - عند العميل مفيش شريط رسايل جاهزة خالص
         // 🆕 نحمّل آخر نسخة معروفة من الكاش المحلي فورًا (لو موجودة) عشان الشات يبان
         // فيه محادثة على طول من غير ما يستنى رد السيرفر
@@ -3200,11 +3201,17 @@
                 let data; try { data = JSON.parse(text); } catch (e) { data = null; }
                 const msgs = (data && Array.isArray(data.messages)) ? data.messages : [];
                 const fp = JSON.stringify(msgs);
-                if (fp !== rcChatFingerprint) {
-                    rcChatFingerprint = fp; rcChatMessages = msgs;
+                const changed = fp !== rcChatFingerprint;
+                if (changed) { rcChatFingerprint = fp; rcChatMessages = msgs; saveRCChatCache(rcChatBon, msgs); }
+                // 🔧 ده أصل مشكلة "الرسالة بتتبعت مرتين" اللي فضلت شغالة: كان
+                // التوفيق (reconcileRCPending) بيتنفذ بس لو الرسايل اتغيرت. لو
+                // دورة الفحص الدورية جابت الرسالة الحقيقية قبل ما نداء الإرسال
+                // نفسه يخلص ويحط confirmed=true، كانت الرسالة الوهمية تفضل
+                // معلّقة للأبد لحد ما تسيب الشات وترجعله. دلوقتي بنحاول
+                // التوفيق في كل دورة فحص طالما لسه فيه رسايل معلّقة
+                if (changed || rcPendingMessages.length) {
                     reconcileRCPending();
                     renderRCChatBody();
-                    saveRCChatCache(rcChatBon, msgs);
                 }
                 // 🆕 جهازي فعليًا جاب الرسايل دلوقتي - نعلم "وصلت" للسيرفر، وبرضو
                 // "اتشافت" لو شاشة الشات فعلاً ظاهرة قدام المستخدم دلوقتي (مش في
@@ -3239,15 +3246,16 @@
         });
     }
 
-    // 🆕 مؤشر "الطيار بيكتب الآن" - نفس فكرة الدعم الفني اللايف بالظبط
+    // 🆕 مؤشر "الطيار بيكتب الآن" - بقى بيتعرض جوه تدفق المحادثة نفسه (آخر عنصر
+    // في rc-chat-body) بدل عنصر عائم منفصل فوق شريط الكتابة
     function pollRCTypingStatus() {
         if (!rcChatBon) return;
         fetch(`${GOOGLE_SCRIPT_URL}?action=getRCTypingStatus&bon=${encodeURIComponent(rcChatBon)}`, { redirect: 'follow' })
             .then(r => r.text()).then(text => {
                 if (!rcChatBon) return;
                 let data; try { data = JSON.parse(text); } catch (e) { data = null; }
-                const el = document.getElementById('rc-typing-indicator');
-                if (el) el.style.display = (data && data.rider) ? 'flex' : 'none';
+                const typing = !!(data && data.rider);
+                if (typing !== rcOtherTyping) { rcOtherTyping = typing; renderRCChatBody(); }
             }).catch(() => {});
     }
     // 🆕 حالة رسايلي أنا (اتشافت عند الطيار - فتح الشات بالذات) + "الطيار فاتح
@@ -3354,7 +3362,7 @@
     function renderRCChatBody() {
         const box = document.getElementById('rc-chat-body'); if (!box) return;
         const totalCount = rcChatMessages.length + rcPendingMessages.length;
-        if (!totalCount) {
+        if (!totalCount && !rcOtherTyping) {
             box.innerHTML = `<div class="rc-empty-hint"><i class="fas fa-comments" style="font-size:1.8rem;display:block;margin-bottom:0.5rem;"></i>ابدأ المحادثة مع الطيار</div>`;
             return;
         }
@@ -3363,6 +3371,11 @@
             return `<div class="rc-bubble ${m.sender === 'customer' ? 'me' : 'them'}">${escHtml(m.text)}${rcMsgMetaHtml(m.ts, statusHtml)}</div>`;
         }).join('');
         html += rcPendingMessages.map(pm => `<div class="rc-bubble me">${escHtml(pm.text)}${rcMsgMetaHtml(pm.ts, rcStatusIconHtml(pm.confirmed ? 'sent' : 'sending'))}</div>`).join('');
+        // 🆕 مؤشر "بيكتب الآن" بقى آخر عنصر في تدفق المحادثة نفسه - ظاهر بالظبط في
+        // المكان اللي هتظهر فيه رسالته لما يخلص ويبعتها، مش عائم لوحده فوق شريط الكتابة
+        if (rcOtherTyping) {
+            html += `<div class="rc-typing-indicator"><span>بيكتب الآن</span><div class="rc-typing-dots"><span></span><span></span><span></span></div></div>`;
+        }
         box.innerHTML = html;
         box.scrollTop = box.scrollHeight;
     }
@@ -3395,7 +3408,7 @@
         renderRCChatBody();
         const body = JSON.stringify({ action: 'sendRiderCustomerMessage', bon: rcChatBon, sender: 'customer', message: text });
         fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' })
-            .then(() => { pmObj.confirmed = true; renderRCChatBody(); fetchRCChat(); })
+            .then(() => { pmObj.confirmed = true; reconcileRCPending(); renderRCChatBody(); fetchRCChat(); })
             .catch(() => { /* لسه ساعة - هتتأكد لما النت يرجع في دورة الجلب الجاية */ })
             .finally(() => { rcSending = false; if (sendBtn) sendBtn.disabled = false; });
     }
