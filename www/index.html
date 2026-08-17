@@ -876,7 +876,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyS1vjbXx7VfJ1InTgGmizmSGg7PvSIfHmOdTUXaE-_UtvBNOT-cxwc-N_J-Ko7pmAwoA/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmc_cSLEezv5QDqaPB6qz6snIi3-n_OsB-HYY76UBmsGZRFgWgElgbNlImBDsyOSebZA/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
@@ -3077,6 +3077,12 @@
                     if (shopKm !== null && (order._shopBaseline === undefined || order._shopBaseline === null || shopKm > order._shopBaseline)) { order._shopBaseline = shopKm; }
                     var custKm = parseKmFromEtaText(order.custEta);
                     if (custKm !== null && (order._custBaseline === undefined || order._custBaseline === null || custKm > order._custBaseline)) { order._custBaseline = custKm; }
+                    // 🔧 عداد الرسايل الجديدة بقى بيتحدث من السيرفر مباشرة (مش بس لما إشعار
+                    // Push يوصل والبرنامج فاتح قدامنا) - كده الأيقونة تظهر صح حتى لو الإشعار
+                    // اتأخر أو ماوصلش، لأنه بيتبني من الرسايل الفعلية الموجودة في الشيت
+                    if (result.rcUnread !== undefined && rcChatBon !== order.bon) {
+                        rcUnreadCounts[order.bon] = result.rcUnread; renderRCUnreadBadge();
+                    }
                 }
                 localStorage.setItem('gebhaly_history', JSON.stringify(history)); // 🆕 نحفظ دايمًا عشان خط الأساس يفضل متسجل حتى لو مفيش تغيير ظاهر تاني
                 if (nr) { if (currentPage==='active-orders') renderActiveOrders(); if (currentPage==='history') renderHistory(); }
@@ -3137,7 +3143,7 @@
         // 🆕 دخل الشات ده بالذات - نصفّر عداد الرسايل الجديدة بتاعه فورًا
         rcUnreadCounts[bon] = 0; renderRCUnreadBadge();
         const titleEl = document.getElementById('rc-chat-title');
-        if (titleEl) titleEl.innerHTML = `<div class="rc-title-line1"><i class="fas fa-motorcycle ml-1"></i>الطيار: ${escHtml(pilotName || 'الطيار')}</div><div class="rc-title-line2"><i class="fas fa-receipt"></i>رقم البون: #${bon}</div>`;
+        if (titleEl) titleEl.innerHTML = `<div class="rc-title-line1"><i class="fas fa-motorcycle" style="margin-left:6px;"></i>الطيار : ${escHtml(pilotName || 'الطيار')}</div><div class="rc-title-line2"><i class="fas fa-receipt" style="margin-left:6px;"></i>رقم البون: #${bon}</div>`;
         const callBtn = document.getElementById('rc-chat-call-btn');
         if (callBtn) callBtn.href = pilotPhone ? `tel:${pilotPhone}` : '#';
         const input = document.getElementById('rc-chat-input'); if (input) input.value = '';
@@ -3189,8 +3195,10 @@
     // (تختفي وتظهر تاني) لو السيرفر متأخر شوية يرجّعها في نفس دورة الجلب
     function reconcileRCPending() {
         if (!rcPendingMessages.length) return;
+        // 🔧 مبقناش بنستنى pm.confirmed=true الأول - لو رسالة معلّقة ظهرت فعليًا في رسايل
+        // السيرفر (حتى لو الـ fetch بتاع الإرسال نفسه لسه ماخلصش)، نشيلها فورًا. ده اللي كان
+        // بيسبب "رسالة ظاهرة مرتين" (وحدة حقيقية من السيرفر + وحدة معلّقة لسه واقفة على أيقونة الساعة)
         rcPendingMessages = rcPendingMessages.filter(pm => {
-            if (!pm.confirmed) return true;
             const foundInServer = rcChatMessages.some(m => m.sender === 'customer' && m.text === pm.text);
             return !foundInServer;
         });
@@ -3350,7 +3358,7 @@
     function pilotHeaderHtml(o) {  
         if (!o.pilotName) return '';  
         const telHref = o.pilotPhone ? `tel:${o.pilotPhone}` : '#';  
-        return `<div class="pilot-header"><span class="text-sm font-bold text-[var(--gold-light)]"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${o.pilotName}</span><a href="${telHref}" class="pilot-call-btn"><i class="fas fa-phone-alt"></i></a></div>`;  
+        return `<div class="pilot-header"><span class="text-sm font-bold text-[var(--gold-light)]"><i class="fas fa-motorcycle text-[var(--gold)]" style="margin-left:6px;"></i>الطيار : ${o.pilotName}</span><a href="${telHref}" class="pilot-call-btn"><i class="fas fa-phone-alt"></i></a></div>`;  
     }  
 
     // 🆕 صندوق تفاصيل الطلب القابل للطي - نفس فكرة تصميم جبهالي ريدر بالظبط
@@ -3426,7 +3434,7 @@
         const telHref = o.pilotPhone ? `tel:${o.pilotPhone}` : '#';
         // 🆕 اسم الطيار على اليمين، وزراري الاتصال + الشات على الشمال جمب بعض
         const topRowHtml = o.pilotName
-            ? `<div class="track-top-row"><span class="track-rider-name"><i class="fas fa-motorcycle ml-1 text-[var(--gold)]"></i>الطيار: ${escHtml(o.pilotName)}</span><div style="display:flex;align-items:center;gap:0.5rem;"><div style="position:relative;"><button type="button" onclick='openRCChat(${o.bon}, ${JSON.stringify(o.pilotName)}, ${JSON.stringify(o.pilotPhone || '')})' class="track-call-btn rc-chat-color"><i class="fas fa-comment-dots"></i></button><span class="rc-unread-badge" id="rc-badge-${o.bon}" style="display:none;">0</span></div><a href="${telHref}" class="track-call-btn rc-call-color"><i class="fas fa-phone-alt"></i></a></div></div>`
+            ? `<div class="track-top-row"><span class="track-rider-name"><i class="fas fa-motorcycle text-[var(--gold)]" style="margin-left:6px;"></i>الطيار : ${escHtml(o.pilotName)}</span><div style="display:flex;align-items:center;gap:0.5rem;"><div style="position:relative;"><button type="button" onclick='openRCChat(${o.bon}, ${JSON.stringify(o.pilotName)}, ${JSON.stringify(o.pilotPhone || '')})' class="track-call-btn rc-chat-color"><i class="fas fa-comment-dots"></i></button><span class="rc-unread-badge" id="rc-badge-${o.bon}" style="display:none;">0</span></div><a href="${telHref}" class="track-call-btn rc-call-color"><i class="fas fa-phone-alt"></i></a></div></div>`
             : '';
 
         const stage = (o.status === 'delivering') ? 'cust' : 'shop';
