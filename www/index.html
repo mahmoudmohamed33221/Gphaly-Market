@@ -456,8 +456,8 @@
     @keyframes rcTypingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
     /* 🆕 أيقونات حالة الرسالة (بدل المثلث الأصفر): ساعة/صح/صحين */
     /* 🆕 سطر واحد موحّد للوقت + علامة الحالة جمب بعض (زي واتساب) */
-    .rc-msg-meta { display: flex; align-items: center; justify-content: right; gap: 4px; margin-top: 3px; }
-    .rc-bubble.them .rc-msg-meta { justify-content: left; }
+    /* 🆕 نظام الصح والوقت بقى على الشمال خالص لكل الرسايل - مسافة واحدة موحّدة بينهم */
+    .rc-msg-meta { display: flex; align-items: center; justify-content: left; gap: 4px; margin-top: 3px; }
     .rc-status-icon { font-size: 10px; color: rgba(17,24,39,0.55); line-height: 1; }
     .rc-status-icon.rc-double { letter-spacing: -3px; font-weight: 900; }
     .rc-status-icon.rc-triple { letter-spacing: -3px; font-weight: 900; }
@@ -877,7 +877,7 @@
 <div id="toast-container"></div> 
 
 <script>  
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOubBCqFjFLY7Ysul-eyWB8KKi7GB96tiQYm8hAno4OYyI2rlSpWmBJACYp7xqg97bQg/exec";  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmu80J-LVxauupp2UMQk1ydvrQn89NO2gwi5EX3Peo0hkELfsXU4bw-JFv1HKdurAl_A/exec";  
     const CURRENT_APP_VERSION = "2.4.0"; 
     let APP_ICON = "https://f.top4top.io/p_3862qbbof0.png";
     
