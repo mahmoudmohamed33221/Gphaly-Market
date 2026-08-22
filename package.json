@@ -10,7 +10,7 @@
     "@capacitor/geolocation": "^8.0.0",
     "@capacitor/filesystem": "^8.0.0",
     "@capacitor/clipboard": "^8.0.0",
-    "@capgo/capacitor-inappbrowser": "^8.0.0",
+    "@capgo/capacitor-inappbrowser": "^8.13.0",
     "@capacitor-community/app-icon": "^7.0.0"
   },
   "devDependencies": {
