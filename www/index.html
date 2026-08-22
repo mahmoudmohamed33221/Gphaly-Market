@@ -2063,6 +2063,16 @@
     // اللي لصقه، من غير ما يحتاج يدور عليه بنفسه
     let lpVisibleBrowserId = null, lpClipboardWatchTimer = null, lpVisibleBrowserListeners = [];
 
+    // 🆕 نفس الـ User-Agent اللي بيستخدمه Chrome الحقيقي لما تفعّل "موقع مصمَّم للكمبيوتر"
+    // (Request Desktop Site) - ده اللي بيخلي جوجل تحس إنها فاتحة من كمبيوتر، فمتبقاش
+    // تعرض شاشة "افتح تطبيق Google Maps؟" خالص من الأساس (الشاشة دي أصلاً بتتفعّل بس
+    // لما جوجل تكتشف إنها متفتحة من متصفح موبايل حقيقي).
+    // ⚠️ مهم جدًا: الخاصية دي (customUserAgent) لازم يكون عندك إصدار 8.13.0 أو أحدث من
+    // @capgo/capacitor-inappbrowser - عدّلت الـ package.json ليطلب هذا الإصدار، لازم تعمل:
+    // npm install ثم npx cap sync android قبل ما تبني نسخة تجربة جديدة، وإلا الخاصية
+    // مش هتشتغل ومش هتظهر أي رسالة خطأ توضح السبب (هتتجاهل بصمت لو الإصدار قديم)
+    const DESKTOP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+
     // 🆕 بيفتح متصفحنا الداخلي نفسه ظاهر (مش مخفي) عشان العميل يقدر يدور بنفسه في خرائط
     // جوجل الحقيقية، وبيراقب الحافظة (Clipboard) في نفس الوقت - أول ما يلاقي مكانه ويدوس
     // "مشاركة/نسخ اللينك" جوه جوجل ماب، بنلقط اللينك تلقائيًا، نقفل المتصفح، ونلصقه في
@@ -2108,7 +2118,7 @@
             });
             lpVisibleBrowserListeners.push(pageLoadListener);
             // 🆕 ظاهر بالكامل هنا (من غير hidden)، وبتوليبار عادي فيه زرار قفل/رجوع
-            const opened = await InAppBrowser.openWebView({ url: targetUrl, preventDeeplink: true });
+            const opened = await InAppBrowser.openWebView({ url: targetUrl, preventDeeplink: true, customUserAgent: DESKTOP_USER_AGENT });
             lpVisibleBrowserId = opened && opened.id;
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
@@ -2508,7 +2518,7 @@
             pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => { pageLoaded = true; });
             const opened = await InAppBrowser.openWebView({
                 url: url, toolbarType: 'blank', isAnimated: false,
-                preventDeeplink: true, hidden: true
+                preventDeeplink: true, hidden: true, customUserAgent: DESKTOP_USER_AGENT
             });
             webviewId = opened && opened.id;
             const start = Date.now();
