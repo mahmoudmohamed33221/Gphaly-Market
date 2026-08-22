@@ -2078,10 +2078,35 @@
             return;
         }
         const InAppBrowser = plugins.CapgoInAppBrowser;
-        const targetUrl = lpDetectedGmapsLink || 'https://www.google.com/maps';
+        // 🆕 لو مفيش لينك مخصوص اتلصق، بدل ما نفتح خرائط جوجل فاضية وتسيب العميل يدور
+        // بنفسه من الصفر، بنفتحها على طول على موقعه الحالي (نفس النقطة الزرقا في الخريطة
+        // الداخلية بتاعتنا لو موجودة، وإلا بنجيب موقع GPS طازة قبل الفتح مباشرة - الصلاحية
+        // أصلاً ممنوحة من أول ما التطبيق اتفتح، فمفيش أي طلب إذن إضافي هيظهر هنا)
+        let targetUrl = lpDetectedGmapsLink;
+        if (!targetUrl) {
+            let curLat = null, curLng = null;
+            if (lpBlueDotMarker) { const p = lpBlueDotMarker.getLatLng(); curLat = p.lat; curLng = p.lng; }
+            if (curLat === null) {
+                try { const pos = await getFreshPositionPromise(); curLat = pos.lat; curLng = pos.lng; } catch (e) {}
+            }
+            targetUrl = (curLat !== null) ? ('https://www.google.com/maps/@' + curLat + ',' + curLng + ',17z') : 'https://www.google.com/maps';
+        }
         try {
             const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
             lpVisibleBrowserListeners.push(closedListener);
+            // 🆕 أول ما الصفحة تحمّل، بنحاول نتخطى تلقائيًا شاشة "هل تريد فتح تطبيق Google
+            // Maps؟" اللي جوجل بتعرضها لأي متصفح شغال على موبايل - بندوّر جوه الصفحة على
+            // رابط/زرار "الاستمرار على الويب" أو "Continue in browser" وندوس عليه برمجيًا،
+            // فالعميل ميشوفش الشاشة دي أصلاً (أو يشوفها لجزء من الثانية بس). ⚠️ ملحوظة مهمة:
+            // ده مبني على شكل الصفحة الحالي اللي جوجل بتقدمه (مفيش API رسمي لإلغاء الشاشة
+            // دي)، فلو جوجل غيّرت تصميمها في المستقبل ممكن الكود ده يحتاج تحديث بسيط
+            const pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => {
+                InAppBrowser.executeScript({
+                    id: opened && opened.id,
+                    code: "(function(){try{var els=document.querySelectorAll('a,button,div,span');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='الاستمرار على الويب'||t==='استمرار على الويب'||t==='Continue in browser'||t==='Continue to web'||t==='Stay in browser'){els[i].click();break;}}}catch(e){}})();"
+                }).catch(function(){});
+            });
+            lpVisibleBrowserListeners.push(pageLoadListener);
             // 🆕 ظاهر بالكامل هنا (من غير hidden)، وبتوليبار عادي فيه زرار قفل/رجوع
             const opened = await InAppBrowser.openWebView({ url: targetUrl, preventDeeplink: true });
             lpVisibleBrowserId = opened && opened.id;
@@ -2422,7 +2447,11 @@
     }
 
     // كشف أي شكل من لينكات جوجل ماب (مختصر أو كامل) جوه أي نص متلصق في مربع البحث
-    const GMAPS_LINK_REGEX = /(https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|g\.co\/kgs)\S*)/i;
+    // 🆕 بقت تفهم اللينك الطويل (اللي بيطلع من "مشاركة" في المتصفح الداخلي بتاعنا -
+    // زي https://www.google.com/maps/place/...) مش بس اللينك المختصر (maps.app.goo.gl).
+    // الفرق كان إن "www." قبل "google." كانت بتمنع الـ Regex القديم من التعرف على اللينك
+    // خالص، فكان بيتعامل معاه كأنه نص بحث عادي بدل ما يفهمه كلينك موقع
+    const GMAPS_LINK_REGEX = /(https?:\/\/(?:[a-z0-9-]+\.)*(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|g\.co\/kgs)\S*)/i;
 
     // =========================================================================
     // 🆕 المحاولة الأولى (الأدق والمجانية بلا أي حد استخدام): متصفح داخلي مخفي تمامًا
