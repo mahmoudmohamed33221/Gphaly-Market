@@ -120,6 +120,10 @@
     .lp-hint { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
     #locationPickerMap { flex: 1; width: 100%; min-height: 0; position: relative; }
     .lp-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 1.7rem; color: #EF4444; text-shadow: 0 3px 8px rgba(0,0,0,0.6); pointer-events: none; z-index: 500; }
+    /* 🆕 زرار تبديل صور القمر الصناعي - عشان لو دقة رسم الشوارع في الخريطة العادية
+       مش دقيقة 100% في مكان معيّن (فرق بيانات OpenStreetMap عن الواقع)، تقدر تتأكد
+       بعينك من صورة حقيقية للمبنى بدل ما تعتمد على اسم شارع ممكن يكون مرسوم غلط */
+    .lp-sat-toggle { position: absolute; top: 12px; left: 12px; z-index: 500; background: #111827; color: #FBBF24; border: 1px solid #374151; border-radius: 0.6rem; padding: 0.45rem 0.7rem; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
     .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
     .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
     .lp-btn-locate i { color: var(--gold); }
@@ -848,6 +852,9 @@
             </button>  
         </div>  
         <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
+        <button type="button" class="lp-sat-toggle" id="lp-sat-toggle" onclick="toggleLpSatelliteView()">  
+            <i class="fas fa-satellite" id="lp-sat-toggle-icon"></i><span id="lp-sat-toggle-label">صورة قمر صناعي</span>  
+        </button>  
         <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
             <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
         </button>  
@@ -1759,6 +1766,25 @@
     // أو أكدت مكان بعيد عن مكانك الفعلي.
     // =========================================================================
     let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
+    let lpStreetLayer = null, lpSatelliteLayer = null, lpIsSatelliteView = false; // 🆕 لتبديل صورة القمر الصناعي
+
+    // 🆕 بيبدّل بين الخريطة الرسومية (Voyager) وصور القمر الصناعي الحقيقية - العميل ممكن
+    // يحتاجها لو حاسس إن اسم الشارع أو مكان الدبوس مش مطابق للواقع بالظبط
+    function toggleLpSatelliteView() {
+        if (!lpMap || !lpStreetLayer || !lpSatelliteLayer) return;
+        lpIsSatelliteView = !lpIsSatelliteView;
+        if (lpIsSatelliteView) {
+            lpMap.removeLayer(lpStreetLayer);
+            lpSatelliteLayer.addTo(lpMap);
+            document.getElementById('lp-sat-toggle-icon').className = 'fas fa-map';
+            document.getElementById('lp-sat-toggle-label').textContent = 'خريطة عادية';
+        } else {
+            lpMap.removeLayer(lpSatelliteLayer);
+            lpStreetLayer.addTo(lpMap);
+            document.getElementById('lp-sat-toggle-icon').className = 'fas fa-satellite';
+            document.getElementById('lp-sat-toggle-label').textContent = 'صورة قمر صناعي';
+        }
+    }
     let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
     let lpWatchId = null; // 🆕 معرّف متابعة الموقع الحية (watchPosition) - شغالة طول ما مودال الخريطة مفتوح
@@ -1852,10 +1878,17 @@
                 lpMap = L.map('locationPickerMap', { zoomControl: false, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
                 // 🆕 طبقة ألوان "Voyager" - أقرب تصميم مجاني لشكل جوجل ماب (ألوان، تفاصيل
                 // شوارع ومحلات وأرقام مباني)، بدون أي مفتاح API أو اشتراك
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                lpStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     maxZoom: 20,
                     subdomains: 'abcd'
                 }).addTo(lpMap);  
+                // 🆕 طبقة صور قمر صناعي حقيقية (مجانية بدون مفتاح API) - بديل للخريطة
+                // الرسومية لحظة ما رسم الشوارع يكون غير دقيق في منطقة معيّنة (زي فرق بيانات
+                // OpenStreetMap عن الواقع)؛ بالصورة الحقيقية تقدر تتأكد بعينك من المبنى نفسه
+                lpSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 20,
+                    attribution: 'Esri'
+                });  
                 // 🆕 زرار الزووم بقى تحت يمين الخريطة، بعيد عن صندوق البحث فوق عشان يبقى واضح
                 L.control.zoom({ position: 'bottomright' }).addTo(lpMap);  
                 setupLpOverlayEventIsolation();  
