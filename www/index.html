@@ -2080,7 +2080,7 @@
     // WebView مدمج جوه تطبيق تاني (مش متصفح حقيقي) - فلو قلنا "إحنا Chrome حقيقي على
     // موبايل" (مش WebView، ومش كمبيوتر)، المفروض نجيب شكل الموبايل العادي المطلوب من
     // غير الرسالة في نفس الوقت. لو الرسالة رجعت تظهر، هنرجع للحل اللي قبل كده
-    const DESKTOP_USER_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';
+    const LP_BROWSER_USER_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';
 
     // 🆕 بيفتح متصفحنا الداخلي نفسه ظاهر (مش مخفي) عشان العميل يقدر يدور بنفسه في خرائط
     // جوجل الحقيقية، وبيراقب الحافظة (Clipboard) في نفس الوقت - أول ما يلاقي مكانه ويدوس
@@ -2113,26 +2113,22 @@
         try {
             const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
             lpVisibleBrowserListeners.push(closedListener);
-            // 🆕 أول ما الصفحة تحمّل، بنحاول نتخطى تلقائيًا شاشة "هل تريد فتح تطبيق Google
-            // Maps؟" اللي جوجل بتعرضها لأي متصفح شغال على موبايل - بندوّر جوه الصفحة على
-            // رابط/زرار "الاستمرار على الويب" أو "Continue in browser" وندوس عليه برمجيًا،
-            // فالعميل ميشوفش الشاشة دي أصلاً (أو يشوفها لجزء من الثانية بس). ⚠️ ملحوظة مهمة:
-            // ده مبني على شكل الصفحة الحالي اللي جوجل بتقدمه (مفيش API رسمي لإلغاء الشاشة
-            // دي)، فلو جوجل غيّرت تصميمها في المستقبل ممكن الكود ده يحتاج تحديث بسيط
-            const pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => {
-                InAppBrowser.executeScript({
-                    id: opened && opened.id,
-                    code: "(function(){try{var els=document.querySelectorAll('a,button,div,span');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='الاستمرار على الويب'||t==='استمرار على الويب'||t==='Continue in browser'||t==='Continue to web'||t==='Stay in browser'){els[i].click();break;}}}catch(e){}})();"
-                }).catch(function(){});
-            });
-            lpVisibleBrowserListeners.push(pageLoadListener);
-            // 🆕 بنمسح كوكيز جوجل قبل كل فتحة - عشان لو أي تفضيل "وضع كمبيوتر" اتسجل قبل
-            // كده (من تجربة سابقة مثلاً) يفضل يتمسح دايمًا، وتفضل واجهة الموبايل العادية
-            // هي اللي بتظهر ثابتة (أسهل للمستخدم وهو المطلوب) - مع فضل الـ User-Agent
-            // شغال طول الوقت عشان رسالة "افتح التطبيق" تفضل مختفية برضو
+            // 🆕 اتضح إن الرسالة دي (تخيير "متابعة" فتح التطبيق / "مواصلة استخدام الويب")
+            // بتظهر بشكل طبيعي لأي متصفح موبايل حقيقي بيتصفح خرائط جوجل - مش عيب أو حاجة
+            // نقدر نمنعها من الأساس، فبدل ما نحاول نمنعها، بندوسها هي نفسها تلقائيًا لحظة
+            // ما تظهر (بأي شكل من أشكالها المختلفة - جربنا شكلين لحد دلوقتي) عشان العميل
+            // ميحتاجش يلمسها خالص. الفرق عن قبل: بقينا "بنراقب" الصفحة باستمرار
+            // (MutationObserver) مش بنجرب مرة واحدة بس لحظة التحميل - عشان النافذة ممكن
+            // تظهر متأخرة شوية (بعد ما محتوى الصفحة يتحمّل) مش بالظبط لحظة أول تحميل
+            const preShowScript = "(function(){function tc(){try{var els=document.querySelectorAll('a,button,div,span');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='الاستمرار على الويب'||t==='استمرار على الويب'||t==='مواصلة استخدام الويب'||t==='متابعة الاستخدام على الويب'||t==='Continue in browser'||t==='Continue to web'||t==='Stay in browser'||t==='Use web version'||t==='Continue on web'||t==='Continue using web'){els[i].click();return true;}}}catch(e){}return false;}if(tc())return;try{var obs=new MutationObserver(function(){if(tc()){try{obs.disconnect();}catch(e3){}}});var target=document.body||document.documentElement;if(target){obs.observe(target,{childList:true,subtree:true});}setTimeout(function(){try{obs.disconnect();}catch(e4){}},20000);}catch(e2){}})();";
+            // 🆕 بنمسح كوكيز جوجل قبل كل فتحة عشان نضمن إن مفيش أي تفضيل قديم (من تجربة
+            // سابقة) بيأثر على شكل الصفحة أو سلوكها - كل فتحة تبدأ نضيفة
             try { await InAppBrowser.clearCookies({ url: 'https://www.google.com' }); } catch (cookieErr) {}
             // 🆕 ظاهر بالكامل هنا (من غير hidden)، وبتوليبار عادي فيه زرار قفل/رجوع
-            const opened = await InAppBrowser.openWebView({ url: targetUrl, preventDeeplink: true, customUserAgent: DESKTOP_USER_AGENT });
+            const opened = await InAppBrowser.openWebView({
+                url: targetUrl, preventDeeplink: true, customUserAgent: LP_BROWSER_USER_AGENT,
+                preShowScript: preShowScript, preShowScriptInjectionTime: 'documentStart', isPresentAfterPageLoad: true
+            });
             lpVisibleBrowserId = opened && opened.id;
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
@@ -2532,7 +2528,7 @@
             pageLoadListener = await InAppBrowser.addListener('browserPageLoaded', () => { pageLoaded = true; });
             const opened = await InAppBrowser.openWebView({
                 url: url, toolbarType: 'blank', isAnimated: false,
-                preventDeeplink: true, hidden: true, customUserAgent: DESKTOP_USER_AGENT
+                preventDeeplink: true, hidden: true, customUserAgent: LP_BROWSER_USER_AGENT
             });
             webviewId = opened && opened.id;
             const start = Date.now();
