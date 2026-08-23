@@ -2098,9 +2098,12 @@
         }
         const InAppBrowser = plugins.CapgoInAppBrowser;
         // 🆕 لو مفيش لينك مخصوص اتلصق، بدل ما نفتح خرائط جوجل فاضية وتسيب العميل يدور
-        // بنفسه من الصفر، بنفتحها على طول على موقعه الحالي (نفس النقطة الزرقا في الخريطة
-        // الداخلية بتاعتنا لو موجودة، وإلا بنجيب موقع GPS طازة قبل الفتح مباشرة - الصلاحية
-        // أصلاً ممنوحة من أول ما التطبيق اتفتح، فمفيش أي طلب إذن إضافي هيظهر هنا)
+        // بنفسه من الصفر، بنفتحها على طول على موقعه الحالي - مش معتمدين على GPS بتاع
+        // المتصفح الداخلي نفسه (اللي عادةً بيكون متبلوك افتراضيًا لأي WebView منفصل زي
+        // ده)، لكن حاطين الإحداثيات جوه اللينك مباشرة (نفس النقطة الزرقا في الخريطة
+        // الداخلية بتاعتنا لو موجودة، وإلا بنجيب موقع GPS طازة من صلاحية التطبيق نفسه
+        // اللي ممنوحة أصلاً) - عشان تفتح عليه فورًا من غير ما العميل يحتاج يدوس على زرار
+        // "تحديد موقعي" بنفسه. بعد كده لسه يقدر يبحث/يسحب الخريطة يأكد أي مكان تاني عادي
         let targetUrl = lpDetectedGmapsLink;
         if (!targetUrl) {
             let curLat = null, curLng = null;
@@ -2108,7 +2111,9 @@
             if (curLat === null) {
                 try { const pos = await getFreshPositionPromise(); curLat = pos.lat; curLng = pos.lng; } catch (e) {}
             }
-            targetUrl = (curLat !== null) ? ('https://www.google.com/maps/@' + curLat + ',' + curLng + ',17z') : 'https://www.google.com/maps';
+            // 🔧 استخدمنا صيغة اللينك الرسمية الموثّقة من جوجل (Maps URLs API) بدل صيغة
+            // "@lat,lng,zoom" القديمة - دي أضمن وبتشتغل صح مع كل الأوضاع (موبايل/كمبيوتر)
+            targetUrl = (curLat !== null) ? ('https://www.google.com/maps/search/?api=1&query=' + curLat + ',' + curLng + '&zoom=17') : 'https://www.google.com/maps';
         }
         try {
             const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
@@ -2121,9 +2126,9 @@
             // (MutationObserver) مش بنجرب مرة واحدة بس لحظة التحميل - عشان النافذة ممكن
             // تظهر متأخرة شوية (بعد ما محتوى الصفحة يتحمّل) مش بالظبط لحظة أول تحميل
             const preShowScript = "(function(){function tc(){try{var els=document.querySelectorAll('a,button,div,span');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(t==='الاستمرار على الويب'||t==='استمرار على الويب'||t==='مواصلة استخدام الويب'||t==='متابعة الاستخدام على الويب'||t==='Continue in browser'||t==='Continue to web'||t==='Stay in browser'||t==='Use web version'||t==='Continue on web'||t==='Continue using web'){els[i].click();return true;}}}catch(e){}return false;}function startObs(){var target=document.body||document.documentElement;if(!target){setTimeout(startObs,50);return;}if(tc())return;try{var obs=new MutationObserver(function(){if(tc()){try{obs.disconnect();}catch(e3){}}});obs.observe(target,{childList:true,subtree:true});setTimeout(function(){try{obs.disconnect();}catch(e4){}},20000);}catch(e2){}}startObs();var pc=0;var pt=setInterval(function(){pc++;if(tc()||pc>40){clearInterval(pt);}},500);})();";
-            // 🆕 بنمسح كوكيز جوجل قبل كل فتحة عشان نضمن إن مفيش أي تفضيل قديم (من تجربة
-            // سابقة) بيأثر على شكل الصفحة أو سلوكها - كل فتحة تبدأ نضيفة
-            try { await InAppBrowser.clearCookies({ url: 'https://www.google.com' }); } catch (cookieErr) {}
+            // 🔧 مسح الكوكيز اتشال خالص من هنا - ده كان هو السبب الحقيقي في المشكلة، كان
+            // بيمسح تسجيل "خلاص اتخطيتها" اللي جوجل بتحفظه بعد أول مرة، فكان بيرجّع الرسالة
+            // تظهر كل مرة عمليًا. من غيره، جوجل هتحفظ التخطي أول مرة بس وتفضل متذكراه للأبد
             // 🆕 ظاهر بالكامل هنا (من غير hidden)، وبتوليبار عادي فيه زرار قفل/رجوع
             const opened = await InAppBrowser.openWebView({
                 url: targetUrl, preventDeeplink: true, customUserAgent: LP_BROWSER_USER_AGENT,
