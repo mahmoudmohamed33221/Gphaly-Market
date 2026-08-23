@@ -2128,27 +2128,23 @@
         try {
             const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
             lpVisibleBrowserListeners.push(closedListener);
-            // 🆕 بنفتحها مخفية بالكامل الأول (hidden: true) - مش ظاهرة للعميل خالص - عشان
-            // سكريبتنا ياخد وقته يكتشف رسالة "افتح التطبيق" (لو ظهرت) وزرار "موقعك
-            // الجغرافي" ويدوس عليهم بضغطة حقيقية، وبعدين نظهرها هي نفسها (نفس الجلسة
-            // بالظبط، مش جلسة تانية) لما تكون خلاص جاهزة - فالعميل يشوفها وهي أصلاً
-            // متظبطة من غير ما يحس بأي حاجة حصلت قبل كده
+            // 🔧 رجعنا هنا للطريقة اللي كانت شغالة (فتح ظاهر مباشر، من غير hidden/show) -
+            // محاولة "افتح مخفي وبعدين اظهر بنفس الجلسة" ما اشتغلتش خالص (المتصفح فضل
+            // مخفي للأبد)، فرجعنا للأصل الأضمن. سكريبت الحماية بيدوس على رسالة "افتح
+            // التطبيق" وزرار "موقعك الجغرافي" أول ما يظهروا (بضغطة حقيقية) - ممكن يبان
+            // فلاش خفيف جدًا للرسالة قبل ما تتقفل، لكن ده أفضل من إخفاء المتصفح للأبد
             const opened = await InAppBrowser.openWebView({
                 url: targetUrl, preventDeeplink: true, customUserAgent: LP_BROWSER_USER_AGENT,
-                preShowScript: LP_PRE_SHOW_SCRIPT, preShowScriptInjectionTime: 'documentStart', hidden: true
+                preShowScript: LP_PRE_SHOW_SCRIPT, preShowScriptInjectionTime: 'documentStart', isPresentAfterPageLoad: true
             });
             const webviewId = opened && opened.id;
             lpVisibleBrowserId = webviewId;
             // 🆕 طبقة حماية احتياطية - بنعيد حقن نفس فحص الضغط لحظة ما الصفحة تخلص تحميل
             // (حدث منفصل عن preShowScript)، عشان حتى لو حصل أي ظرف نادر منع الطبقة الأولى
-            // من الشغل صح، الطبقة دي تمسك الموضوع قبل ما نظهر المتصفح للعميل
+            // من الشغل صح، الطبقة دي تمسك الموضوع
             InAppBrowser.addListener('browserPageLoaded', () => {
                 InAppBrowser.executeScript({ id: webviewId, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
             }).then((l) => lpVisibleBrowserListeners.push(l)).catch(function(){});
-            // 🆕 مهلة كافية (1.8 ثانية) عشان سكريبتنا يكتشف الرسالة (لو هتظهر أصلاً) ويدوس
-            // عليها، قبل ما نظهر المتصفح للعميل
-            await new Promise(r => setTimeout(r, 1800));
-            try { await InAppBrowser.show({ id: webviewId }); } catch (showErr) {}
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
     }
