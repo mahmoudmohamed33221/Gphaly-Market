@@ -1793,6 +1793,23 @@
     let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
     let lpWatchId = null; // 🆕 معرّف متابعة الموقع الحية (watchPosition) - شغالة طول ما مودال الخريطة مفتوح
+    // 🆕 نفس معادلة حساب المسافة بين نقطتين (خط مستقيم) الموجودة في تطبيق الريدر بالظبط -
+    // مستخدمة هنا لفلترة قفزات الـ GPS المستحيلة (شوف الفلترة تحت)
+    function haversineKm(lat1, lng1, lat2, lng2) {
+        var R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+    // 🆕 نفس فلترة قراءات الـ GPS الرديئة الموجودة في تطبيق الريدر بالظبط - قبل كده كنا
+    // بنحرّك النقطة الزرقاء على أي قراءة خام توصل، حتى لو كانت مؤقتة وغلط (دقة وحشة أو
+    // قفزة مستحيلة السرعة)، فكانت النقطة "بتتهز" أو "تروح مكان بعيد وترجع تثبت". دلوقتي
+    // بنرفض القراءة السيئة ونستنى واحدة أحسن، إلا لو القراءة السيئة فضلت متكررة كذا مرة
+    // ورا بعض (يبقى ساعتها نقبلها لأنها يمكن الوضع الحقيقي فعلاً - تغطية ضعيفة في المكان ده)
+    const LP_MAX_GPS_ACCURACY_M = 60;
+    const LP_MAX_PLAUSIBLE_SPEED_KMH = 140;
+    let lpLastGoodFix = null, lpLastGoodFixTime = null, lpBadFixStreak = 0;
     let lpFirstFixPending = false; // 🆕 لسه مستنيين أول تحديد فعلي لموقعك الحقيقي (العلامة الزرقاء) في الفتحة الحالية للمودال
     let lpShouldCenterOnFirstFix = false; // 🆕 لو مفيش نقطة محفوظة، أول ما توصل العلامة الزرقاء نحرك الخريطة عليها تلقائيًا
     let lpBlockFixTimeout = null; // 🆕 مؤقّت أمان: لو أول تحديد للموقع اتأخر جدًا نطلع رسالة خطأ بدل ما نفضل شاشة الحجب طول العمر
@@ -1883,9 +1900,10 @@
                 lpMap = L.map('locationPickerMap', { zoomControl: false, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
                 // 🆕 طبقة ألوان "Voyager" - أقرب تصميم مجاني لشكل جوجل ماب (ألوان، تفاصيل
                 // شوارع ومحلات وأرقام مباني)، بدون أي مفتاح API أو اشتراك
-                lpStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    maxZoom: 20,
-                    subdomains: 'abcd'
+                // 🔧 اتغيّرت من CARTO Voyager لمصدر OpenStreetMap المباشر - نفس المصدر
+                // بالظبط اللي شغال في تطبيق الريدر، عشان الاتنين يبانوا بنفس الشكل تمامًا
+                lpStreetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
                 }).addTo(lpMap);  
                 // 🆕 طبقة صور قمر صناعي حقيقية (مجانية بدون مفتاح API) - بديل للخريطة
                 // الرسومية لحظة ما رسم الشوارع يكون غير دقيق في منطقة معيّنة (زي فرق بيانات
@@ -2012,12 +2030,35 @@
         }  
         lpWatchId = navigator.geolocation.watchPosition(  
             (pos) => {  
-                showOrUpdateBlueDot(pos.coords.latitude, pos.coords.longitude);  
+                var lat = pos.coords.latitude, lng = pos.coords.longitude;
+                var accNow = (typeof pos.coords.accuracy === 'number') ? pos.coords.accuracy : null;
+                var nowRaw = Date.now();
+                if (lpLastGoodFix) {
+                    var jumpKm = haversineKm(lpLastGoodFix.lat, lpLastGoodFix.lng, lat, lng);
+                    var secsSinceLast = lpLastGoodFixTime ? Math.max(0.4, (nowRaw - lpLastGoodFixTime) / 1000) : 1.5;
+                    var impliedSpeedKmh = (jumpKm / secsSinceLast) * 3600;
+                    var badAccuracy = (accNow !== null && accNow > LP_MAX_GPS_ACCURACY_M);
+                    var impossibleJump = impliedSpeedKmh > LP_MAX_PLAUSIBLE_SPEED_KMH;
+                    if (badAccuracy || impossibleJump) {
+                        lpBadFixStreak++;
+                        if (lpBadFixStreak < 5) { return; } // نرفض القراءة السيئة ونستنى واحدة أحسن
+                    } else {
+                        lpBadFixStreak = 0;
+                    }
+                } else if (accNow !== null && accNow > LP_MAX_GPS_ACCURACY_M) {
+                    // 🆕 أول قراءة بعد فتح الخريطة غالبًا بتكون تقريبية جدًا - منستناش نحطها
+                    // على النقطة الزرقاء غير لو دقتها معقولة، أو فضلت وحشة كذا مرة ورا بعض
+                    lpBadFixStreak++;
+                    if (lpBadFixStreak < 6) { return; }
+                }
+                lpLastGoodFix = { lat: lat, lng: lng };
+                lpLastGoodFixTime = nowRaw;
+                showOrUpdateBlueDot(lat, lng);  
                 if (lpFirstFixPending) {  
                     lpFirstFixPending = false;  
                     clearTimeout(lpBlockFixTimeout);  
                     hideLpBlock();  
-                    if (lpShouldCenterOnFirstFix && lpMap) { lpMap.setView([pos.coords.latitude, pos.coords.longitude], 17); lpShouldCenterOnFirstFix = false; }  
+                    if (lpShouldCenterOnFirstFix && lpMap) { lpMap.setView([lat, lng], 17); lpShouldCenterOnFirstFix = false; }  
                 }  
             },  
             () => { /* أي خطأ عابر في المتابعة الحية بعد أول تحديد - نتجاهله بصمت، العلامة الزرقاء هتفضل على آخر موقع معروف */ },  
