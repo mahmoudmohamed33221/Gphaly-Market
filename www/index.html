@@ -120,6 +120,10 @@
     .lp-hint { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
     #locationPickerMap { flex: 1; width: 100%; min-height: 0; position: relative; }
     .lp-center-pin { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 1.7rem; color: #EF4444; text-shadow: 0 3px 8px rgba(0,0,0,0.6); pointer-events: none; z-index: 500; }
+    /* 🆕 زرار احتياطي - بيظهر تلقائي لو المتصفح اتقفل ومكنش في لينك اتلقط أوتوماتيك، عشان
+       يفضل في طريق شغال 100% حتى لو اللقط التلقائي فشل لأي سبب */
+    .lp-manual-paste-fab { position: absolute; bottom: 78px; left: 12px; right: 12px; z-index: 900; background: linear-gradient(135deg, #F59E0B, #D97706); color: #111827; border: none; border-radius: 0.8rem; padding: 0.7rem; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.5); animation: lpPasteFabPulse 1.4s ease-in-out infinite; }
+    @keyframes lpPasteFabPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
     /* 🆕 زرار تبديل صور القمر الصناعي - عشان لو دقة رسم الشوارع في الخريطة العادية
        مش دقيقة 100% في مكان معيّن (فرق بيانات OpenStreetMap عن الواقع)، تقدر تتأكد
        بعينك من صورة حقيقية للمبنى بدل ما تعتمد على اسم شارع ممكن يكون مرسوم غلط */
@@ -859,6 +863,9 @@
                 </button>  
             </div>  
         </div>  
+        <button type="button" class="lp-manual-paste-fab" id="lp-manual-paste-fab" onclick="manualPasteLpClipboard()" style="display:none;">  
+            <i class="fas fa-paste"></i><span>لصق اللينك اللي نسختّه من جوجل ماب</span>  
+        </button>  
         <div class="lp-center-pin"><i class="fas fa-location-dot"></i></div>  
         <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
             <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
@@ -2224,6 +2231,8 @@
             InAppBrowser.addListener('browserPageLoaded', () => {
                 InAppBrowser.executeScript({ id: webviewId, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
             }).then((l) => lpVisibleBrowserListeners.push(l)).catch(function(){});
+            const fabReset = document.getElementById('lp-manual-paste-fab');
+            if (fabReset) { fabReset.style.display = 'none'; }
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
     }
@@ -2243,6 +2252,8 @@
                 document.getElementById('lp-search-input').value = linkMatch[1];
                 document.getElementById('lp-search-clear').style.display = 'block';
                 onLpSearchInput(linkMatch[1]);
+                const fab = document.getElementById('lp-manual-paste-fab');
+                if (fab) { fab.style.display = 'none'; }
                 return true;
             }
         } catch (e) { /* الحافظة ممكن تكون فاضية أو مش متاحة دلوقتي - نكمل عادي */ }
@@ -2264,8 +2275,31 @@
     function onLpVisibleBrowserClosed() {
         setTimeout(async () => {
             const found = await checkLpClipboardOnce();
-            if (!found) { stopLpClipboardWatch(); }
+            if (!found) {
+                stopLpClipboardWatch();
+                // 🆕 اللقط التلقائي فشل - نظهر الزرار الاحتياطي عشان يفضل في طريق شغال
+                const fab = document.getElementById('lp-manual-paste-fab');
+                if (fab) { fab.style.display = 'flex'; }
+            }
         }, 500);
+    }
+
+    // 🆕 لصق يدوي بضغطة واحدة - بيتنادى لما تدوس الزرار الاحتياطي، بيعمل نفس فحص الحافظة
+    // بالظبط بس بضغطة العميل نفسها (اللي أكيد التركيز راجع فيها لتطبيقنا، فمفيش أي مشكلة
+    // "تركيز أندرويد" ممكن تمنعها من النجاح)
+    async function manualPasteLpClipboard() {
+        const fab = document.getElementById('lp-manual-paste-fab');
+        const found = await checkLpClipboardOnce();
+        if (found) {
+            if (fab) { fab.style.display = 'none'; }
+        } else {
+            // مفيش لينك خرائط في الحافظة دلوقتي - نسيب الزرار ظاهر يقدر يجرب تاني بعد ما ينسخ
+            if (fab) {
+                var lbl = fab.querySelector('span');
+                if (lbl) { lbl.textContent = 'مفيش لينك في الحافظة - انسخه الأول وجرّب تاني'; }
+                setTimeout(function () { if (lbl) lbl.textContent = 'لصق اللينك اللي نسختّه من جوجل ماب'; }, 2500);
+            }
+        }
     }
 
     function stopLpClipboardWatch() {
