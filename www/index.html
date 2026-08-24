@@ -2183,12 +2183,15 @@
     // "مشاركة/نسخ اللينك" جوه جوجل ماب، بنلقط اللينك تلقائيًا، نقفل المتصفح، ونلصقه في
     // صندوق البحث ونبحث عنه لوحدنا من غير ما العميل يحتاج يرجع وييلزقه بإيده
     async function openLinkInGoogleMaps() {
+        showLpDebug('🟢 openLinkInGoogleMaps اتنادت');
         if (!isNativeApp()) {
+            showLpDebug('❌ isNativeApp()=false - مش هيفتح InAppBrowser خالص');
             if (lpDetectedGmapsLink) window.open(lpDetectedGmapsLink, '_blank');
             return;
         }
         const plugins = window.Capacitor && window.Capacitor.Plugins;
         if (!plugins || !plugins.CapgoInAppBrowser) {
+            showLpDebug('❌ plugins.CapgoInAppBrowser مش موجودة!');
             if (lpDetectedGmapsLink) window.open(lpDetectedGmapsLink, '_blank');
             return;
         }
@@ -2239,44 +2242,62 @@
 
     // 🆕 الفحص الفعلي نفسه، منفصل في دالة واحدة عشان نقدر نستخدمه في حالتين: المراقبة
     // الدورية العادية، وفحص أخير بعد قفل المتصفح (شوف onLpVisibleBrowserClosed تحت)
+    // 🆕 مربّع تشخيص مؤقت على الشاشة - عشان نشوف بالظبط الكود واقف فين وبيشوف إيه، بدل
+    // ما نفضل نخمّن. ينفع تشيله بعد ما نلاقي المشكلة ونحلها نهائي
+    function showLpDebug(msg) {
+        let box = document.getElementById('lp-debug-box');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'lp-debug-box';
+            box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font-size:11px;font-family:monospace;padding:6px;max-height:35vh;overflow-y:auto;direction:ltr;text-align:left;white-space:pre-wrap;border-top:2px solid #0f0;';
+            document.body.appendChild(box);
+        }
+        const line = document.createElement('div');
+        line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+        box.appendChild(line);
+        box.scrollTop = box.scrollHeight;
+    }
+
     async function checkLpClipboardOnce() {
         try {
             const plugins = window.Capacitor && window.Capacitor.Plugins;
-            if (!plugins || !plugins.Clipboard) return false;
+            showLpDebug('checkLpClipboardOnce بدأ. isNativeApp=' + isNativeApp() + ' Capacitor موجود=' + !!window.Capacitor);
+            if (!plugins || !plugins.Clipboard) { showLpDebug('❌ plugins.Clipboard مش موجودة خالص! (الإضافة مش متزامنة صح)'); return false; }
+            showLpDebug('✅ plugins.Clipboard موجودة، بنقرا دلوقتي...');
             const result = await plugins.Clipboard.read();
             const text = result && result.value;
+            showLpDebug('قرا: "' + (text ? text.substring(0, 80) : '(فاضي/null)') + '"');
             if (text && GMAPS_LINK_REGEX.test(text)) {
+                showLpDebug('✅ اللينك اتطابق مع الـ Regex! هقفل المتصفح وأبحث');
                 const linkMatch = text.match(GMAPS_LINK_REGEX);
                 stopLpClipboardWatch();
-                try { if (lpVisibleBrowserId && plugins.CapgoInAppBrowser) await plugins.CapgoInAppBrowser.close({ id: lpVisibleBrowserId }); } catch (e2) {}
+                try { if (lpVisibleBrowserId && plugins.CapgoInAppBrowser) await plugins.CapgoInAppBrowser.close({ id: lpVisibleBrowserId }); } catch (e2) { showLpDebug('⚠️ فشل قفل المتصفح: ' + e2); }
                 document.getElementById('lp-search-input').value = linkMatch[1];
                 document.getElementById('lp-search-clear').style.display = 'block';
                 onLpSearchInput(linkMatch[1]);
                 const fab = document.getElementById('lp-manual-paste-fab');
                 if (fab) { fab.style.display = 'none'; }
                 return true;
+            } else if (text) {
+                showLpDebug('❌ النص مش لينك خرائط جوجل معروف عندنا');
             }
-        } catch (e) { /* الحافظة ممكن تكون فاضية أو مش متاحة دلوقتي - نكمل عادي */ }
+        } catch (e) { showLpDebug('❌ Exception: ' + (e && e.message ? e.message : e)); }
         return false;
     }
 
     function startLpClipboardWatch() {
+        showLpDebug('▶️ startLpClipboardWatch اتنادت - المراقبة بدأت (كل 1.2 ثانية)');
         stopLpClipboardWatch();
         lpClipboardWatchTimer = setInterval(checkLpClipboardOnce, 1200);
     }
 
-    // 🆕 اتضح إن السبب الحقيقي وراء "بيقولي اتنسخ بس مبيلقطهوش" هو توقيت: طول ما المتصفح
-    // الداخلي فاتح، أندرويد بيعتبره هو الشاشة النشطة (مش تطبيقنا الأساسي)، وبيمنع أي تطبيق
-    // مش نشط من قراءة الحافظة خالص. يعني المراقبة كانت بتحاول وتفشل بصمت طول ما المتصفح
-    // فاتح. وأسوأ حاجة: كنا بنوقف المراقبة فورًا لحظة ما المتصفح يتقفل (حتى لو بإيد العميل)
-    // - وده بالظبط اللحظة اللي القراءة كانت هتنجح فيها لأول مرة (لما تطبيقنا يستعيد
-    // التركيز)! فبدل ما نوقف فورًا، بنستنى نص ثانية (كفاية عشان أندرويد يرجّع التركيز
-    // لتطبيقنا)، نجرب فحص أخير، وبعدين نوقف المراقبة خالص
     function onLpVisibleBrowserClosed() {
+        showLpDebug('🚪 browserClosed اتنادى - المتصفح اتقفل (بإيد العميل أو تلقائي)');
         setTimeout(async () => {
             const found = await checkLpClipboardOnce();
             if (!found) {
                 stopLpClipboardWatch();
+                showLpDebug('⚠️ الفحص الأخير مالقاش لينك - هيظهر الزرار البرتقالي');
                 // 🆕 اللقط التلقائي فشل - نظهر الزرار الاحتياطي عشان يفضل في طريق شغال
                 const fab = document.getElementById('lp-manual-paste-fab');
                 if (fab) { fab.style.display = 'flex'; }
