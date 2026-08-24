@@ -2244,18 +2244,55 @@
     // الدورية العادية، وفحص أخير بعد قفل المتصفح (شوف onLpVisibleBrowserClosed تحت)
     // 🆕 مربّع تشخيص مؤقت على الشاشة - عشان نشوف بالظبط الكود واقف فين وبيشوف إيه، بدل
     // ما نفضل نخمّن. ينفع تشيله بعد ما نلاقي المشكلة ونحلها نهائي
+    let lpDebugBoxEl = null; // 🆕 مرجع ثابت للصندوق (بدل ما ندوّر عليه بالـ ID في كل مرة - أضمن)
+    // 🆕 زرار ثابت في الشاشة كلها (مش جوه أي مودال) بيعرض السجل الكامل المخزن في
+    // localStorage في alert() عادي - أضمن طريقة نشوف بيها اللوج حتى لو أي حاجة تانية
+    // (زي المتصفح الداخلي نفسه) غطت على صندوق السجل المرئي وقت ما كان بيتحدث
+    (function setupLpDebugDumpButton() {
+        if (document.getElementById('lp-debug-dump-btn')) return;
+        var btn = document.createElement('button');
+        btn.id = 'lp-debug-dump-btn';
+        btn.textContent = '📋 عرض سجل التشخيص الكامل';
+        btn.style.cssText = 'position:fixed;top:6px;right:6px;z-index:2147483647;background:#dc2626;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:700;';
+        btn.onclick = function () {
+            try {
+                var hist = JSON.parse(localStorage.getItem('gebhaly_lp_debug_log') || '[]');
+                alert(hist.length ? hist.join('\n') : '(السجل فاضي لحد دلوقتي)');
+            } catch (e) { alert('خطأ في قراءة السجل: ' + e); }
+        };
+        if (document.body) { document.body.appendChild(btn); }
+        else { document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(btn); }); }
+    })();
     function showLpDebug(msg) {
-        let box = document.getElementById('lp-debug-box');
-        if (!box) {
-            box = document.createElement('div');
-            box.id = 'lp-debug-box';
-            box.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;font-size:11px;font-family:monospace;padding:6px;max-height:35vh;overflow-y:auto;direction:ltr;text-align:left;white-space:pre-wrap;border-top:2px solid #0f0;';
-            document.body.appendChild(box);
+        if (!lpDebugBoxEl || !document.body.contains(lpDebugBoxEl)) {
+            lpDebugBoxEl = document.createElement('div');
+            lpDebugBoxEl.id = 'lp-debug-box';
+            lpDebugBoxEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:2147483647;background:#000;color:#0f0;font-size:11px;font-family:monospace;padding:6px;max-height:40vh;overflow-y:auto;direction:ltr;text-align:left;white-space:pre-wrap;border-top:2px solid #0f0;';
+            document.body.appendChild(lpDebugBoxEl);
+            // 🆕 نرجّع أي سطور قديمة كانت متخزنة من قبل (لو الصندوق اتعمل من جديد لأي سبب)
+            try {
+                var oldHist = JSON.parse(localStorage.getItem('gebhaly_lp_debug_log') || '[]');
+                oldHist.forEach(function (oldLine) {
+                    var d = document.createElement('div');
+                    d.textContent = oldLine;
+                    d.style.opacity = '0.55';
+                    lpDebugBoxEl.appendChild(d);
+                });
+            } catch (e) {}
         }
         const line = document.createElement('div');
         line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-        box.appendChild(line);
-        box.scrollTop = box.scrollHeight;
+        lpDebugBoxEl.appendChild(line);
+        lpDebugBoxEl.scrollTop = lpDebugBoxEl.scrollHeight;
+        try { console.log('[LP-DEBUG] ' + msg); } catch (e) {}
+        // 🆕 نخزّن كل سطور اللوج في localStorage كمان - عشان لو الصندوق نفسه اتغطى أو
+        // اتمسح لأي سبب، تقدر تفتح Console أو نجيبها بأي طريقة تانية بعدين
+        try {
+            var hist = JSON.parse(localStorage.getItem('gebhaly_lp_debug_log') || '[]');
+            hist.push('[' + new Date().toLocaleTimeString() + '] ' + msg);
+            if (hist.length > 200) hist = hist.slice(-200);
+            localStorage.setItem('gebhaly_lp_debug_log', JSON.stringify(hist));
+        } catch (e) {}
     }
 
     async function checkLpClipboardOnce() {
