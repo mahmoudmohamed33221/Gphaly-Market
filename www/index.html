@@ -2205,7 +2205,7 @@
             targetUrl = (curLat !== null) ? ('https://www.google.com/maps/search/?api=1&query=' + curLat + ',' + curLng + '&zoom=17') : 'https://www.google.com/maps';
         }
         try {
-            const closedListener = await InAppBrowser.addListener('browserClosed', () => { stopLpClipboardWatch(); });
+            const closedListener = await InAppBrowser.addListener('browserClosed', () => { onLpVisibleBrowserClosed(); });
             lpVisibleBrowserListeners.push(closedListener);
             // 🔧 رجعنا هنا للطريقة اللي كانت شغالة (فتح ظاهر مباشر، من غير hidden/show) -
             // محاولة "افتح مخفي وبعدين اظهر بنفس الجلسة" ما اشتغلتش خالص (المتصفح فضل
@@ -2228,24 +2228,44 @@
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
     }
 
+    // 🆕 الفحص الفعلي نفسه، منفصل في دالة واحدة عشان نقدر نستخدمه في حالتين: المراقبة
+    // الدورية العادية، وفحص أخير بعد قفل المتصفح (شوف onLpVisibleBrowserClosed تحت)
+    async function checkLpClipboardOnce() {
+        try {
+            const plugins = window.Capacitor && window.Capacitor.Plugins;
+            if (!plugins || !plugins.Clipboard) return false;
+            const result = await plugins.Clipboard.read();
+            const text = result && result.value;
+            if (text && GMAPS_LINK_REGEX.test(text)) {
+                const linkMatch = text.match(GMAPS_LINK_REGEX);
+                stopLpClipboardWatch();
+                try { if (lpVisibleBrowserId && plugins.CapgoInAppBrowser) await plugins.CapgoInAppBrowser.close({ id: lpVisibleBrowserId }); } catch (e2) {}
+                document.getElementById('lp-search-input').value = linkMatch[1];
+                document.getElementById('lp-search-clear').style.display = 'block';
+                onLpSearchInput(linkMatch[1]);
+                return true;
+            }
+        } catch (e) { /* الحافظة ممكن تكون فاضية أو مش متاحة دلوقتي - نكمل عادي */ }
+        return false;
+    }
+
     function startLpClipboardWatch() {
         stopLpClipboardWatch();
-        lpClipboardWatchTimer = setInterval(async () => {
-            try {
-                const plugins = window.Capacitor && window.Capacitor.Plugins;
-                if (!plugins || !plugins.Clipboard) return;
-                const result = await plugins.Clipboard.read();
-                const text = result && result.value;
-                if (text && GMAPS_LINK_REGEX.test(text)) {
-                    const linkMatch = text.match(GMAPS_LINK_REGEX);
-                    stopLpClipboardWatch();
-                    try { if (lpVisibleBrowserId && plugins.CapgoInAppBrowser) await plugins.CapgoInAppBrowser.close({ id: lpVisibleBrowserId }); } catch (e2) {}
-                    document.getElementById('lp-search-input').value = linkMatch[1];
-                    document.getElementById('lp-search-clear').style.display = 'block';
-                    onLpSearchInput(linkMatch[1]);
-                }
-            } catch (e) { /* الحافظة ممكن تكون فاضية أو مش متاحة دلوقتي - نكمل عادي */ }
-        }, 1200);
+        lpClipboardWatchTimer = setInterval(checkLpClipboardOnce, 1200);
+    }
+
+    // 🆕 اتضح إن السبب الحقيقي وراء "بيقولي اتنسخ بس مبيلقطهوش" هو توقيت: طول ما المتصفح
+    // الداخلي فاتح، أندرويد بيعتبره هو الشاشة النشطة (مش تطبيقنا الأساسي)، وبيمنع أي تطبيق
+    // مش نشط من قراءة الحافظة خالص. يعني المراقبة كانت بتحاول وتفشل بصمت طول ما المتصفح
+    // فاتح. وأسوأ حاجة: كنا بنوقف المراقبة فورًا لحظة ما المتصفح يتقفل (حتى لو بإيد العميل)
+    // - وده بالظبط اللحظة اللي القراءة كانت هتنجح فيها لأول مرة (لما تطبيقنا يستعيد
+    // التركيز)! فبدل ما نوقف فورًا، بنستنى نص ثانية (كفاية عشان أندرويد يرجّع التركيز
+    // لتطبيقنا)، نجرب فحص أخير، وبعدين نوقف المراقبة خالص
+    function onLpVisibleBrowserClosed() {
+        setTimeout(async () => {
+            const found = await checkLpClipboardOnce();
+            if (!found) { stopLpClipboardWatch(); }
+        }, 500);
     }
 
     function stopLpClipboardWatch() {
