@@ -519,7 +519,7 @@
        على الخريطة)، وبيتسجل في localStorage إنه اتشاف عشان ميظهرش تاني أبدًا.
        ========================================================================= */
     #gp-tut-root { display: none; }
-    .gp-tut-mask { position: fixed; background: rgba(0,0,0,0.86); z-index: 8500; transition: all 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .gp-tut-mask { position: fixed; background: rgba(0,0,0,0.62); z-index: 8500; transition: all 0.28s cubic-bezier(0.4,0,0.2,1); }
     .gp-tut-ring { position: fixed; z-index: 8501; border: 2px solid var(--gold); box-shadow: 0 0 0 4px rgba(212,175,55,0.22), 0 0 30px rgba(212,175,55,0.45); pointer-events: none; transition: all 0.28s cubic-bezier(0.4,0,0.2,1); }
     .gp-tut-tooltip { position: fixed; z-index: 8502; background: linear-gradient(145deg, #000000, #0a0a0a); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.1rem; box-shadow: 0 15px 40px rgba(0,0,0,0.7); transition: top 0.28s cubic-bezier(0.4,0,0.2,1), bottom 0.28s cubic-bezier(0.4,0,0.2,1); }
     .gp-tut-tooltip-step { font-size: 0.7rem; font-weight: 800; color: var(--gold); margin-bottom: 0.35rem; letter-spacing: 0.3px; }
@@ -934,6 +934,7 @@
     <div class="gp-tut-mask" id="gp-tut-mask-left"></div>
     <div class="gp-tut-mask" id="gp-tut-mask-right"></div>
     <div class="gp-tut-ring" id="gp-tut-ring"></div>
+    <div class="gp-tut-ring" id="gp-tut-ring2" style="display:none;"></div>
     <div class="gp-tut-tooltip" id="gp-tut-tooltip">
         <div class="gp-tut-tooltip-step" id="gp-tut-tooltip-step"></div>
         <div class="gp-tut-tooltip-text" id="gp-tut-tooltip-text"></div>
@@ -1676,7 +1677,7 @@
     // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
     const GP_LOCATION_STEPS = [
         { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
-        { selector: '.lp-blue-dot', blocking: false, showNav: false, text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بسحب الخريطة بإيدك لحد ما تحطه فوقها، أو بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
+        { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بسحب الخريطة بإيدك لحد ما تحطه فوقها، أو بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
     ];
     const GP_SAVE_STEPS = [
         { id: 'btn-save-profile', showNav: false, text: 'تمام كده! دلوقتي دوس هنا عشان تحفظ بياناتك وتبدأ تستخدم التطبيق.' }
@@ -1777,6 +1778,12 @@
 
     // 🆕 بولّينج بسيط: نستنى النقطة الزرقاء تتحدد فعليًا (نتيجة GPS حقيقية) قبل
     // ما ننتقل لخطوة شرحها، بحد أقصى ~15 ثانية وبعدها نسيبها بهدوء
+    // 🆕 بيتنفذ باستمرار أثناء أي تحريك/تكبير للخريطة الحقيقية وقت مرحلة اللوكيشن،
+    // عشان الهالة الذهبية تتبع النقطة الزرقاء لحظة بلحظة من غير أي تأخير محسوس
+    function gpTutOnLpMapMove() {
+        if (gpTutActive && gpTutFlow === 'location') gpTutRenderStep(true);
+    }
+
     function gpTutWaitForBlueDotThenAdvance() {
         let tries = 0;
         const iv = setInterval(() => {
@@ -1800,6 +1807,15 @@
             gpTutStepIndex = 0;
             gpTutActive = true;
             gpTutShowUI();
+            // 🆕 نتابع أي حركة أو تكبير/تصغير في الخريطة نفسها (سحب بإيد العميل، أو
+            // تمركز تلقائي بعد أول تحديد GPS) عشان الهالة تفضل ملتصقة بالنقطة
+            // الزرقاء بالظبط لحظة بلحظة، مش بس وقت ما الخطوة تفتح لأول مرة
+            if (lpMap) {
+                lpMap.off('move', gpTutOnLpMapMove);
+                lpMap.off('zoom', gpTutOnLpMapMove);
+                lpMap.on('move', gpTutOnLpMapMove);
+                lpMap.on('zoom', gpTutOnLpMapMove);
+            }
             setTimeout(() => gpTutRenderStep(false), 150);
         };
         tryStart();
@@ -1883,11 +1899,27 @@
             maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
             maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
         } else {
-            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بس نأشّر بدايرة ذهبية
-            // وتلميح، من غير ما نعتّم أو نمنع أي حاجة في الشاشة
-            [maskTop, maskBottom, maskLeft, maskRight].forEach(m => { m.style.cssText = 'width:0;height:0;pointer-events:none;'; });
+            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنعتّم الشاشة كلها تعتيم
+            // خفيف بس للفت الانتباه، بس من غير ما نمنع أي حاجة - كل شيء يفضل قابل للضغط
+            const dim = `left:0;top:0;width:${vw}px;height:${vh}px;pointer-events:none;background:rgba(0,0,0,0.28);`;
+            maskTop.style.cssText = dim;
+            maskBottom.style.cssText = 'width:0;height:0;pointer-events:none;';
+            maskLeft.style.cssText = 'width:0;height:0;pointer-events:none;';
+            maskRight.style.cssText = 'width:0;height:0;pointer-events:none;';
         }
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
+
+        // 🆕 هالة تانية اختيارية (لو الخطوة عايزة تأشّر على عنصر إضافي كمان، زي زرار
+        // "تحديد مكان التوصيل تلقائي" جمب شرح النقطة الزرقاء)
+        const ring2 = document.getElementById('gp-tut-ring2');
+        const extraEl = step.extraId ? document.getElementById(step.extraId) : (step.extraSelector ? document.querySelector(step.extraSelector) : null);
+        if (extraEl) {
+            const r2 = extraEl.getBoundingClientRect();
+            ring2.style.display = 'block';
+            ring2.style.cssText = `display:block;left:${r2.left - pad}px;top:${r2.top - pad}px;width:${r2.width + pad * 2}px;height:${r2.height + pad * 2}px;border-radius:14px;`;
+        } else {
+            ring2.style.display = 'none';
+        }
 
         const tooltip = document.getElementById('gp-tut-tooltip');
         tooltip.style.left = '16px';
