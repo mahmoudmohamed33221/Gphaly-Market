@@ -1664,6 +1664,11 @@
             gpTutBound = true;
             window.addEventListener('resize', () => { if (gpTutActive) gpTutRenderStep(true); });
             window.addEventListener('scroll', () => { if (gpTutActive) gpTutRenderStep(true); }, true);
+            // 🆕 أي تغيير في أي حقل (كتابة/تصحيح) ممكن يغيّر ارتفاعه (ظهور أو اختفاء
+            // رسالة خطأ حمرا)، فبنعيد رسم الهالة والتعتيم فورًا عشان مايفضلش جزء
+            // من الحقل أو رسالة الخطأ مغطى بالتعتيم لحد ما المستخدم يسكرول
+            document.addEventListener('input', () => { if (gpTutActive) gpTutRenderStep(true); });
+            document.addEventListener('change', () => { if (gpTutActive) gpTutRenderStep(true); });
             const locBtn = document.getElementById('btn-location-customer');
             if (locBtn) locBtn.addEventListener('click', () => { if (gpTutActive) endOnboardingTutorial(true); });
         }
@@ -1762,12 +1767,16 @@
     }
 
     function gpTutShakeInvalid() {
+        // 🆕 نعيد رسم الهالة/التعتيم أولاً بأحدث ارتفاع للصندوق (بعد ما رسالة الخطأ
+        // الحمرا اتضافت تحت الحقل)، عشان الرسالة متقعش تحت التعتيم وتبقى مخفية
+        const step = GP_TUTORIAL_STEPS[gpTutStepIndex];
+        const target = gpTutTargetEl(step);
+        if (target) gpTutPositionOnTarget(target, step);
         const ring = document.getElementById('gp-tut-ring');
         ring.classList.remove('gp-tut-shake');
         void ring.offsetWidth; // إعادة تشغيل الأنيميشن من جديد لو الغلط اتكرر
         ring.classList.add('gp-tut-shake');
         setTimeout(() => ring.classList.remove('gp-tut-shake'), 400);
-        const step = GP_TUTORIAL_STEPS[gpTutStepIndex];
         if (step.id !== 'location-box-customer') {
             const focusEl = document.getElementById(step.id);
             if (focusEl && typeof focusEl.focus === 'function') focusEl.focus();
