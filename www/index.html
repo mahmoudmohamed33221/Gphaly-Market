@@ -36,6 +36,9 @@
     .menu-card::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background-image: var(--app-logo-url, url('img/gphaly-market-logo.png')); background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.04; pointer-events: none; z-index: 0; user-select: none; }  
     .menu-card > * { position: relative; z-index: 1; }  
     .modal-input { width: 100%; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.05rem 0.8rem; color: var(--cream); outline: none; transition: border-color 0.3s; margin-top: 0.35rem; font-size: 1.0625rem; font-weight: 700; }  
+    .modal-input::placeholder, .modal-input::-webkit-input-placeholder { color: var(--muted); opacity: 0.6; font-weight: 500; }
+    .modal-input::-moz-placeholder { color: var(--muted); opacity: 0.6; font-weight: 500; }
+    .modal-input:-ms-input-placeholder { color: var(--muted); opacity: 0.6; font-weight: 500; }
     /* 🆕 توحيد ارتفاع كل التكست بكسات والأزرار الكبيرة (اللي عرضها كامل w-full) في
        التطبيق كله على نفس ارتفاع التكست بكس الكبير (.modal-input) - عشان محدش
        يبان أقصر من التاني. مش هيأثر على الأزرار الصغيرة (زي زرار حذف الصنف ×)
@@ -49,8 +52,9 @@
     /* 🆕 علامة الصح اللي بتظهر جمب كل خانة اتكتبت صح - على الجنب التاني من اتجاه الكتابة */
     .input-check-wrap { position: relative; }
     .input-check-wrap .modal-input { padding-left: 2.4rem; }
-    .input-valid-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%) scale(0.6); color: var(--success); font-size: 1.1rem; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; }
+    .input-valid-icon { position: absolute; top: 50%; left: 14px; transform: translateY(-50%) scale(0.6); color: var(--success); font-size: 1.1rem; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease; pointer-events: none; }
     .input-valid-icon.show { opacity: 1; transform: translateY(-50%) scale(1); }
+    .input-valid-icon.invalid { color: var(--error); }
     .step-panel { display: none; }  
     .step-panel.active { display: block; }  
     .btn-oval { background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated)); border: 1px solid var(--border); color: var(--cream); font-weight: 600; border-radius: 50px; transition: all 0.3s ease; text-align: center; display: flex; align-items: center; justify-content: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 20; }  
@@ -1638,7 +1642,7 @@
         { id: 'u_ezba', text: 'اكتب اسم العزبة أو المنطقة اللي بتسكن فيها.' },
         { id: 'u_street', text: 'اكتب رقم الشارع أو اسمه.' },
         { id: 'u_landmark', text: 'اكتب علامة مميزة جنب بيتك عشان يسهل على الطيار يوصلك.' },
-        { id: 'location-box-customer', text: 'آخر خطوة! اضغط هنا وحدد موقعك بالظبط على الخريطة عشان نقدر نوصّلك أوردرك بسهولة.' }
+        { id: 'location-box-customer', text: 'هنا تحديد موقع بيتك بالظبط على الخريطة. البرنامج قادر على تحديد موقعك بدقة، يمكنك الضغط على "تعديل" فقط للتأكد من أن دبوس الموقع الأحمر فوق النقطة الزرقاء؛ لأن النقطة الزرقاء هي موقعك الحالي الفعلي.' }
     ];
     let gpTutActive = false;
     let gpTutStepIndex = 0;
@@ -1909,13 +1913,35 @@
         icon.className = 'fas fa-check-circle input-valid-icon';
         wrap.appendChild(icon);
         input.dataset.checkWrapped = '1';
+        // 🆕 الأيقونة متبانش خالص لحد أول ما العميل يدوس جوه الخانة (مش من أول ما
+        // الصفحة تفتح)، وبعد كده بتتحدث لحظيًا صح/غلط حسب شرط الحقل الحقيقي
+        input.addEventListener('focus', () => { input.dataset.touched = '1'; updateInputCheck(input); });
         updateInputCheck(input);
+    }
+
+    // 🆕 شرط الصحة الفعلي لكل خانة (مش مجرد إنها متبقاش فاضية):
+    // - الاسم: لازم يبقى 3 أسماء فعلاً (زي شرط الحفظ بالظبط)
+    // - رقم التليفون: لازم 11 رقم بالظبط وكله أرقام
+    // - تأكيد الرقم: لازم يطابق رقم التليفون تمامًا
+    // - باقي الخانات (العزبة/الشارع/العلامة المميزة/اسم المحل...): يكفي إنها متبقاش فاضية
+    function gpFieldPassesValidation(input) {
+        const val = (input.value || '').trim();
+        if (input.id === 'u_name') return countNameParts(val) >= 3;
+        if (input.id === 'u_phone') return /^\d{11}$/.test(val);
+        if (input.id === 'u_phone_confirm') {
+            const phoneVal = (document.getElementById('u_phone')?.value || '').trim();
+            return val.length > 0 && val === phoneVal && /^\d{11}$/.test(phoneVal);
+        }
+        return !!val;
     }
 
     function updateInputCheck(input) {
         if (!input || !input.dataset.checkWrapped) return;
         const icon = input.parentNode.querySelector('.input-valid-icon');
-        if (icon) icon.classList.toggle('show', !!input.value.trim());
+        if (!icon) return;
+        if (!input.dataset.touched) { icon.classList.remove('show', 'invalid'); return; }
+        const ok = gpFieldPassesValidation(input);
+        icon.className = `fas ${ok ? 'fa-check-circle' : 'fa-times-circle'} input-valid-icon show${ok ? '' : ' invalid'}`;
     }
 
     function setupInputCheckmarks() {
@@ -1925,6 +1951,11 @@
 
     document.addEventListener('input', (e) => {
         if (e.target && e.target.dataset && e.target.dataset.checkWrapped) updateInputCheck(e.target);
+        // تعديل رقم التليفون لازم يعيد تقييم خانة "تأكيد الرقم" فورًا لو كانت اتلمست قبل كده
+        if (e.target && e.target.id === 'u_phone') {
+            const confirmEl = document.getElementById('u_phone_confirm');
+            if (confirmEl) updateInputCheck(confirmEl);
+        }
     });
 
     function updateOrderReviewVisibility() {
