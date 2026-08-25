@@ -781,7 +781,7 @@
 
             <div id="order-fields" class="space-y-4">  
 
-                <div>  
+                <div id="order-step-shoptype">  
                     <label class="text-[var(--gold)] text-sm font-semibold block mb-2">نوع المحل <span class="text-red-500">*</span></label>  
                     <div id="shop-type-grid">
                         <button type="button" class="shop-type-btn" data-type="سوبر ماركت" onclick="selectShopType(this)"><i class="fas fa-store"></i><span>سوبر ماركت</span></button>
@@ -802,12 +802,12 @@
                     <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-store-alt ml-1"></i>تفاصيل المحل</span>  
                     <div class="input-container">  
                         <label class="text-[var(--muted)] text-xs">اسم المحل <span class="text-red-500">*</span></label>  
-                        <input type="text" id="u_store_name" class="modal-input" placeholder="مثال: بقالة أبو علي" oninput="clearError(this)">  
+                        <input type="text" id="u_store_name" class="modal-input" placeholder="اكتب اسم المحل المطلوب" oninput="clearError(this)">  
                         <span class="error-msg" id="err-u_store_name"></span>  
                     </div>  
                     <div class="input-container">  
                         <label class="text-[var(--muted)] text-xs">عنوان المحل <span class="text-red-500">*</span></label>  
-                        <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: بجوار محطة البنزين" oninput="clearError(this)">  
+                        <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: مصر الجديدة الكوربة" oninput="clearError(this)">  
                         <span class="error-msg" id="err-u_store_address"></span>  
                     </div>  
                     <div class="location-picker-box" id="location-box-store">  
@@ -1518,6 +1518,8 @@
         if (!isProfileComplete()) { setRegisterPageMode(false); switchPage('register'); return; }
         switchPage('order');
         requestNotifPermission();
+        // 🆕 أول مرة العميل يدخل صفحة الطلب، نوريه هنتات تعليمية زي بيانات التسجيل بالظبط
+        if (localStorage.getItem('gebhaly_order_tour_seen') !== '1') setTimeout(startOrderTutorial, 300);
     }
 
     function switchPage(pageId) {  
@@ -1538,7 +1540,7 @@
         // ولو العميل اتنقل لصفحة تانية وهو لسه فاتحه، نخفيه من غير ما نسجله "متشاف"
         // عشان يظهر تاني في المرة الجاية لو رجع بسرعة قبل ما يخلصه.
         if (pageId === 'register' && !profileEditMode) { setTimeout(startOnboardingTutorial, 260); }
-        else if (gpTutActive && gpTutFlow === 'register') { gpTutHideUI(); }
+        else if (gpTutActive && (gpTutFlow === 'register' || gpTutFlow === 'order')) { gpTutHideUI(); }
         manageIntervals();  
     }  
 
@@ -1688,11 +1690,21 @@
     const GP_EDIT_PROFILE_STEPS = [
         { id: 'btn-edit-profile-page', text: 'تقدر تغيّر بياناتك أو موقعك في أي وقت من هنا، زي مثلاً لو غيّرت رقم تليفونك أو نقلت لمكان جديد.' }
     ];
+    // 🆕 تعليم صفحة "طلب جديد" - بيبدأ أول مرة بس العميل يدخل الصفحة دي، وبيمشي معاه
+    // لحد ما يوصل لمرحلة تحديد موقع المحل (بيستخدم نفس مودال الخريطة اللي بيستخدمه
+    // في تحديد موقع بيته، فبنعيد استخدام نفس خطوات GP_LOCATION_STEPS بالظبط)
+    const GP_ORDER_STEPS = [
+        { id: 'order-step-shoptype', showNav: false, text: 'دلوقتي اختار نوع المحل اللي عايز تطلب منه من هنا.' },
+        { id: 'u_store_name', wrapContainer: true, text: 'اكتب اسم المحل اللي عايز تطلب منه هنا.' },
+        { id: 'u_store_address', wrapContainer: true, text: 'اكتب عنوان المحل (اسم المنطقة أو أقرب علامة مميزة ليه) هنا.' },
+        { id: 'location-box-store', text: 'هنا تحديد موقع المحل على الخريطة، بنفس الطريقة اللي حددت بيها موقع بيتك بالظبط. ولو المحل ده مش هتلاقيه في نتائج البحث العادي، تقدر تدوس على زرار "مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك" تحت مربع البحث، دور فيه على المحل وانسخ لينكه (زرار المشاركة في جوجل ماب)، والتطبيق هيلقط اللينك من الحافظة تلقائي أول ما ترجع، ويحدد المكان على طول من غير ما تعمل أي حاجة تانية.' }
+    ];
 
     let gpTutActive = false;
     let gpTutStepIndex = 0;
     let gpTutBound = false;
-    let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint
+    let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint | order
+    let gpTutLocationCtx = 'register'; // مين اللي فتح مودال الخريطة: register (بيت العميل) ولا order (المحل)
     let gpTutSteps = GP_TUTORIAL_STEPS;
 
     function gpTutTargetEl(step) {
@@ -1719,11 +1731,31 @@
         setTimeout(() => gpTutRenderStep(false), 220);
     }
 
+    // 🆕 تعليم صفحة "طلب جديد" - نفس الفكرة بالظبط، بس بعلم مستقل في localStorage
+    // عشان يبقى مستقل تمامًا عن تعليم تسجيل العميل
+    function startOrderTutorial() {
+        if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+        if (gpTutActive) return;
+        if (!document.getElementById('gp-tut-root')) return;
+        gpTutFlow = 'order';
+        gpTutSteps = GP_ORDER_STEPS;
+        gpTutActive = true;
+        gpTutStepIndex = 0;
+        gpTutShowUI();
+        gpTutBindGlobalListenersOnce();
+        setTimeout(() => gpTutRenderStep(false), 220);
+    }
+
     // markSeen=true يعني نسجل في localStorage إن السلسلة كلها خلصت (تخطي/وصول لآخر
-    // خطوة في آخر مرحلة) ومايظهروش تاني أبدًا
+    // خطوة في آخر مرحلة) ومايظهروش تاني أبدًا - وبنسجل العلم الصح حسب مين اللي بدأ
+    // السلسلة أصلاً (تسجيل عميل جديد، أو طلب جديد)، حتى لو إحنا دلوقتي جوه مرحلة
+    // location المشتركة بين الاتنين
     function endOnboardingTutorial(markSeen) {
         gpTutActive = false;
-        if (markSeen) localStorage.setItem('gebhaly_onboarding_seen', '1');
+        if (markSeen) {
+            const isOrderCtx = (gpTutFlow === 'order') || (gpTutFlow === 'location' && gpTutLocationCtx === 'order');
+            localStorage.setItem(isOrderCtx ? 'gebhaly_order_tour_seen' : 'gebhaly_onboarding_seen', '1');
+        }
         const root = document.getElementById('gp-tut-root');
         if (root) root.style.display = 'none';
     }
@@ -1743,7 +1775,20 @@
         // مرحلة register: العميل دوس فعليًا على زرار تحديد الموقع -> ننتقل لمرحلة location
         const locBtn = document.getElementById('btn-location-customer');
         if (locBtn) locBtn.addEventListener('click', () => {
-            if (gpTutActive && gpTutFlow === 'register') { gpTutHideUI(); setTimeout(gpTutStartLocationPhase, 500); }
+            if (gpTutActive && gpTutFlow === 'register') { gpTutLocationCtx = 'register'; gpTutHideUI(); setTimeout(gpTutStartLocationPhase, 500); }
+        });
+
+        // مرحلة order - خطوة اللوكيشن: العميل دوس فعليًا على زرار تحديد موقع المحل ->
+        // ننتقل لنفس مرحلة location (بنفس الخطوات) بس بسياق "order"
+        const locBtnStore = document.getElementById('btn-location-store');
+        if (locBtnStore) locBtnStore.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'order') { gpTutLocationCtx = 'order'; gpTutHideUI(); setTimeout(gpTutStartLocationPhase, 500); }
+        });
+
+        // مرحلة order - خطوة 1: العميل دوس على أي نوع محل -> ننتقل للخطوة اللي بعدها
+        const shopGrid = document.getElementById('shop-type-grid');
+        if (shopGrid) shopGrid.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'order' && gpTutStepIndex === 0) { gpTutStepIndex = 1; gpTutRenderStep(false); }
         });
 
         // مرحلة location - خطوة 1: العميل دوس "اذهب لموقعك الحالي الآن" -> نستنى النقطة
@@ -1753,14 +1798,15 @@
             if (gpTutActive && gpTutFlow === 'location' && gpTutStepIndex === 0) gpTutWaitForBlueDotThenAdvance();
         });
 
-        // مرحلة location - خطوة 2: العميل أكّد الموقع (يدويًا أو تلقائيًا) -> ننتقل لمرحلة save
+        // مرحلة location - خطوة 2: العميل أكّد الموقع (يدويًا أو تلقائيًا) -> لو جاي من
+        // تسجيل العميل ننتقل لمرحلة save، ولو جاي من طلب جديد نسجّل إن التعليم خلص بهدوء
         const lpConfirmBtn = document.getElementById('lp-confirm-btn');
         if (lpConfirmBtn) lpConfirmBtn.addEventListener('click', () => {
-            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutStartSavePhase(); }
+            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutOnLocationPhaseDone(); }
         });
         const lpAutoBtn = document.getElementById('lp-auto-set-btn');
         if (lpAutoBtn) lpAutoBtn.addEventListener('click', () => {
-            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutStartSavePhase(); }
+            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutOnLocationPhaseDone(); }
         });
 
         // مرحلة save: العميل دوس "حفظ بياناتك كعميل جديد لدينا" -> ننتقل لمرحلة navProfile
@@ -1792,6 +1838,24 @@
             if (document.querySelector('.lp-blue-dot')) { clearInterval(iv); gpTutStepIndex = 1; gpTutRenderStep(false); }
             else if (tries > 50) { clearInterval(iv); }
         }, 300);
+    }
+
+    // 🆕 بعد ما مودال الخريطة يتقفل، بنفرّع حسب مين اللي فتحه: لو تسجيل عميل جديد
+    // بنكمل لمرحلة "حفظ البيانات"، ولو طلب جديد (تحديد موقع محل) مفيش خطوة تانية
+    // دلوقتي فبنسجل إن التعليم بتاع الطلب خلص بهدوء
+    function gpTutOnLocationPhaseDone() {
+        if (gpTutLocationCtx === 'order') { gpTutEndOrderTourAfterLocation(); }
+        else { gpTutStartSavePhase(); }
+    }
+
+    function gpTutEndOrderTourAfterLocation() {
+        const tryEnd = () => {
+            if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+            const modal = document.getElementById('location-picker-modal');
+            if (modal && modal.classList.contains('show')) { setTimeout(tryEnd, 300); return; }
+            localStorage.setItem('gebhaly_order_tour_seen', '1');
+        };
+        setTimeout(tryEnd, 300);
     }
 
     function gpTutStartLocationPhase() {
@@ -1907,7 +1971,7 @@
             maskLeft.style.cssText = 'width:0;height:0;pointer-events:none;';
             maskRight.style.cssText = 'width:0;height:0;pointer-events:none;';
         }
-        document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
+        document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.id === 'location-box-store' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
 
         // 🆕 هالة تانية اختيارية (لو الخطوة عايزة تأشّر على عنصر إضافي كمان، زي زرار
         // "تحديد مكان التوصيل تلقائي" جمب شرح النقطة الزرقاء)
@@ -1979,6 +2043,18 @@
             const lat = document.getElementById('u_customer_lat').value, lng = document.getElementById('u_customer_lng').value;
             const errEl = document.getElementById('err-u_customer_location');
             if (!lat || !lng) { if (errEl) errEl.textContent = 'لازم تحدد موقعك على الخريطة الأول!'; return false; }
+            if (errEl) errEl.textContent = '';
+            return true;
+        }
+        if (step.id === 'u_store_name' || step.id === 'u_store_address') {
+            const el = document.getElementById(step.id);
+            if (!el.value.trim()) { showError(el, step.id === 'u_store_name' ? 'اكتب اسم المحل!' : 'اكتب عنوان المحل!'); return false; }
+            clearError(el); return true;
+        }
+        if (step.id === 'location-box-store') {
+            const lat = document.getElementById('u_store_lat').value, lng = document.getElementById('u_store_lng').value;
+            const errEl = document.getElementById('err-u_store_location');
+            if (!lat || !lng) { if (errEl) errEl.textContent = 'لازم تحدد موقع المحل على الخريطة الأول!'; return false; }
             if (errEl) errEl.textContent = '';
             return true;
         }
