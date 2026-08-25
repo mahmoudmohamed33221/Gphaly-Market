@@ -706,9 +706,9 @@
             </div>
             <div class="space-y-3">
                 <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-map-marker-alt ml-1"></i>تفاصيل العنوان</span>
-                <div class="input-container"><label class="text-[var(--muted)] text-xs">اسم العزبة / المنطقة <span class="text-red-500">*</span></label><input type="text" id="u_ezba" class="modal-input" placeholder="مثال: عزبة ايوب / عزبة العرب / عزبة مراد" oninput="clearError(this)"><span class="error-msg" id="err-u_ezba"></span></div>
-                <div class="input-container"><label class="text-[var(--muted)] text-xs"> رقم الشارع او اسم الشارع <span class="text-red-500">*</span></label><input type="text" id="u_street" class="modal-input" placeholder="مثال: شارع 8 / شارع ابو ياسين" oninput="clearError(this)"><span class="error-msg" id="err-u_street"></span></div>
-                <div class="input-container"><label class="text-[var(--muted)] text-xs"> علامه مميزه جمب بيتك <span class="text-red-500">*</span></label><input type="text" id="u_landmark" class="modal-input" placeholder="بجوار صيدلية / بجوار سوبر ماركت / بجوار رشاح" oninput="clearError(this)"><span class="error-msg" id="err-u_landmark"></span></div>
+                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold">اسم العزبة / المنطقة <span class="text-red-500">*</span></label><input type="text" id="u_ezba" class="modal-input" placeholder="مثال: عزبة ايوب / عزبة العرب / عزبة مراد" oninput="clearError(this)"><span class="error-msg" id="err-u_ezba"></span></div>
+                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold"> رقم الشارع او اسم الشارع <span class="text-red-500">*</span></label><input type="text" id="u_street" class="modal-input" placeholder="مثال: شارع 8 / شارع ابو ياسين" oninput="clearError(this)"><span class="error-msg" id="err-u_street"></span></div>
+                <div class="input-container"><label class="text-[var(--gold)] text-sm font-semibold"> علامه مميزه جمب بيتك <span class="text-red-500">*</span></label><input type="text" id="u_landmark" class="modal-input" placeholder="بجوار صيدلية / بجوار سوبر ماركت / بجوار رشاح" oninput="clearError(this)"><span class="error-msg" id="err-u_landmark"></span></div>
                 <div class="location-picker-box" id="location-box-customer">
                     <label class="text-[var(--gold)] text-sm font-semibold block mb-2"><i class="fas fa-location-crosshairs ml-1"></i>حدد موقعك بالظبط على الخريطة <span class="text-red-500">*</span></label>
                     <button type="button" onclick="openLocationPicker('customer')" id="btn-location-customer" class="location-pick-btn">
@@ -732,7 +732,7 @@
             <div id="profile-view-content" class="space-y-3 text-base"></div>
         </div>
     </div>
-    <button type="button" onclick="openProfileEdit()" class="w-full max-w-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-4 rounded-xl mt-4 shadow-lg text-lg"><i class="fas fa-pen ml-2"></i>تعديل بياناتي</button>
+    <button type="button" id="btn-edit-profile-page" onclick="openProfileEdit()" class="w-full max-w-xl bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-4 rounded-xl mt-4 shadow-lg text-lg"><i class="fas fa-pen ml-2"></i>تعديل بياناتي</button>
 </div>
 
 <div id="page-order-review" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">
@@ -917,7 +917,7 @@
     </div>  
     <div class="lp-footer">  
         <div id="lp-auto-set-wrap">  
-            <button type="button" class="lp-btn-locate" onclick="autoSetCurrentLocationAndConfirm()"><i class="fas fa-house ml-1"></i><span>تحديد مكان التوصيل تلقائي لمكاني الحالي الآن</span></button>  
+            <button type="button" id="lp-auto-set-btn" class="lp-btn-locate" onclick="autoSetCurrentLocationAndConfirm()"><i class="fas fa-house ml-1"></i><span>تحديد مكان التوصيل تلقائي لمكاني الحالي الآن</span></button>  
         </div>  
         <div class="lp-btn-row">  
             <button type="button" class="lp-btn-cancel" onclick="closeLocationPicker()">إلغاء</button>  
@@ -937,7 +937,7 @@
     <div class="gp-tut-tooltip" id="gp-tut-tooltip">
         <div class="gp-tut-tooltip-step" id="gp-tut-tooltip-step"></div>
         <div class="gp-tut-tooltip-text" id="gp-tut-tooltip-text"></div>
-        <div class="gp-tut-navbar">
+        <div class="gp-tut-navbar" id="gp-tut-navbar">
             <button type="button" class="gp-tut-btn-next" id="gp-tut-btn-next" onclick="gpTutNext()"><span id="gp-tut-btn-next-label">التالي</span><i class="fas fa-arrow-left"></i></button>
             <button type="button" class="gp-tut-btn-back" id="gp-tut-btn-back" onclick="gpTutPrev()"><i class="fas fa-arrow-right"></i><span>رجوع للسابق</span></button>
         </div>
@@ -1537,7 +1537,7 @@
         // ولو العميل اتنقل لصفحة تانية وهو لسه فاتحه، نخفيه من غير ما نسجله "متشاف"
         // عشان يظهر تاني في المرة الجاية لو رجع بسرعة قبل ما يخلصه.
         if (pageId === 'register' && !profileEditMode) { setTimeout(startOnboardingTutorial, 260); }
-        else if (gpTutActive) { endOnboardingTutorial(false); }
+        else if (gpTutActive && gpTutFlow === 'register') { gpTutHideUI(); }
         manageIntervals();  
     }  
 
@@ -1577,6 +1577,28 @@
             else { merged.push(words[i]); }
         }
         return merged.length;
+    }
+
+    // 🆕 شرط الاسم الكامل (داخلي فقط - العميل مبيشوفش تفاصيل الشرط ده، بس بيتمنع
+    // من الاستمرار لحد ما يستوفيه): 3 أسماء فعلية على الأقل، ممنوع منعًا باتًا أي
+    // أرقام أو رموز، وأقل عدد حروف لكل اسم: الاسم الأول حرفين، والباقي 3 حروف لكل واحد
+    function isFullNameValid(name) {
+        const trimmed = (name || '').trim();
+        if (!trimmed) return false;
+        if (!/^[A-Za-z\u0600-\u06FF\s]+$/.test(trimmed)) return false; // حروف ومسافات بس، ولا رقم ولا رمز
+        const words = trimmed.split(/\s+/).filter(Boolean);
+        const merged = [];
+        for (let i = 0; i < words.length; i++) {
+            if (words[i] === 'عبد' && i + 1 < words.length) { merged.push(words[i] + ' ' + words[i + 1]); i++; }
+            else { merged.push(words[i]); }
+        }
+        if (merged.length < 3) return false;
+        for (let i = 0; i < merged.length; i++) {
+            const partLen = merged[i].replace(/\s+/g, '').length;
+            const minLen = (i === 0) ? 2 : 3;
+            if (partLen < minLen) return false;
+        }
+        return true;
     }
 
     // =========================================================================
@@ -1630,56 +1652,74 @@
     }
 
     // =========================================================================
-    // 🆕 نظام الإرشاد التعليمي (Onboarding Tutorial) لصفحة "بيانات العميل الجديد"
-    // بيظهر أول مرة بس (لما مفيش localStorage flag) وبيمشي مع العميل حقل حقل
-    // لحد ما يوصل لمرحلة تحديد الموقع، وهناك بيخلص.
+    // 🆕 نظام الإرشاد التعليمي (Onboarding Tutorial) - سلسلة متتابعة من المراحل:
+    // 1) register: تعبئة بيانات العميل حقل حقل لحد مرحلة اللوكيشن
+    // 2) location: جوه مودال تحديد الموقع نفسه (زرار "اذهب لموقعك الحالي" ثم شرح
+    //    النقطة الزرقاء/الدبوس الأحمر)
+    // 3) save: هنت نهائي على زرار "حفظ بياناتك كعميل جديد لدينا"
+    // 4) navProfile: هنت على "ملفي الشخصي" في شريط التنقل تحت
+    // 5) editProfileHint: هنت أخير على زرار "تعديل بياناتي" جوه الملف الشخصي
+    // بعد ما آخر مرحلة تخلص (أو لو العميل دوس "تخطي" في أي وقت)، بيتسجل العلم في
+    // localStorage ومايظهرش السلسلة دي تاني أبدًا.
     // =========================================================================
     const GP_TUTORIAL_STEPS = [
-        { id: 'u_name', text: 'قم بكتابة اسمك الثلاثي من فضلك في هذه الخانة.' },
-        { id: 'u_phone', text: 'اكتب رقم تليفونك المكون من 11 رقم صحيح من فضلك، وتأكد منه جيدًا قبل الضغط على "التالي".' },
-        { id: 'u_phone_confirm', text: 'أعد كتابة نفس رقم التليفون هنا تاني للتأكيد.' },
-        { id: 'u_governorate', text: 'اختر محافظتك من القائمة دي.' },
-        { id: 'u_ezba', text: 'اكتب اسم العزبة أو المنطقة اللي بتسكن فيها.' },
-        { id: 'u_street', text: 'اكتب رقم الشارع أو اسمه.' },
-        { id: 'u_landmark', text: 'اكتب علامة مميزة جنب بيتك عشان يسهل على الطيار يوصلك.' },
+        { id: 'u_name', wrapContainer: true, text: 'قم بكتابة اسمك الثلاثي من فضلك في هذه الخانة.' },
+        { id: 'u_phone', wrapContainer: true, text: 'اكتب رقم تليفونك المكون من 11 رقم صحيح من فضلك، وتأكد منه جيدًا قبل الضغط على "التالي".' },
+        { id: 'u_phone_confirm', wrapContainer: true, text: 'أعد كتابة نفس رقم التليفون هنا تاني للتأكيد.' },
+        { id: 'u_governorate', wrapContainer: true, text: 'اختر محافظتك من القائمة دي.' },
+        { id: 'u_ezba', wrapContainer: true, text: 'اكتب اسم العزبة أو المنطقة اللي بتسكن فيها.' },
+        { id: 'u_street', wrapContainer: true, text: 'اكتب رقم الشارع أو اسمه.' },
+        { id: 'u_landmark', wrapContainer: true, text: 'اكتب علامة مميزة جنب بيتك عشان يسهل على الطيار يوصلك.' },
         { id: 'location-box-customer', text: 'هنا تحديد موقع بيتك بالظبط على الخريطة. البرنامج قادر على تحديد موقعك بدقة، يمكنك الضغط على "تعديل" فقط للتأكد من أن دبوس الموقع الأحمر فوق النقطة الزرقاء؛ لأن النقطة الزرقاء هي موقعك الحالي الفعلي.' }
     ];
+    // 🆕 خطوات جوه مودال تحديد الموقع نفسه - غير محجّبة (blocking:false) عشان
+    // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
+    const GP_LOCATION_STEPS = [
+        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
+        { selector: '.lp-blue-dot', blocking: false, showNav: false, text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بسحب الخريطة بإيدك لحد ما تحطه فوقها، أو بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
+    ];
+    const GP_SAVE_STEPS = [
+        { id: 'btn-save-profile', showNav: false, text: 'تمام كده! دلوقتي دوس هنا عشان تحفظ بياناتك وتبدأ تستخدم التطبيق.' }
+    ];
+    const GP_NAV_PROFILE_STEPS = [
+        { id: 'nav-profile', showNav: false, text: 'أهلاً بيك! دوس هنا على "ملفي الشخصي" وريّك حاجة مهمة.' }
+    ];
+    const GP_EDIT_PROFILE_STEPS = [
+        { id: 'btn-edit-profile-page', text: 'تقدر تغيّر بياناتك أو موقعك في أي وقت من هنا، زي مثلاً لو غيّرت رقم تليفونك أو نقلت لمكان جديد.' }
+    ];
+
     let gpTutActive = false;
     let gpTutStepIndex = 0;
     let gpTutBound = false;
+    let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint
+    let gpTutSteps = GP_TUTORIAL_STEPS;
 
     function gpTutTargetEl(step) {
-        const el = document.getElementById(step.id);
+        const el = step.selector ? document.querySelector(step.selector) : document.getElementById(step.id);
         if (!el) return null;
-        if (step.id === 'location-box-customer') return el;
-        return el.closest('.input-container') || el;
+        if (step.wrapContainer) return el.closest('.input-container') || el;
+        return el;
     }
+
+    function gpTutShowUI() { const root = document.getElementById('gp-tut-root'); if (root) root.style.display = 'block'; }
+    function gpTutHideUI() { gpTutActive = false; const root = document.getElementById('gp-tut-root'); if (root) root.style.display = 'none'; }
 
     function startOnboardingTutorial() {
         if (profileEditMode) return; // مش هيظهر في وضع تعديل البيانات، بس أول تسجيل
         if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
         if (gpTutActive) return;
-        const root = document.getElementById('gp-tut-root');
-        if (!root) return;
+        if (!document.getElementById('gp-tut-root')) return;
+        gpTutFlow = 'register';
+        gpTutSteps = GP_TUTORIAL_STEPS;
         gpTutActive = true;
         gpTutStepIndex = 0;
-        root.style.display = 'block';
-        if (!gpTutBound) {
-            gpTutBound = true;
-            window.addEventListener('resize', () => { if (gpTutActive) gpTutRenderStep(true); });
-            window.addEventListener('scroll', () => { if (gpTutActive) gpTutRenderStep(true); }, true);
-            // 🆕 أي تغيير في أي حقل (كتابة/تصحيح) ممكن يغيّر ارتفاعه (ظهور أو اختفاء
-            // رسالة خطأ حمرا)، فبنعيد رسم الهالة والتعتيم فورًا عشان مايفضلش جزء
-            // من الحقل أو رسالة الخطأ مغطى بالتعتيم لحد ما المستخدم يسكرول
-            document.addEventListener('input', () => { if (gpTutActive) gpTutRenderStep(true); });
-            document.addEventListener('change', () => { if (gpTutActive) gpTutRenderStep(true); });
-            const locBtn = document.getElementById('btn-location-customer');
-            if (locBtn) locBtn.addEventListener('click', () => { if (gpTutActive) endOnboardingTutorial(true); });
-        }
+        gpTutShowUI();
+        gpTutBindGlobalListenersOnce();
         setTimeout(() => gpTutRenderStep(false), 220);
     }
 
-    // markSeen=true يعني نسجل في localStorage إنه اتشاف ومايظهرش تاني (تخطي/وصول لآخر خطوة/ضغط على زرار الموقع فعليًا)
+    // markSeen=true يعني نسجل في localStorage إن السلسلة كلها خلصت (تخطي/وصول لآخر
+    // خطوة في آخر مرحلة) ومايظهروش تاني أبدًا
     function endOnboardingTutorial(markSeen) {
         gpTutActive = false;
         if (markSeen) localStorage.setItem('gebhaly_onboarding_seen', '1');
@@ -1687,11 +1727,143 @@
         if (root) root.style.display = 'none';
     }
 
+    // 🆕 كل الأزرار الحقيقية اللي السلسلة التعليمية بتتفاعل معاها بتتربط مرة واحدة بس
+    function gpTutBindGlobalListenersOnce() {
+        if (gpTutBound) return;
+        gpTutBound = true;
+        window.addEventListener('resize', () => { if (gpTutActive) gpTutRenderStep(true); });
+        window.addEventListener('scroll', () => { if (gpTutActive) gpTutRenderStep(true); }, true);
+        // 🆕 أي تغيير في أي حقل (كتابة/تصحيح) ممكن يغيّر ارتفاعه (ظهور أو اختفاء
+        // رسالة خطأ حمرا)، فبنعيد رسم الهالة والتعتيم فورًا عشان مايفضلش جزء
+        // من الحقل أو رسالة الخطأ مغطى بالتعتيم لحد ما المستخدم يسكرول
+        document.addEventListener('input', () => { if (gpTutActive) gpTutRenderStep(true); });
+        document.addEventListener('change', () => { if (gpTutActive) gpTutRenderStep(true); });
+
+        // مرحلة register: العميل دوس فعليًا على زرار تحديد الموقع -> ننتقل لمرحلة location
+        const locBtn = document.getElementById('btn-location-customer');
+        if (locBtn) locBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'register') { gpTutHideUI(); setTimeout(gpTutStartLocationPhase, 500); }
+        });
+
+        // مرحلة location - خطوة 1: العميل دوس "اذهب لموقعك الحالي الآن" -> نستنى النقطة
+        // الزرقاء تظهر فعليًا وبعدين ننتقل للخطوة اللي بعدها في نفس المرحلة
+        const lpLocateFab = document.getElementById('lp-locate-fab');
+        if (lpLocateFab) lpLocateFab.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'location' && gpTutStepIndex === 0) gpTutWaitForBlueDotThenAdvance();
+        });
+
+        // مرحلة location - خطوة 2: العميل أكّد الموقع (يدويًا أو تلقائيًا) -> ننتقل لمرحلة save
+        const lpConfirmBtn = document.getElementById('lp-confirm-btn');
+        if (lpConfirmBtn) lpConfirmBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutStartSavePhase(); }
+        });
+        const lpAutoBtn = document.getElementById('lp-auto-set-btn');
+        if (lpAutoBtn) lpAutoBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'location') { gpTutHideUI(); gpTutStartSavePhase(); }
+        });
+
+        // مرحلة save: العميل دوس "حفظ بياناتك كعميل جديد لدينا" -> ننتقل لمرحلة navProfile
+        const saveBtn = document.getElementById('btn-save-profile');
+        if (saveBtn) saveBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'save') { gpTutHideUI(); gpTutStartNavProfilePhase(); }
+        });
+
+        // مرحلة navProfile: العميل دوس "ملفي الشخصي" -> ننتقل لمرحلة editProfileHint
+        const navProfileBtn = document.getElementById('nav-profile');
+        if (navProfileBtn) navProfileBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'navProfile') { gpTutHideUI(); setTimeout(gpTutStartEditProfilePhase, 350); }
+        });
+    }
+
+    // 🆕 بولّينج بسيط: نستنى النقطة الزرقاء تتحدد فعليًا (نتيجة GPS حقيقية) قبل
+    // ما ننتقل لخطوة شرحها، بحد أقصى ~15 ثانية وبعدها نسيبها بهدوء
+    function gpTutWaitForBlueDotThenAdvance() {
+        let tries = 0;
+        const iv = setInterval(() => {
+            tries++;
+            if (!gpTutActive || gpTutFlow !== 'location') { clearInterval(iv); return; }
+            if (document.querySelector('.lp-blue-dot')) { clearInterval(iv); gpTutStepIndex = 1; gpTutRenderStep(false); }
+            else if (tries > 50) { clearInterval(iv); }
+        }, 300);
+    }
+
+    function gpTutStartLocationPhase() {
+        if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+        const tryStart = () => {
+            if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+            const modal = document.getElementById('location-picker-modal');
+            if (!modal || !modal.classList.contains('show')) return; // العميل قفل المودال قبل ما نبدأ - نسيبها بهدوء
+            const block = document.getElementById('lp-block-overlay');
+            if (block && block.classList.contains('show')) { setTimeout(tryStart, 300); return; } // لسه بيدور على موقعه الأول
+            gpTutFlow = 'location';
+            gpTutSteps = GP_LOCATION_STEPS;
+            gpTutStepIndex = 0;
+            gpTutActive = true;
+            gpTutShowUI();
+            setTimeout(() => gpTutRenderStep(false), 150);
+        };
+        tryStart();
+    }
+
+    // 🆕 بعد ما العميل يأكّد الموقع (يدوي أو تلقائي)، ممكن المودال ياخد لحظات يقفل
+    // (خصوصًا التلقائي بيستنى GPS الأول)، فبنستنى قفله فعليًا قبل ما نورّي هنت الحفظ
+    function gpTutStartSavePhase() {
+        if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+        const tryStart = () => {
+            if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+            const modal = document.getElementById('location-picker-modal');
+            if (modal && modal.classList.contains('show')) { setTimeout(tryStart, 300); return; }
+            const regPage = document.getElementById('page-register');
+            if (!regPage || !regPage.classList.contains('active')) return; // العميل مشي لمكان تاني في الوقت ده
+            gpTutFlow = 'save';
+            gpTutSteps = GP_SAVE_STEPS;
+            gpTutStepIndex = 0;
+            gpTutActive = true;
+            gpTutShowUI();
+            setTimeout(() => gpTutRenderStep(false), 150);
+        };
+        setTimeout(tryStart, 300);
+    }
+
+    // 🆕 بعد ما العميل يحفظ بياناته بنجاح، هنستنى وصوله فعليًا للصفحة الرئيسية قبل
+    // ما نبدأ هنت "ملفي الشخصي" (لو فيه خطأ في الحفظ لأي سبب، مش هيتفعل)
+    function gpTutStartNavProfilePhase() {
+        if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+        let tries = 0;
+        const tryStart = () => {
+            tries++;
+            if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+            const homePage = document.getElementById('page-home');
+            if (homePage && homePage.classList.contains('active')) {
+                gpTutFlow = 'navProfile';
+                gpTutSteps = GP_NAV_PROFILE_STEPS;
+                gpTutStepIndex = 0;
+                gpTutActive = true;
+                gpTutShowUI();
+                setTimeout(() => gpTutRenderStep(false), 150);
+                return;
+            }
+            if (tries > 20) return; // مكملش لحد الصفحة الرئيسية في وقت معقول - نسيبها بهدوء
+            setTimeout(tryStart, 300);
+        };
+        setTimeout(tryStart, 300);
+    }
+
+    function gpTutStartEditProfilePhase() {
+        if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+        gpTutFlow = 'editProfileHint';
+        gpTutSteps = GP_EDIT_PROFILE_STEPS;
+        gpTutStepIndex = 0;
+        gpTutActive = true;
+        gpTutShowUI();
+        setTimeout(() => gpTutRenderStep(false), 150);
+    }
+
     function gpTutRenderStep(skipScroll) {
         if (!gpTutActive) return;
-        const step = GP_TUTORIAL_STEPS[gpTutStepIndex];
+        const step = gpTutSteps[gpTutStepIndex];
         const target = gpTutTargetEl(step);
-        if (!target) { gpTutNext(); return; }
+        if (!target) { if (skipScroll) return; gpTutNext(); return; }
         if (skipScroll) { gpTutPositionOnTarget(target, step); return; }
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => gpTutPositionOnTarget(target, step), 320);
@@ -1702,11 +1874,20 @@
         const pad = 8;
         const rect = target.getBoundingClientRect();
         const vw = window.innerWidth, vh = window.innerHeight;
-        document.getElementById('gp-tut-mask-top').style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;`;
-        document.getElementById('gp-tut-mask-bottom').style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;`;
-        document.getElementById('gp-tut-mask-left').style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;`;
-        document.getElementById('gp-tut-mask-right').style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;`;
-        document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${step.id === 'location-box-customer' ? '18px' : '14px'};`;
+        const blocking = step.blocking !== false;
+        const maskTop = document.getElementById('gp-tut-mask-top'), maskBottom = document.getElementById('gp-tut-mask-bottom');
+        const maskLeft = document.getElementById('gp-tut-mask-left'), maskRight = document.getElementById('gp-tut-mask-right');
+        if (blocking) {
+            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:auto;`;
+            maskBottom.style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:auto;`;
+            maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
+            maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
+        } else {
+            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بس نأشّر بدايرة ذهبية
+            // وتلميح، من غير ما نعتّم أو نمنع أي حاجة في الشاشة
+            [maskTop, maskBottom, maskLeft, maskRight].forEach(m => { m.style.cssText = 'width:0;height:0;pointer-events:none;'; });
+        }
+        document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
 
         const tooltip = document.getElementById('gp-tut-tooltip');
         tooltip.style.left = '16px';
@@ -1722,19 +1903,21 @@
             tooltip.style.top = 'auto';
         }
 
-        document.getElementById('gp-tut-tooltip-step').textContent = `الخطوة ${gpTutStepIndex + 1} من ${GP_TUTORIAL_STEPS.length}`;
+        document.getElementById('gp-tut-tooltip-step').textContent = `الخطوة ${gpTutStepIndex + 1} من ${gpTutSteps.length}`;
         document.getElementById('gp-tut-tooltip-text').textContent = step.text;
+        const navEl = document.getElementById('gp-tut-navbar');
+        if (navEl) navEl.style.display = (step.showNav === false) ? 'none' : 'flex';
         const btnBack = document.getElementById('gp-tut-btn-back');
         if (gpTutStepIndex === 0) btnBack.setAttribute('disabled', 'disabled'); else btnBack.removeAttribute('disabled');
-        document.getElementById('gp-tut-btn-next-label').textContent = (gpTutStepIndex === GP_TUTORIAL_STEPS.length - 1) ? 'فهمت' : 'التالي';
+        document.getElementById('gp-tut-btn-next-label').textContent = (gpTutStepIndex === gpTutSteps.length - 1) ? 'فهمت' : 'التالي';
     }
 
     function gpTutValidateStep(index) {
-        const step = GP_TUTORIAL_STEPS[index];
+        const step = gpTutSteps[index];
         if (step.id === 'u_name') {
             const el = document.getElementById('u_name'); const val = el.value.trim();
             if (!val) { showError(el, 'هذه الخانة مطلوبة!'); return false; }
-            if (countNameParts(val) < 3) { showError(el, 'اكتب الاسم ثلاثي كامل (اسم وسط بينه وبين الباقي مسافة)!'); return false; }
+            if (!isFullNameValid(val)) { showError(el, 'اكتب الاسم ثلاثي كامل (اسم وسط بينه وبين الباقي مسافة)!'); return false; }
             clearError(el); return true;
         }
         if (step.id === 'u_phone') {
@@ -1773,7 +1956,7 @@
     function gpTutShakeInvalid() {
         // 🆕 نعيد رسم الهالة/التعتيم أولاً بأحدث ارتفاع للصندوق (بعد ما رسالة الخطأ
         // الحمرا اتضافت تحت الحقل)، عشان الرسالة متقعش تحت التعتيم وتبقى مخفية
-        const step = GP_TUTORIAL_STEPS[gpTutStepIndex];
+        const step = gpTutSteps[gpTutStepIndex];
         const target = gpTutTargetEl(step);
         if (target) gpTutPositionOnTarget(target, step);
         const ring = document.getElementById('gp-tut-ring');
@@ -1781,7 +1964,7 @@
         void ring.offsetWidth; // إعادة تشغيل الأنيميشن من جديد لو الغلط اتكرر
         ring.classList.add('gp-tut-shake');
         setTimeout(() => ring.classList.remove('gp-tut-shake'), 400);
-        if (step.id !== 'location-box-customer') {
+        if (step.id && step.id !== 'location-box-customer') {
             const focusEl = document.getElementById(step.id);
             if (focusEl && typeof focusEl.focus === 'function') focusEl.focus();
         }
@@ -1791,7 +1974,7 @@
         // 🆕 مايكملش للخطوة الجاية غير لما البيانات المكتوبة في الخطوة الحالية تكون
         // مطابقة تمامًا لنفس شروط التحقق المستخدمة أصلاً في saveProfile()
         if (!gpTutValidateStep(gpTutStepIndex)) { gpTutShakeInvalid(); return; }
-        if (gpTutStepIndex >= GP_TUTORIAL_STEPS.length - 1) { endOnboardingTutorial(true); return; }
+        if (gpTutStepIndex >= gpTutSteps.length - 1) { endOnboardingTutorial(true); return; }
         gpTutStepIndex++;
         gpTutRenderStep(false);
     }
@@ -1813,7 +1996,7 @@
         ['u_name','u_phone','u_phone_confirm','u_governorate','u_ezba','u_street','u_landmark'].forEach(id => clearError(document.getElementById(id)));
         const nameEl = document.getElementById('u_name'); const nameVal = nameEl.value.trim();
         if (!nameVal) { showError(nameEl, 'هذه الخانة مطلوبة!'); err = true; }
-        else if (countNameParts(nameVal) < 3) { showError(nameEl, 'اكتب الاسم ثلاثي كامل (اسم وسط بينه وبين الباقي مسافة)!'); err = true; }
+        else if (!isFullNameValid(nameVal)) { showError(nameEl, 'اكتب الاسم ثلاثي كامل (اسم وسط بينه وبين الباقي مسافة)!'); err = true; }
 
         const phoneEl = document.getElementById('u_phone'), confirmEl = document.getElementById('u_phone_confirm');
         const pv = phoneEl.value.trim(), cv = confirmEl.value.trim();
@@ -1926,7 +2109,7 @@
     // - باقي الخانات (العزبة/الشارع/العلامة المميزة/اسم المحل...): يكفي إنها متبقاش فاضية
     function gpFieldPassesValidation(input) {
         const val = (input.value || '').trim();
-        if (input.id === 'u_name') return countNameParts(val) >= 3;
+        if (input.id === 'u_name') return isFullNameValid(val);
         if (input.id === 'u_phone') return /^\d{11}$/.test(val);
         if (input.id === 'u_phone_confirm') {
             const phoneVal = (document.getElementById('u_phone')?.value || '').trim();
@@ -1950,6 +2133,11 @@
     }
 
     document.addEventListener('input', (e) => {
+        // 🆕 خانة الاسم: نشيل أي رقم أو رمز فور كتابته - العميل مبيقدرش يحطه أصلاً
+        if (e.target && e.target.id === 'u_name') {
+            const cleaned = e.target.value.replace(/[^A-Za-z\u0600-\u06FF\s]/g, '');
+            if (cleaned !== e.target.value) e.target.value = cleaned;
+        }
         if (e.target && e.target.dataset && e.target.dataset.checkWrapped) updateInputCheck(e.target);
         // تعديل رقم التليفون لازم يعيد تقييم خانة "تأكيد الرقم" فورًا لو كانت اتلمست قبل كده
         if (e.target && e.target.id === 'u_phone') {
