@@ -140,6 +140,7 @@
     .lp-sat-toggle { flex-shrink: 0; width: 42px; height: 42px; background: #1a1a1a; color: var(--gold); border: 1px solid var(--border); border-radius: 50%; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
     /* 🆕 صف ثابت تحت الخريطة - زرار الموقع المباشر وجنبه زرار القمر الصناعي */
     .lp-bottom-fab-row { position: absolute; bottom: 16px; left: 16px; z-index: 1200; display: flex; align-items: center; gap: 8px; }
+    .lp-sat-col { display: flex; flex-direction: column; gap: 8px; }
     .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
     .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
     .lp-btn-locate i { color: var(--gold); }
@@ -878,12 +879,11 @@
 
 <div id="location-picker-modal">  
     <div class="lp-header">  
-        <div class="lp-title" id="lp-title"><i class="fas fa-map-location-dot ml-1"></i>حدد موقعك على الخريطة</div>  
-        <div class="lp-hint" id="lp-hint">حرك الخريطة لحد ما العلامة الحمرا تبقى فوق مكانك بالظبط</div>  
+        <div class="lp-title" id="lp-title"><i class="fas fa-map-location-dot ml-1"></i>حدد مكان الموقع على الخريطة</div>  
     </div>  
     <div id="locationPickerMap">  
         <div class="lp-search-wrap">  
-            <div class="lp-search-box">  
+            <div class="lp-search-box" style="display:none;">  
                 <i class="fas fa-magnifying-glass"></i>  
                 <input type="text" id="lp-search-input" placeholder="اكتب اسم المنطقة، أو الصق لينك جوجل ماب هنا مباشرة" oninput="onLpSearchInput(this.value)" autocomplete="off">  
                 <i class="fas fa-xmark lp-search-clear" id="lp-search-clear" onclick="clearLpSearch()" style="display:none;"></i>  
@@ -903,9 +903,14 @@
             <button type="button" class="lp-locate-fab" id="lp-locate-fab" onclick="locateMeInPicker()">  
                 <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
             </button>  
-            <button type="button" class="lp-sat-toggle" id="lp-sat-toggle" onclick="toggleLpSatelliteView()">  
-                <i class="fas fa-satellite" id="lp-sat-toggle-icon"></i>  
-            </button>  
+            <div class="lp-sat-col">  
+                <button type="button" class="lp-sat-toggle" id="lp-sat-toggle" onclick="toggleLpSatelliteView()">  
+                    <i class="fas fa-satellite" id="lp-sat-toggle-icon"></i>  
+                </button>  
+                <button type="button" class="lp-sat-toggle" id="lp-drag-toggle" onclick="toggleLpMapDragging()">  
+                    <i class="fas fa-lock" id="lp-drag-toggle-icon"></i>  
+                </button>  
+            </div>  
         </div>  
     </div>  
     <div id="lp-block-overlay">  
@@ -1683,7 +1688,7 @@
     // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
     const GP_LOCATION_STEPS = [
         { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
-        { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بسحب الخريطة بإيدك لحد ما تحطه فوقها، أو بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
+        { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بفتح قفل تحريك الخريطة (الزرار تحت أيقونة القمر الصناعي) وسحب الخريطة بإيدك لحد ما تحطه فوقها، أو الأسهل: بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
     ];
     const GP_SAVE_STEPS = [
         { id: 'btn-save-profile', showNav: false, text: 'تمام كده! دلوقتي دوس هنا عشان تحفظ بياناتك وتبدأ تستخدم التطبيق.' }
@@ -2335,6 +2340,7 @@
     // =========================================================================
     let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
     let lpStreetLayer = null, lpSatelliteLayer = null, lpIsSatelliteView = false; // 🆕 لتبديل صورة القمر الصناعي
+    let lpDragLocked = true; // 🆕 تحريك الخريطة يدويًا مقفول دايمًا كوضع افتراضي كل ما الخريطة تتفتح
 
     // 🆕 بيبدّل بين الخريطة الرسومية (Voyager) وصور القمر الصناعي الحقيقية - العميل ممكن
     // يحتاجها لو حاسس إن اسم الشارع أو مكان الدبوس مش مطابق للواقع بالظبط
@@ -2350,6 +2356,19 @@
             lpStreetLayer.addTo(lpMap);
             document.getElementById('lp-sat-toggle-icon').className = 'fas fa-satellite';
         }
+    }
+
+    // 🆕 قفل/فتح تحريك الخريطة بإيد العميل - الوضع الافتراضي دايمًا "مقفول" كل ما
+    // الخريطة تتفتح من جديد (بحيث الموقع بيتحدد بالزرارات/البحث بس)، ولو العميل عايز
+    // يظبط المكان بإيده بالسحب، يفتحها من هنا، ولو رجع دوس تاني تتقفل تاني
+    function setLpDragLocked(locked) {
+        lpDragLocked = locked;
+        if (lpMap) { if (locked) lpMap.dragging.disable(); else lpMap.dragging.enable(); }
+        const icon = document.getElementById('lp-drag-toggle-icon');
+        if (icon) icon.className = locked ? 'fas fa-lock' : 'fas fa-lock-open';
+    }
+    function toggleLpMapDragging() {
+        setLpDragLocked(!lpDragLocked);
     }
     let lpAdvanceTo = null; // 🆕 لو اتفتحت الخريطة كجزء من الضغط على "التالي"، رقم الخطوة اللي هننتقلها بعد التأكيد
     let lpBlueDotMarker = null, lpSearchTimer = null, lpSearchAbort = null;
@@ -2436,21 +2455,13 @@
         lpAdvanceTo = advanceTo || null;  
         const confirmBtn = document.getElementById('lp-confirm-btn');  
         const autoWrap = document.getElementById('lp-auto-set-wrap');  
-        let baseHint;  
         if (target === 'store') {  
-            document.getElementById('lp-title').innerHTML = '<i class="fas fa-map-location-dot ml-1"></i>حدد مكان المحل على الخريطة';  
-            baseHint = advanceTo ? 'العلامة 🔴 فوق المحل بالظبط؟ دوس "تأكيد"' : 'دوّر في الصندوق فوق ✍️ ودوس المكان الصح';  
-            document.getElementById('lp-hint').textContent = baseHint;  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان المحل';  
             autoWrap.style.display = 'none';  
         } else {  
-            document.getElementById('lp-title').innerHTML = '<i class="fas fa-house ml-1"></i>حدد مكان بيتك على الخريطة';  
-            baseHint = advanceTo ? 'العلامة 🔴 فوق بيتك بالظبط؟ دوس "تأكيد"' : 'جبنالك موقعك تلقائي - أكّده أو غيّره من الصندوق فوق';  
-            document.getElementById('lp-hint').textContent = baseHint;  
             confirmBtn.innerHTML = '<i class="fas fa-check ml-1"></i>تأكيد مكان منزلي';  
             autoWrap.style.display = 'block';  
         }  
-        lpBaseHintText = baseHint;  
         document.getElementById('lp-search-input').value = '';  
         hideLpSearchResults();  
         document.getElementById('lp-search-clear').style.display = 'none';  
@@ -2478,6 +2489,7 @@
                 setupLpOverlayEventIsolation();  
             }  
             lpMap.invalidateSize();  
+            setLpDragLocked(true); // 🆕 كل ما الخريطة تتفتح، تحريكها اليدوي يرجع مقفول من الأول
             const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
             const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
             const savedLat = document.getElementById(latId).value, savedLng = document.getElementById(lngId).value;  
@@ -3065,17 +3077,15 @@
         flashLpConfirmGuidance(mainName);  
     }  
 
-    // 🆕 إرشاد مؤقت + وميض على زرار التأكيد، بيظهر لمدة كام ثانية بعد ما المستخدم يختار
-    // مكان (من البحث أو من لصق جوجل ماب)، وبعدين يرجع النص الأصلي تاني لوحده
+    // 🆕 وميض على زرار التأكيد، بيظهر لمدة كام ثانية بعد ما المستخدم يختار مكان
+    // (من البحث أو من لصق جوجل ماب)، عشان يعرف الخطوة الجاية بسهولة
     function flashLpConfirmGuidance(placeName) {  
-        const hintEl = document.getElementById('lp-hint');  
-        hintEl.innerHTML = `👈 كويس! دلوقتي بص للعلامة الحمرا 🔴 فوق${placeName ? ' - "' + escapeHtml(placeName) + '"' : ''}، لو هي فوق مكانك صح، دوس الزرار الدهبي تحت وخلاص`;  
         const confirmBtn = document.getElementById('lp-confirm-btn');  
         confirmBtn.classList.remove('lp-pulse');  
         void confirmBtn.offsetWidth; // 🆕 نجبر المتصفح يعيد حساب الأنيميشن من الأول لو كانت شغالة قبل كده  
         confirmBtn.classList.add('lp-pulse');  
         clearTimeout(lpHintResetTimer);  
-        lpHintResetTimer = setTimeout(() => { hintEl.textContent = lpBaseHintText; confirmBtn.classList.remove('lp-pulse'); }, 6000);  
+        lpHintResetTimer = setTimeout(() => { confirmBtn.classList.remove('lp-pulse'); }, 6000);  
     }  
 
     function hideLpSearchResults() {  
