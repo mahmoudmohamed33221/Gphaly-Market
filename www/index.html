@@ -139,7 +139,7 @@
        الخريطة) - شوف .lp-bottom-fab-row تحت */
     .lp-sat-toggle { flex-shrink: 0; width: 42px; height: 42px; background: #1a1a1a; color: var(--gold); border: 1px solid var(--border); border-radius: 50%; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
     /* 🆕 صف ثابت تحت الخريطة - زرار الموقع المباشر وجنبه زرار القمر الصناعي */
-    .lp-bottom-fab-row { position: absolute; bottom: 16px; left: 16px; z-index: 1200; display: flex; align-items: center; gap: 8px; }
+    .lp-bottom-fab-row { position: absolute; bottom: 16px; left: 16px; z-index: 1200; display: flex; align-items: flex-start; gap: 8px; }
     .lp-sat-col { display: flex; flex-direction: column; gap: 8px; }
     .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
     .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
@@ -904,11 +904,11 @@
                 <i class="fas fa-location-crosshairs"></i><span>اذهب لموقعك الحالي الآن</span>  
             </button>  
             <div class="lp-sat-col">  
-                <button type="button" class="lp-sat-toggle" id="lp-sat-toggle" onclick="toggleLpSatelliteView()">  
-                    <i class="fas fa-satellite" id="lp-sat-toggle-icon"></i>  
-                </button>  
                 <button type="button" class="lp-sat-toggle" id="lp-drag-toggle" onclick="toggleLpMapDragging()">  
                     <i class="fas fa-lock" id="lp-drag-toggle-icon"></i>  
+                </button>  
+                <button type="button" class="lp-sat-toggle" id="lp-sat-toggle" onclick="toggleLpSatelliteView()">  
+                    <i class="fas fa-satellite" id="lp-sat-toggle-icon"></i>  
                 </button>  
             </div>  
         </div>  
@@ -1974,7 +1974,7 @@
         } else {
             // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنعتّم الشاشة كلها تعتيم
             // خفيف بس للفت الانتباه، بس من غير ما نمنع أي حاجة - كل شيء يفضل قابل للضغط
-            const dim = `left:0;top:0;width:${vw}px;height:${vh}px;pointer-events:none;background:rgba(0,0,0,0.28);`;
+            const dim = `left:0;top:0;width:${vw}px;height:${vh}px;pointer-events:none;background:rgba(0,0,0,0.65);`;
             maskTop.style.cssText = dim;
             maskBottom.style.cssText = 'width:0;height:0;pointer-events:none;';
             maskLeft.style.cssText = 'width:0;height:0;pointer-events:none;';
@@ -1998,8 +1998,11 @@
         tooltip.style.left = '16px';
         tooltip.style.right = '16px';
         tooltip.style.width = 'auto';
+        // 🆕 الأفضلية بقت إن الهنت يظهر فوق العنصر المضيء، وميرجعش يظهر تحته إلا لو
+        // مفيش مساحة كفاية فوق فعلاً (وكان فيه مساحة كفاية تحت)
+        const spaceAbove = rect.top - pad;
         const spaceBelow = vh - (rect.bottom + pad);
-        const showBelow = spaceBelow > 240 || (rect.top - pad) < 240;
+        const showBelow = spaceAbove < 240 && spaceBelow > 240;
         if (showBelow) {
             tooltip.style.top = (rect.bottom + pad + 14) + 'px';
             tooltip.style.bottom = 'auto';
@@ -2015,6 +2018,14 @@
         const btnBack = document.getElementById('gp-tut-btn-back');
         if (gpTutStepIndex === 0) btnBack.setAttribute('disabled', 'disabled'); else btnBack.removeAttribute('disabled');
         document.getElementById('gp-tut-btn-next-label').textContent = (gpTutStepIndex === gpTutSteps.length - 1) ? 'فهمت' : 'التالي';
+        // 🆕 نفتح الكيبورد تلقائيًا على الحقل الجديد لما ننتقل لخطوة كتابة نصية،
+        // عشان العميل يقدر يكتب على طول من غير ما يحتاج يدوس على الخانة بنفسه
+        if (step.id && !step.selector) {
+            const inputEl = document.getElementById(step.id);
+            if (inputEl && (inputEl.tagName === 'INPUT' || inputEl.tagName === 'TEXTAREA')) {
+                setTimeout(() => { try { inputEl.focus({ preventScroll: true }); } catch (e) { inputEl.focus(); } }, 80);
+            }
+        }
     }
 
     function gpTutValidateStep(index) {
@@ -2361,9 +2372,22 @@
     // 🆕 قفل/فتح تحريك الخريطة بإيد العميل - الوضع الافتراضي دايمًا "مقفول" كل ما
     // الخريطة تتفتح من جديد (بحيث الموقع بيتحدد بالزرارات/البحث بس)، ولو العميل عايز
     // يظبط المكان بإيده بالسحب، يفتحها من هنا، ولو رجع دوس تاني تتقفل تاني
+    // 🆕 القفل بيوقف "dragging" العادي (سحب بإصبع واحد)، وكمان "touchZoom" و
+    // "doubleClickZoom" لأن الاتنين دول بيقدروا يحركوا مركز الخريطة (بالبنش بإصبعين،
+    // أو بالدبل تاب) حتى لو dragging نفسه متقفل
     function setLpDragLocked(locked) {
         lpDragLocked = locked;
-        if (lpMap) { if (locked) lpMap.dragging.disable(); else lpMap.dragging.enable(); }
+        if (lpMap) {
+            if (locked) {
+                lpMap.dragging.disable();
+                lpMap.touchZoom.disable();
+                lpMap.doubleClickZoom.disable();
+            } else {
+                lpMap.dragging.enable();
+                lpMap.touchZoom.enable();
+                lpMap.doubleClickZoom.enable();
+            }
+        }
         const icon = document.getElementById('lp-drag-toggle-icon');
         if (icon) icon.className = locked ? 'fas fa-lock' : 'fas fa-lock-open';
     }
