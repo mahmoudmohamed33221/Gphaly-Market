@@ -139,7 +139,7 @@
        الخريطة) - شوف .lp-bottom-fab-row تحت */
     .lp-sat-toggle { flex-shrink: 0; width: 42px; height: 42px; background: #1a1a1a; color: var(--gold); border: 1px solid var(--border); border-radius: 50%; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
     /* 🆕 صف ثابت تحت الخريطة - زرار الموقع المباشر وجنبه زرار القمر الصناعي */
-    .lp-bottom-fab-row { position: absolute; bottom: 16px; left: 16px; z-index: 1200; display: flex; align-items: flex-start; gap: 8px; }
+    .lp-bottom-fab-row { position: absolute; bottom: 16px; left: 16px; z-index: 1200; display: flex; align-items: flex-end; gap: 8px; }
     .lp-sat-col { display: flex; flex-direction: column; gap: 8px; }
     .lp-footer { flex-shrink: 0; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem; background: #000000; border-top: 1px solid var(--border); }
     .lp-btn-locate { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--cream); font-weight: 700; padding: 0.9rem; border-radius: 0.85rem; }
@@ -723,7 +723,7 @@
                 </div>
             </div>
             <button type="button" id="btn-save-profile" onclick="saveProfile()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl mt-4 shadow-lg"><i class="fas fa-save ml-2"></i><span id="btn-save-profile-text">حفظ بياناتك كعميل جديد لدينا</span></button>
-            <button type="button" id="btn-cancel-edit-profile" onclick="switchPage('profile')" style="display:none;" class="w-full bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">إلغاء</button>
+            <button type="button" id="btn-cancel-edit-profile" onclick="cancelProfileEdit()" style="display:none;" class="w-full bg-[var(--bg-elevated)] border border-[var(--border)] text-white font-bold py-3 rounded-xl">إلغاء</button>
         </div>
     </div>
 </div>
@@ -743,8 +743,8 @@
         <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1"><i class="fas fa-clipboard-check ml-2"></i>مراجعة الطلب قبل الإرسال</h2>
         <p class="text-[var(--muted)] text-xs text-center mb-1">راجع بياناتك كويس قبل ما تأكد الإرسال</p>
         <div id="order-review-content" class="space-y-3 text-sm"></div>
-        <div class="flex flex-col gap-3 pt-2">
-            <button type="button" onclick="openProfileEdit()" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#22C3EE,#0EA5E9);"><i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل</button>
+        <div class="flex flex-col gap-3 pt-2" id="order-review-actions">
+            <button type="button" onclick="openProfileEdit('order-review')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#22C3EE,#0EA5E9);"><i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل</button>
             <button type="button" onclick="switchPage('order')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#FBA94C,#F97316);"><i class="fas fa-edit ml-2"></i>تعديل بيانات الطلب</button>
             <button type="button" id="btn-final-submit" onclick="submitOrderToServer()" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#34D399,#10B981);"><i class="fas fa-check-circle ml-2"></i>تم التأكد وإرسال الطلب</button>
         </div>
@@ -778,7 +778,10 @@
 
 <div id="page-order" class="app-page flex flex-col justify-center items-center px-4 py-6 w-full">  
     <div class="menu-card gphaly-icy-card p-6 w-full max-w-xl">  
-        <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center mb-1">استمارة طلب اوردر</h2>  
+        <div class="relative mb-1">
+            <h2 class="font-amiri text-3xl font-bold text-[var(--gold)] text-center">استمارة طلب اوردر</h2>  
+            <button type="button" onclick="restartOrderTutorialManually()" title="إرشادات طلب أوردر جديد" style="position:absolute; top:2px; left:0; width:28px; height:28px; border-radius:50%; background:rgba(212,175,55,0.15); border:1px solid var(--gold); color:var(--gold); font-weight:800; font-size:0.85rem;">؟</button>
+        </div>
         <p class="text-[var(--muted)] text-xs text-center mb-4">حدد نوع المحل واكتب طلباتك، وهنجيبهولك بسرعة</p>
         <form id="multiStepForm" onsubmit="event.preventDefault(); goToOrderReview();" novalidate>  
 
@@ -824,13 +827,13 @@
                     </div>  
                 </div>  
 
-                <div>  
+                <div id="order-items-section">  
                     <label class="text-[var(--gold)] text-sm font-semibold block mb-2">طلباتك بالعدد <span class="text-red-500">*</span></label>  
                     <div id="items-container" class="space-y-4"><div class="flex flex-col item-row-container"><div class="flex items-center gap-3 item-row"><input type="text" class="modal-input item-name !mt-0 flex-1" placeholder="مثال: 1 كيلو لبن / نص كيلو دقيق / 2 علبة زبادي" oninput="clearError(this)"></div><span class="error-msg item-error-msg"></span></div></div>  
                     <button type="button" onclick="addNewItemRow()" class="mt-4 w-full text-sm font-bold bg-amber-500 text-slate-950 px-4 py-3 rounded-xl hover:bg-amber-400 transition flex items-center justify-center gap-2 shadow-md"><i class="fas fa-plus"></i> أضف صنف آخر</button>  
                 </div>  
 
-                <div><label class="text-[var(--gold)] text-sm font-semibold">ملحوظة (اختياري)</label><input type="text" id="u_notes" class="modal-input" placeholder="مثال: لو محتاج الحاجه من محل معين"></div>  
+                <div><label class="text-[var(--gold)] text-sm font-semibold">ملحوظة (اختياري)</label><input type="text" id="u_notes" class="modal-input" placeholder="مثال: رن عليا لما توصل"></div>  
 
                 <div class="pt-4">
                     <button type="button" id="btn-review-order" onclick="goToOrderReview()" style="display:none;" class="w-full bg-gradient-to-r from-[var(--gold)] to-[var(--gold-dark)] text-[#111827] font-bold py-3 rounded-xl shadow-lg"><i class="fas fa-paper-plane ml-2"></i>مراجعة وإرسال الطلب</button>
@@ -894,7 +897,7 @@
                     <i class="fab fa-google ml-1"></i><span id="lp-open-gmaps-btn-label">مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك</span>  
                 </button>  
                 <button type="button" class="lp-manual-paste-fab" id="lp-manual-paste-fab" onclick="manualPasteLpClipboard()">  
-                    <i class="fas fa-paste"></i><span>لصق اللينك اللي نسخته</span>  
+                    <i class="fas fa-location-dot"></i><span>اذهب إلى موقع اللينك اللي نسخته</span>  
                 </button>  
             </div>  
         </div>  
@@ -1549,7 +1552,7 @@
         // ولو العميل اتنقل لصفحة تانية وهو لسه فاتحه، نخفيه من غير ما نسجله "متشاف"
         // عشان يظهر تاني في المرة الجاية لو رجع بسرعة قبل ما يخلصه.
         if (pageId === 'register' && !profileEditMode) { setTimeout(startOnboardingTutorial, 260); }
-        else if (gpTutActive && (gpTutFlow === 'register' || gpTutFlow === 'order')) { gpTutHideUI(); }
+        else if (gpTutActive && ['register', 'order', 'orderReview', 'orderTracking'].includes(gpTutFlow)) { gpTutHideUI(); }
         manageIntervals();  
     }  
 
@@ -1706,15 +1709,34 @@
         { id: 'order-step-shoptype', showNav: false, text: 'دلوقتي اختار نوع المحل اللي عايز تطلب منه من هنا.' },
         { id: 'u_store_name', wrapContainer: true, text: 'اكتب اسم المحل اللي عايز تطلب منه هنا.' },
         { id: 'u_store_address', wrapContainer: true, text: 'اكتب عنوان المحل (اسم المنطقة أو أقرب علامة مميزة ليه) هنا.' },
-        { id: 'location-box-store', text: 'هنا تحديد موقع المحل على الخريطة، بنفس الطريقة اللي حددت بيها موقع بيتك بالظبط. ولو المحل ده مش هتلاقيه في نتائج البحث العادي، تقدر تدوس على زرار "مش لاقي مكانك؟ افتح خرائط جوجل ودور بنفسك" تحت مربع البحث، دور فيه على المحل وانسخ لينكه (زرار المشاركة في جوجل ماب)، والتطبيق هيلقط اللينك من الحافظة تلقائي أول ما ترجع، ويحدد المكان على طول من غير ما تعمل أي حاجة تانية.' }
+        { id: 'location-box-store', text: 'هنا تحديد موقع المحل على الخريطة.' },
+        { id: 'order-items-section', text: 'اكتب الأصناف المطلوبة من المحل هنا، صنف في كل خانة. لو عايز تضيف صنف تاني دوس زرار "أضف صنف آخر"، ولو خلصت دوس "التالي".' },
+        { id: 'u_notes', wrapContainer: true, text: 'لو عندك أي ملحوظة تانية للطيار (اختياري)، اكتبها هنا.' },
+        { id: 'btn-review-order', showNav: false, text: 'تمام! دلوقتي دوس هنا عشان تراجع طلبك قبل الإرسال.' }
+    ];
+    // 🆕 خطوات مودال اللوكيشن لما يتفتح من صفحة "طلب جديد" لتحديد موقع المحل - مختلفة
+    // عن خطوات موقع بيت العميل، لأن هنا بنشجّعه يستخدم البحث الخارجي في جوجل ماب
+    // أكتر لو المحل مش موجود في نتائج البحث العادية
+    const GP_ORDER_LOCATION_STEPS = [
+        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك.' },
+        { selector: '#lp-open-gmaps-btn', blocking: false, showNav: false, text: 'أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد موقع محل معيّن بالظبط.' },
+        { selector: '#lp-manual-paste-fab', blocking: false, showNav: false, text: 'كويس! دلوقتي دوس هنا عشان نودّيك لنفس مكان اللينك اللي نسخته من جوجل ماب.' },
+        { selector: '#lp-confirm-btn', blocking: false, showNav: false, text: 'لو المكان صح، دوس هنا عشان تأكّد موقع المحل.' }
+    ];
+    const GP_ORDER_REVIEW_STEPS = [
+        { id: 'order-review-actions', text: 'راجع بياناتك كويس، وبعدين دوس "تم التأكد وإرسال الطلب" عشان نبعت طلبك على طول. ولو حابب تعدّل أي حاجة، تقدر من الأزرار التانية هنا الأول.' }
+    ];
+    const GP_ORDER_TRACKING_STEPS = [
+        { selector: '#active-orders-list .mk-details-header', text: 'تمام، طلبك اتبعت! تقدر تشوف كل تفاصيل طلبك في أي وقت من القائمة المنسدلة دي.' }
     ];
 
     let gpTutActive = false;
     let gpTutStepIndex = 0;
     let gpTutBound = false;
-    let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint | order
+    let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint | order | orderReview | orderTracking
     let gpTutLocationCtx = 'register'; // مين اللي فتح مودال الخريطة: register (بيت العميل) ولا order (المحل)
     let gpTutSteps = GP_TUTORIAL_STEPS;
+    let gpTutInjectBrowserTutorial = false; // 🆕 لو true، هنحقن تعليم بصري جوه صفحة جوجل مابس نفسها لما تتفتح
 
     function gpTutTargetEl(step) {
         const el = step.selector ? document.querySelector(step.selector) : document.getElementById(step.id);
@@ -1762,7 +1784,7 @@
     function endOnboardingTutorial(markSeen) {
         gpTutActive = false;
         if (markSeen) {
-            const isOrderCtx = (gpTutFlow === 'order') || (gpTutFlow === 'location' && gpTutLocationCtx === 'order');
+            const isOrderCtx = ['order', 'orderReview', 'orderTracking'].includes(gpTutFlow) || (gpTutFlow === 'location' && gpTutLocationCtx === 'order');
             localStorage.setItem(isOrderCtx ? 'gebhaly_order_tour_seen' : 'gebhaly_onboarding_seen', '1');
         }
         const root = document.getElementById('gp-tut-root');
@@ -1800,11 +1822,26 @@
             if (gpTutActive && gpTutFlow === 'order' && gpTutStepIndex === 0) { gpTutStepIndex = 1; gpTutRenderStep(false); }
         });
 
-        // مرحلة location - خطوة 1: العميل دوس "اذهب لموقعك الحالي الآن" -> نستنى النقطة
-        // الزرقاء تظهر فعليًا وبعدين ننتقل للخطوة اللي بعدها في نفس المرحلة
+        // مرحلة location - خطوة 1: العميل دوس "اذهب لموقعك الحالي الآن" -> في سياق
+        // تسجيل العميل نستنى النقطة الزرقاء فعليًا وبعدين ننتقل للخطوة اللي بعدها،
+        // وفي سياق المحل بننتقل للخطوة اللي بعدها على طول (بحث جوجل)
         const lpLocateFab = document.getElementById('lp-locate-fab');
         if (lpLocateFab) lpLocateFab.addEventListener('click', () => {
-            if (gpTutActive && gpTutFlow === 'location' && gpTutStepIndex === 0) gpTutWaitForBlueDotThenAdvance();
+            if (!gpTutActive || gpTutFlow !== 'location' || gpTutStepIndex !== 0) return;
+            if (gpTutLocationCtx === 'order') { gpTutStepIndex = 1; gpTutRenderStep(false); }
+            else gpTutWaitForBlueDotThenAdvance();
+        });
+
+        // مرحلة location (سياق order بس) - العميل دوس "افتح خرائط جوجل" -> هنحقن
+        // تعليم بصري جوه المتصفح الداخلي نفسه، ونستنى قفوله عشان نكمل الهنتات
+        // على زرار اللصق وزرار التأكيد جوه خريطتنا الصغيرة
+        const lpOpenGmapsBtnTut = document.getElementById('lp-open-gmaps-btn');
+        if (lpOpenGmapsBtnTut) lpOpenGmapsBtnTut.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'location' && gpTutLocationCtx === 'order') {
+                gpTutInjectBrowserTutorial = true;
+                gpTutHideUI();
+                gpTutWaitForBrowserCloseThenContinue();
+            }
         });
 
         // مرحلة location - خطوة 2: العميل أكّد الموقع (يدويًا أو تلقائيًا) -> لو جاي من
@@ -1829,6 +1866,18 @@
         if (navProfileBtn) navProfileBtn.addEventListener('click', () => {
             if (gpTutActive && gpTutFlow === 'navProfile') { gpTutHideUI(); setTimeout(gpTutStartEditProfilePhase, 350); }
         });
+
+        // مرحلة order - خطوة أخيرة: العميل دوس "مراجعة وإرسال الطلب" -> ننتقل لمرحلة orderReview
+        const reviewBtn = document.getElementById('btn-review-order');
+        if (reviewBtn) reviewBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'order') { gpTutHideUI(); gpTutStartOrderReviewPhase(); }
+        });
+
+        // مرحلة orderReview: العميل دوس "تم التأكد وإرسال الطلب" -> ننتقل لمرحلة orderTracking
+        const finalSubmitBtn = document.getElementById('btn-final-submit');
+        if (finalSubmitBtn) finalSubmitBtn.addEventListener('click', () => {
+            if (gpTutActive && gpTutFlow === 'orderReview') { gpTutHideUI(); gpTutStartOrderTrackingPhase(); }
+        });
     }
 
     // 🆕 بولّينج بسيط: نستنى النقطة الزرقاء تتحدد فعليًا (نتيجة GPS حقيقية) قبل
@@ -1850,33 +1899,118 @@
     }
 
     // 🆕 بعد ما مودال الخريطة يتقفل، بنفرّع حسب مين اللي فتحه: لو تسجيل عميل جديد
-    // بنكمل لمرحلة "حفظ البيانات"، ولو طلب جديد (تحديد موقع محل) مفيش خطوة تانية
-    // دلوقتي فبنسجل إن التعليم بتاع الطلب خلص بهدوء
+    // بنكمل لمرحلة "حفظ البيانات"، ولو طلب جديد (تحديد موقع محل) بنكمل باقي
+    // خطوات تعليم الطلب (الأصناف/الملحوظة/زرار المراجعة)
     function gpTutOnLocationPhaseDone() {
-        if (gpTutLocationCtx === 'order') { gpTutEndOrderTourAfterLocation(); }
+        if (gpTutLocationCtx === 'order') { gpTutResumeOrderAfterLocation(); }
         else { gpTutStartSavePhase(); }
     }
 
-    function gpTutEndOrderTourAfterLocation() {
-        const tryEnd = () => {
+    // 🆕 بيستنى قفل المتصفح الداخلي (بعد ما العميل يرجع من جوجل مابس) قبل ما يكمّل
+    // بهنتات زرار اللصق وزرار التأكيد جوه خريطتنا الصغيرة
+    function gpTutWaitForBrowserCloseThenContinue() {
+        let tries = 0;
+        const iv = setInterval(() => {
+            tries++;
+            if (localStorage.getItem('gebhaly_order_tour_seen') === '1') { clearInterval(iv); return; }
+            if (lpVisibleBrowserId === null) {
+                clearInterval(iv);
+                const modal = document.getElementById('location-picker-modal');
+                if (!modal || !modal.classList.contains('show')) return; // العميل قفل المودال خالص - نسيبها بهدوء
+                gpTutFlow = 'location';
+                gpTutSteps = GP_ORDER_LOCATION_STEPS;
+                gpTutStepIndex = 2; // نكمل من خطوة "دوس على زرار اللصق"
+                gpTutActive = true;
+                gpTutShowUI();
+                setTimeout(() => gpTutRenderStep(false), 200);
+            } else if (tries > 200) { clearInterval(iv); }
+        }, 500);
+    }
+
+    function gpTutResumeOrderAfterLocation() {
+        const tryResume = () => {
             if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
             const modal = document.getElementById('location-picker-modal');
-            if (modal && modal.classList.contains('show')) { setTimeout(tryEnd, 300); return; }
-            localStorage.setItem('gebhaly_order_tour_seen', '1');
+            if (modal && modal.classList.contains('show')) { setTimeout(tryResume, 300); return; }
+            const orderPage = document.getElementById('page-order');
+            if (!orderPage || !orderPage.classList.contains('active')) return; // العميل مشي لمكان تاني
+            gpTutFlow = 'order';
+            gpTutSteps = GP_ORDER_STEPS;
+            gpTutStepIndex = 4; // نكمل من خطوة الأصناف
+            gpTutActive = true;
+            gpTutShowUI();
+            setTimeout(() => gpTutRenderStep(false), 150);
         };
-        setTimeout(tryEnd, 300);
+        setTimeout(tryResume, 300);
+    }
+
+    // 🆕 بعد ما يدوس "مراجعة وإرسال الطلب"، نستنى وصوله فعليًا لصفحة المراجعة قبل
+    // ما نبدأ هنت الأزرار الأخيرة
+    function gpTutStartOrderReviewPhase() {
+        if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+        let tries = 0;
+        const tryStart = () => {
+            tries++;
+            if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+            const reviewPage = document.getElementById('page-order-review');
+            if (reviewPage && reviewPage.classList.contains('active')) {
+                gpTutFlow = 'orderReview';
+                gpTutSteps = GP_ORDER_REVIEW_STEPS;
+                gpTutStepIndex = 0;
+                gpTutActive = true;
+                gpTutShowUI();
+                setTimeout(() => gpTutRenderStep(false), 150);
+                return;
+            }
+            if (tries > 20) return;
+            setTimeout(tryStart, 300);
+        };
+        setTimeout(tryStart, 300);
+    }
+
+    // 🆕 بعد ما يأكّد ويبعت الطلب، نستنى وصوله لصفحة "الطلبات الجارية" وظهور كارت
+    // الطلب فيها فعليًا قبل ما نورّيه هنت القائمة المنسدلة
+    function gpTutStartOrderTrackingPhase() {
+        if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+        let tries = 0;
+        const tryStart = () => {
+            tries++;
+            if (localStorage.getItem('gebhaly_order_tour_seen') === '1') return;
+            const trackPage = document.getElementById('page-active-orders');
+            const detailsHeader = document.querySelector('#active-orders-list .mk-details-header');
+            if (trackPage && trackPage.classList.contains('active') && detailsHeader) {
+                gpTutFlow = 'orderTracking';
+                gpTutSteps = GP_ORDER_TRACKING_STEPS;
+                gpTutStepIndex = 0;
+                gpTutActive = true;
+                gpTutShowUI();
+                setTimeout(() => gpTutRenderStep(false), 150);
+                return;
+            }
+            if (tries > 20) return;
+            setTimeout(tryStart, 300);
+        };
+        setTimeout(tryStart, 300);
+    }
+
+    // 🆕 زرار "؟" جمب عنوان صفحة الطلب - بيرجّع تعليم الطلب من الأول يدويًا في أي وقت
+    function restartOrderTutorialManually() {
+        localStorage.removeItem('gebhaly_order_tour_seen');
+        if (gpTutActive) gpTutHideUI();
+        setTimeout(startOrderTutorial, 200);
     }
 
     function gpTutStartLocationPhase() {
-        if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+        const seenFlag = gpTutLocationCtx === 'order' ? 'gebhaly_order_tour_seen' : 'gebhaly_onboarding_seen';
+        if (localStorage.getItem(seenFlag) === '1') return;
         const tryStart = () => {
-            if (localStorage.getItem('gebhaly_onboarding_seen') === '1') return;
+            if (localStorage.getItem(seenFlag) === '1') return;
             const modal = document.getElementById('location-picker-modal');
             if (!modal || !modal.classList.contains('show')) return; // العميل قفل المودال قبل ما نبدأ - نسيبها بهدوء
             const block = document.getElementById('lp-block-overlay');
             if (block && block.classList.contains('show')) { setTimeout(tryStart, 300); return; } // لسه بيدور على موقعه الأول
             gpTutFlow = 'location';
-            gpTutSteps = GP_LOCATION_STEPS;
+            gpTutSteps = gpTutLocationCtx === 'order' ? GP_ORDER_LOCATION_STEPS : GP_LOCATION_STEPS;
             gpTutStepIndex = 0;
             gpTutActive = true;
             gpTutShowUI();
@@ -2078,6 +2212,13 @@
             if (errEl) errEl.textContent = '';
             return true;
         }
+        if (step.id === 'order-items-section') {
+            const items = Array.from(document.querySelectorAll('#items-container .item-name'));
+            const hasOne = items.some(el => el.value.trim());
+            if (!hasOne) { const first = items[0]; if (first) showError(first, 'اكتب صنف واحد على الأقل!'); return false; }
+            items.forEach(el => clearError(el));
+            return true;
+        }
         return true;
     }
 
@@ -2113,10 +2254,19 @@
         gpTutRenderStep(false);
     }
 
-    function openProfileEdit() {
+    let profileEditReturnTo = null; // 🆕 لو التعديل بدأ من صفحة مراجعة الطلب، نرجعله لنفس الصفحة بعد الحفظ/الإلغاء
+    function openProfileEdit(returnTo) {
+        profileEditReturnTo = returnTo || null;
         setRegisterPageMode(true);
         fillRegisterFormFromStorage();
         switchPage('register');
+    }
+
+    function cancelProfileEdit() {
+        const target = profileEditReturnTo || 'profile';
+        profileEditReturnTo = null;
+        switchPage(target);
+        if (target === 'order-review') renderOrderReview();
     }
 
     function saveProfile() {
@@ -2162,7 +2312,8 @@
             document.getElementById('u_landmark').value.trim(),
             custLat, custLng);
 
-        if (profileEditMode) { renderProfilePage(); switchPage('profile'); }
+        if (profileEditReturnTo === 'order-review') { profileEditReturnTo = null; switchPage('order-review'); renderOrderReview(); }
+        else if (profileEditMode) { renderProfilePage(); switchPage('profile'); }
         else { switchPage('home'); }
     }
 
@@ -2762,6 +2913,13 @@
     // مشترك بين الفتحة الخفية (التسخين) والفتحة الظاهرة - نفس الكود بالظبط في المكانين
     const LP_PRE_SHOW_SCRIPT = "(function(){function fc(el){try{var r=el.getBoundingClientRect();var cx=r.left+r.width/2,cy=r.top+r.height/2;['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(ty){var ev;try{ev=new MouseEvent(ty,{bubbles:true,cancelable:true,view:window,clientX:cx,clientY:cy});}catch(e){ev=document.createEvent('MouseEvent');ev.initEvent(ty,true,true);}el.dispatchEvent(ev);});}catch(e2){}try{el.click();}catch(e3){}}function tc(){try{var texts=['الاستمرار على الويب','استمرار على الويب','مواصلة استخدام الويب','متابعة الاستخدام على الويب','Continue in browser','Continue to web','Stay in browser','Use web version','Continue on web','Continue using web'];var els=document.querySelectorAll('a,button,div,span,[role=\\\"button\\\"]');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(texts.indexOf(t)!==-1){var el=els[i];var clk=el.closest?el.closest('button,a,[role=\\\"button\\\"],[tabindex]'):null;fc(clk||el);return true;}}}catch(e){}return false;}var locClicked=false;function tl(){if(locClicked)return true;try{var sels=['button[aria-label*=\\\"موقع\\\"]','button[aria-label*=\\\"الموقع\\\"]','button[title*=\\\"موقع\\\"]','button[aria-label*=\\\"Location\\\"]','button[aria-label*=\\\"location\\\"]','button[jsaction*=\\\"geolocat\\\"]'];for(var s=0;s<sels.length;s++){var btn=document.querySelector(sels[s]);if(btn){fc(btn);locClicked=true;return true;}}}catch(e){}return false;}function loop(){var a=tc(),b=tl();return a&&b;}function startObs(){var target=document.body||document.documentElement;if(!target){setTimeout(startObs,50);return;}if(loop())return;try{var obs=new MutationObserver(function(){if(loop()){try{obs.disconnect();}catch(e3){}}});obs.observe(target,{childList:true,subtree:true});setTimeout(function(){try{obs.disconnect();}catch(e4){}},20000);}catch(e2){}}startObs();var pc=0;var pt=setInterval(function(){pc++;if(loop()||pc>40){clearInterval(pt);}},500);})();";
 
+    // 🆕 تعليم بصري بيتحقن جوه صفحة جوجل مابس نفسها (لما بيتفتح للعميل من ضمن تعليم
+    // "طلب جديد")، بيعتّم الشاشة كلها ما عدا شريط البحث الأول، وبعدين (بعد ما يختار
+    // مكان ويتغير عنوان الصفحة) يعتّم كل حاجة ما عدا منطقة الدبوس في النص، ويقوله
+    // يعمل ضغطة مطولة عليه وبعدين يدوس "مشاركة". مبني بحساب مواقع تقريبية عامة
+    // (مش عن طريق البحث جوه كود جوجل نفسه) عشان يفضل شغال حتى لو جوجل غيّر تصميمه
+    const LP_ORDER_TUTORIAL_SCRIPT = "(function(){try{var stage=0;var wrap=document.createElement('div');wrap.id='gpTutBrowserOverlay';wrap.style.cssText='position:fixed;inset:0;z-index:999999;pointer-events:none;';document.documentElement.appendChild(wrap);function mkDiv(){var d=document.createElement('div');d.style.cssText='position:fixed;background:rgba(0,0,0,0.62);pointer-events:none;transition:all .25s ease;';wrap.appendChild(d);return d;}var mTop=mkDiv(),mBottom=mkDiv(),mLeft=mkDiv(),mRight=mkDiv();var tip=document.createElement('div');tip.style.cssText='position:fixed;left:12px;right:12px;z-index:1000000;background:#111;color:#fff;border:1px solid rgba(212,175,55,0.6);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,0.6);direction:rtl;text-align:right;font-family:sans-serif;';wrap.appendChild(tip);function paint(rect,text,below){var vw=window.innerWidth,vh=window.innerHeight,pad=8;mTop.style.left='0px';mTop.style.top='0px';mTop.style.width=vw+'px';mTop.style.height=Math.max(0,rect.top-pad)+'px';mBottom.style.left='0px';mBottom.style.top=(rect.bottom+pad)+'px';mBottom.style.width=vw+'px';mBottom.style.height=Math.max(0,vh-(rect.bottom+pad))+'px';mLeft.style.left='0px';mLeft.style.top=(rect.top-pad)+'px';mLeft.style.width=Math.max(0,rect.left-pad)+'px';mLeft.style.height=(rect.height+pad*2)+'px';mRight.style.left=(rect.right+pad)+'px';mRight.style.top=(rect.top-pad)+'px';mRight.style.width=Math.max(0,vw-(rect.right+pad))+'px';mRight.style.height=(rect.height+pad*2)+'px';tip.textContent=text;if(below){tip.style.top=(rect.bottom+pad+10)+'px';tip.style.bottom='auto';}else{tip.style.bottom=(vh-(rect.top-pad)+10)+'px';tip.style.top='auto';}}function stage1(){var vw=window.innerWidth;paint({top:0,bottom:64,left:0,right:vw,height:64},'اكتب اسم المحل المطلوب وعنوانه، مثال: بلبن مصر الجديدة الكوربة',true);}function stage2(){var vw=window.innerWidth,vh=window.innerHeight;var cx=vw/2,cy=vh*0.42,w=140,h=180;paint({top:cy-h/2,bottom:cy+h/2,left:cx-w/2,right:cx+w/2,height:h},'دوس ضغطة مطولة على الدبوس اللي ظهر، وبعد ما يظهر الشريط تحت دوس على مشاركة عشان يتنسخ اللينك',false);}stage1();var initialHref=location.href;var checkCount=0;var iv=setInterval(function(){checkCount++;if(stage===0&&(location.href!==initialHref||checkCount>10)){stage=1;stage2();}if(checkCount>120)clearInterval(iv);},500);window.addEventListener('resize',function(){if(stage===0)stage1();else stage2();});}catch(e){}})();";
+
     // 🆕 "فتحة تسخين" اتشالت - كانت بتفتح جلسة منفصلة تمامًا عن الجلسة الظاهرة، والاحتمال
     // الأقوى إن الكوكيز مبتتشاركش بين الاتنين (كل جلسة بكوكيز خاصة بيها)، وده السبب إن
     // الرسالة رجعت تظهر في الجلسة الظاهرة رغم إنها اتقفلت في الجلسة الخفية. الحل الأضمن:
@@ -2818,8 +2976,13 @@
             // 🆕 طبقة حماية احتياطية - بنعيد حقن نفس فحص الضغط لحظة ما الصفحة تخلص تحميل
             // (حدث منفصل عن preShowScript)، عشان حتى لو حصل أي ظرف نادر منع الطبقة الأولى
             // من الشغل صح، الطبقة دي تمسك الموضوع
+            const injectTutorialNow = gpTutInjectBrowserTutorial;
+            gpTutInjectBrowserTutorial = false;
             InAppBrowser.addListener('browserPageLoaded', () => {
                 InAppBrowser.executeScript({ id: webviewId, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
+                if (injectTutorialNow) {
+                    InAppBrowser.executeScript({ id: webviewId, code: LP_ORDER_TUTORIAL_SCRIPT }).catch(function(){});
+                }
             }).then((l) => lpVisibleBrowserListeners.push(l)).catch(function(){});
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
@@ -2872,7 +3035,7 @@
             if (fab) {
                 var lbl = fab.querySelector('span');
                 if (lbl) { lbl.textContent = 'مفيش لينك في الحافظة - انسخه الأول'; }
-                setTimeout(function () { if (lbl) lbl.textContent = 'لصق اللينك اللي نسخته'; }, 2500);
+                setTimeout(function () { if (lbl) lbl.textContent = 'اذهب إلى موقع اللينك اللي نسخته'; }, 2500);
             }
         }
     }
