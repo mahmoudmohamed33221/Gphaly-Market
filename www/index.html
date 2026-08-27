@@ -1907,13 +1907,16 @@
     }
 
     // 🆕 بيستنى قفل المتصفح الداخلي (بعد ما العميل يرجع من جوجل مابس) قبل ما يكمّل
-    // بهنتات زرار اللصق وزرار التأكيد جوه خريطتنا الصغيرة
+    // بهنتات زرار اللصق وزرار التأكيد جوه خريطتنا الصغيرة. لازم نستنى فتحه فعليًا
+    // الأول (مش بس نشوف إنه null) عشان مانقفزش على الهنت دي فورًا قبل ما يفتح خالص
     function gpTutWaitForBrowserCloseThenContinue() {
         let tries = 0;
+        let sawOpen = false;
         const iv = setInterval(() => {
             tries++;
             if (localStorage.getItem('gebhaly_order_tour_seen') === '1') { clearInterval(iv); return; }
-            if (lpVisibleBrowserId === null) {
+            if (lpBrowserSessionActive) sawOpen = true;
+            if (sawOpen && !lpBrowserSessionActive) {
                 clearInterval(iv);
                 const modal = document.getElementById('location-picker-modal');
                 if (!modal || !modal.classList.contains('show')) return; // العميل قفل المودال خالص - نسيبها بهدوء
@@ -1923,8 +1926,8 @@
                 gpTutActive = true;
                 gpTutShowUI();
                 setTimeout(() => gpTutRenderStep(false), 200);
-            } else if (tries > 200) { clearInterval(iv); }
-        }, 500);
+            } else if (tries > 400) { clearInterval(iv); }
+        }, 300);
     }
 
     function gpTutResumeOrderAfterLocation() {
@@ -2526,6 +2529,60 @@
     // 🆕 القفل بيوقف "dragging" العادي (سحب بإصبع واحد)، وكمان "touchZoom" و
     // "doubleClickZoom" لأن الاتنين دول بيقدروا يحركوا مركز الخريطة (بالبنش بإصبعين،
     // أو بالدبل تاب) حتى لو dragging نفسه متقفل
+    let lpDragLockHintShown = false; // 🆕 بيترجع false كل ما المودال يتفتح من جديد
+
+    // 🆕 هنت سريع بيظهر أول ما العميل يحاول يسحب الخريطة وهي مقفولة - بيأشر على
+    // زرار القفل نفسه ويقوله يفتحه الأول. بيختفي لوحده بعد كام ثانية، ومبيظهرش لو
+    // فيه تعليم تاني شغال فعلاً عشان مايتعارضش معاه
+    function showLpDragLockHint() {
+        if (lpDragLockHintShown || gpTutActive) return;
+        const target = document.getElementById('lp-drag-toggle');
+        const root = document.getElementById('gp-tut-root');
+        if (!target || !root) return;
+        lpDragLockHintShown = true;
+        const pad = 8;
+        const rect = target.getBoundingClientRect();
+        ['gp-tut-mask-top', 'gp-tut-mask-bottom', 'gp-tut-mask-left', 'gp-tut-mask-right'].forEach(id => {
+            document.getElementById(id).style.cssText = 'width:0;height:0;pointer-events:none;';
+        });
+        document.getElementById('gp-tut-ring2').style.display = 'none';
+        document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:50%;`;
+        const tooltip = document.getElementById('gp-tut-tooltip');
+        tooltip.style.left = '16px'; tooltip.style.right = '16px'; tooltip.style.width = 'auto';
+        tooltip.style.bottom = (window.innerHeight - (rect.top - pad) + 10) + 'px'; tooltip.style.top = 'auto';
+        document.getElementById('gp-tut-tooltip-step').textContent = '';
+        document.getElementById('gp-tut-tooltip-text').textContent = 'حركة الخريطة مقفولة دلوقتي. دوس هنا الأول عشان تفتحها وتقدر تسحبها بإيدك.';
+        document.getElementById('gp-tut-navbar').style.display = 'none';
+        document.getElementById('gp-tut-skip').style.display = 'none';
+        root.style.display = 'block';
+        setTimeout(() => {
+            if (!gpTutActive) root.style.display = 'none';
+            document.getElementById('gp-tut-navbar').style.display = 'flex';
+            document.getElementById('gp-tut-skip').style.display = 'flex';
+        }, 3500);
+    }
+
+    // 🆕 بيراقب لمسة/سحبة العميل على مساحة الخريطة، ولو حس بمحاولة سحب حقيقية وهي
+    // مقفولة، يورّي هنت القفل فورًا (مرة واحدة بس لكل ما المودال يتفتح)
+    function lpSetupDragLockHintListeners() {
+        const mapEl = document.getElementById('locationPickerMap');
+        if (!mapEl || mapEl.dataset.dragHintBound) return;
+        mapEl.dataset.dragHintBound = '1';
+        let startX = 0, startY = 0, tracking = false;
+        const start = (x, y) => { if (!lpDragLocked) return; tracking = true; startX = x; startY = y; };
+        const move = (x, y) => {
+            if (!tracking || !lpDragLocked) return;
+            if (Math.abs(x - startX) > 12 || Math.abs(y - startY) > 12) { tracking = false; showLpDragLockHint(); }
+        };
+        const end = () => { tracking = false; };
+        mapEl.addEventListener('touchstart', (e) => { if (e.touches && e.touches[0]) start(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        mapEl.addEventListener('touchmove', (e) => { if (e.touches && e.touches[0]) move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        mapEl.addEventListener('touchend', end, { passive: true });
+        mapEl.addEventListener('mousedown', (e) => start(e.clientX, e.clientY));
+        mapEl.addEventListener('mousemove', (e) => { if (tracking) move(e.clientX, e.clientY); });
+        mapEl.addEventListener('mouseup', end);
+    }
+
     function setLpDragLocked(locked) {
         lpDragLocked = locked;
         if (lpMap) {
@@ -2665,6 +2722,8 @@
             }  
             lpMap.invalidateSize();  
             setLpDragLocked(true); // 🆕 كل ما الخريطة تتفتح، تحريكها اليدوي يرجع مقفول من الأول
+            lpDragLockHintShown = false; // 🆕 يقدر يظهر تاني كل ما المودال يتفتح من جديد
+            lpSetupDragLockHintListeners();
             const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
             const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
             const savedLat = document.getElementById(latId).value, savedLng = document.getElementById(lngId).value;  
@@ -2889,6 +2948,7 @@
     // 🆕 بيودي المستخدم على طول لتطبيق خرائط جوجل (أو المتصفح لو مش متثبت) بنفس اللينك
     // اللي لصقه، من غير ما يحتاج يدور عليه بنفسه
     let lpVisibleBrowserId = null, lpClipboardWatchTimer = null, lpVisibleBrowserListeners = [];
+    let lpBrowserSessionActive = false; // 🆕 true من لحظة ما المتصفح يتفتح فعليًا لحد ما يتقفل - بيفرق عن null الابتدائي قبل أي فتح خالص
 
     // 🆕 نفس الـ User-Agent اللي بيستخدمه Chrome الحقيقي لما تفعّل "موقع مصمَّم للكمبيوتر"
     // (Request Desktop Site) - ده اللي بيخلي جوجل تحس إنها فاتحة من متصفح "حقيقي" مش
@@ -2918,7 +2978,7 @@
     // مكان ويتغير عنوان الصفحة) يعتّم كل حاجة ما عدا منطقة الدبوس في النص، ويقوله
     // يعمل ضغطة مطولة عليه وبعدين يدوس "مشاركة". مبني بحساب مواقع تقريبية عامة
     // (مش عن طريق البحث جوه كود جوجل نفسه) عشان يفضل شغال حتى لو جوجل غيّر تصميمه
-    const LP_ORDER_TUTORIAL_SCRIPT = "(function(){try{var stage=0;var wrap=document.createElement('div');wrap.id='gpTutBrowserOverlay';wrap.style.cssText='position:fixed;inset:0;z-index:999999;pointer-events:none;';document.documentElement.appendChild(wrap);function mkDiv(){var d=document.createElement('div');d.style.cssText='position:fixed;background:rgba(0,0,0,0.62);pointer-events:none;transition:all .25s ease;';wrap.appendChild(d);return d;}var mTop=mkDiv(),mBottom=mkDiv(),mLeft=mkDiv(),mRight=mkDiv();var tip=document.createElement('div');tip.style.cssText='position:fixed;left:12px;right:12px;z-index:1000000;background:#111;color:#fff;border:1px solid rgba(212,175,55,0.6);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,0.6);direction:rtl;text-align:right;font-family:sans-serif;';wrap.appendChild(tip);function paint(rect,text,below){var vw=window.innerWidth,vh=window.innerHeight,pad=8;mTop.style.left='0px';mTop.style.top='0px';mTop.style.width=vw+'px';mTop.style.height=Math.max(0,rect.top-pad)+'px';mBottom.style.left='0px';mBottom.style.top=(rect.bottom+pad)+'px';mBottom.style.width=vw+'px';mBottom.style.height=Math.max(0,vh-(rect.bottom+pad))+'px';mLeft.style.left='0px';mLeft.style.top=(rect.top-pad)+'px';mLeft.style.width=Math.max(0,rect.left-pad)+'px';mLeft.style.height=(rect.height+pad*2)+'px';mRight.style.left=(rect.right+pad)+'px';mRight.style.top=(rect.top-pad)+'px';mRight.style.width=Math.max(0,vw-(rect.right+pad))+'px';mRight.style.height=(rect.height+pad*2)+'px';tip.textContent=text;if(below){tip.style.top=(rect.bottom+pad+10)+'px';tip.style.bottom='auto';}else{tip.style.bottom=(vh-(rect.top-pad)+10)+'px';tip.style.top='auto';}}function stage1(){var vw=window.innerWidth;paint({top:0,bottom:64,left:0,right:vw,height:64},'اكتب اسم المحل المطلوب وعنوانه، مثال: بلبن مصر الجديدة الكوربة',true);}function stage2(){var vw=window.innerWidth,vh=window.innerHeight;var cx=vw/2,cy=vh*0.42,w=140,h=180;paint({top:cy-h/2,bottom:cy+h/2,left:cx-w/2,right:cx+w/2,height:h},'دوس ضغطة مطولة على الدبوس اللي ظهر، وبعد ما يظهر الشريط تحت دوس على مشاركة عشان يتنسخ اللينك',false);}stage1();var initialHref=location.href;var checkCount=0;var iv=setInterval(function(){checkCount++;if(stage===0&&(location.href!==initialHref||checkCount>10)){stage=1;stage2();}if(checkCount>120)clearInterval(iv);},500);window.addEventListener('resize',function(){if(stage===0)stage1();else stage2();});}catch(e){}})();";
+    const LP_ORDER_TUTORIAL_SCRIPT = "(function(){try{if(window.__gpTutBrowserOverlayInjected)return;window.__gpTutBrowserOverlayInjected=true;var stage=1;var wrap=document.createElement('div');wrap.id='gpTutBrowserOverlay';wrap.style.cssText='position:fixed;inset:0;z-index:999999;pointer-events:none;';document.documentElement.appendChild(wrap);function mkDiv(){var d=document.createElement('div');d.style.cssText='position:fixed;background:rgba(0,0,0,0.62);pointer-events:none;transition:all .2s ease;';wrap.appendChild(d);return d;}var mTop=mkDiv(),mBottom=mkDiv(),mLeft=mkDiv(),mRight=mkDiv();var tip=document.createElement('div');tip.style.cssText='position:fixed;left:12px;right:12px;z-index:1000000;background:#111;color:#fff;border:1px solid rgba(212,175,55,0.6);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,0.6);direction:rtl;text-align:right;font-family:sans-serif;pointer-events:auto;';wrap.appendChild(tip);var txt=document.createElement('div');tip.appendChild(txt);var btnRow=document.createElement('div');btnRow.style.cssText='margin-top:10px;display:flex;justify-content:flex-end;';var nextBtn=document.createElement('button');nextBtn.textContent='التالي';nextBtn.type='button';nextBtn.style.cssText='background:linear-gradient(135deg,#D4AF37,#B8860B);color:#111;font-weight:800;font-size:13px;padding:8px 18px;border:none;border-radius:999px;';btnRow.appendChild(nextBtn);tip.appendChild(btnRow);function setText(t){txt.textContent=t;}function paintRect(rect){var vw=window.innerWidth,vh=window.innerHeight,pad=8;mTop.style.left='0px';mTop.style.top='0px';mTop.style.width=vw+'px';mTop.style.height=Math.max(0,rect.top-pad)+'px';mBottom.style.left='0px';mBottom.style.top=(rect.bottom+pad)+'px';mBottom.style.width=vw+'px';mBottom.style.height=Math.max(0,vh-(rect.bottom+pad))+'px';mLeft.style.left='0px';mLeft.style.top=(rect.top-pad)+'px';mLeft.style.width=Math.max(0,rect.left-pad)+'px';mLeft.style.height=(rect.height+pad*2)+'px';mRight.style.left=(rect.right+pad)+'px';mRight.style.top=(rect.top-pad)+'px';mRight.style.width=Math.max(0,vw-(rect.right+pad))+'px';mRight.style.height=(rect.height+pad*2)+'px';}function placeTip(rect,below){var vh=window.innerHeight,pad=8;if(below){tip.style.top=(rect.bottom+pad+10)+'px';tip.style.bottom='auto';}else{tip.style.bottom=(vh-(rect.top-pad)+10)+'px';tip.style.top='auto';}}function findSearchInput(){var inputs=document.querySelectorAll('input');for(var i=0;i<inputs.length;i++){var el=inputs[i];var r=el.getBoundingClientRect();if(r.width>60&&r.height>18&&r.top>=0&&r.top<window.innerHeight*0.35){return el;}}return inputs[0]||null;}function findShareButton(){var all=document.querySelectorAll('button,a,div[role=button],[aria-label]');for(var i=0;i<all.length;i++){var el=all[i];var label=((el.getAttribute('aria-label')||'')+' '+(el.textContent||'')).trim();if(/مشارك|^share$|share this/i.test(label)){var r=el.getBoundingClientRect();if(r.width>4&&r.height>4)return el;}}return null;}var currentTarget=null;function trackAndPaint(){if(!currentTarget)return;var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;if(!r)return;paintRect(r);}setInterval(trackAndPaint,300);window.addEventListener('scroll',trackAndPaint,true);window.addEventListener('resize',trackAndPaint);function goStage1(){stage=1;var input=findSearchInput();currentTarget=input||{top:0,bottom:64,left:0,right:window.innerWidth,height:64};var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;paintRect(r);placeTip(r,true);setText('اكتب اسم المحل المطلوب وعنوانه، مثال: بلبن مصر الجديدة الكوربة، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){try{var el=findSearchInput();if(el){el.focus();['keydown','keypress','keyup'].forEach(function(ty){var ev=null;try{ev=new KeyboardEvent(ty,{bubbles:true,cancelable:true,key:'Enter',keyCode:13,which:13});}catch(e){}if(ev)el.dispatchEvent(ev);});var form=el.closest?el.closest('form'):null;if(form){try{form.requestSubmit?form.requestSubmit():form.submit();}catch(e){}}}}catch(e){}setTimeout(goStage2,900);};}function goStage2(){stage=2;var vw=window.innerWidth,vh=window.innerHeight;var cx=vw/2,cy=vh*0.42,w=140,h=180;currentTarget={top:cy-h/2,bottom:cy+h/2,left:cx-w/2,right:cx+w/2,height:h};paintRect(currentTarget);placeTip(currentTarget,false);setText('دوس ضغطة مطولة على الدبوس اللي ظهر في مكان المحل، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){goStage3();};}function goStage3(){stage=3;nextBtn.style.display='none';var tries=0;var iv=setInterval(function(){tries++;var btn=findShareButton();if(btn){clearInterval(iv);currentTarget=btn;var r=btn.getBoundingClientRect();paintRect(r);placeTip(r,false);setText('دلوقتي دوس على زرار مشاركة عشان يتنسخ لينك المكان.');}else if(tries>40){clearInterval(iv);var vw=window.innerWidth,vh=window.innerHeight;currentTarget={top:vh*0.62,bottom:vh*0.62+56,left:vw*0.1,right:vw*0.9,height:56};paintRect(currentTarget);placeTip(currentTarget,false);setText('لو ظهرلك شريط تحت فيه خيارات، دوس على مشاركة عشان يتنسخ لينك المكان.');}},300);}goStage1();}catch(e){}})();";
 
     // 🆕 "فتحة تسخين" اتشالت - كانت بتفتح جلسة منفصلة تمامًا عن الجلسة الظاهرة، والاحتمال
     // الأقوى إن الكوكيز مبتتشاركش بين الاتنين (كل جلسة بكوكيز خاصة بيها)، وده السبب إن
@@ -2973,6 +3033,7 @@
             });
             const webviewId = opened && opened.id;
             lpVisibleBrowserId = webviewId;
+            lpBrowserSessionActive = true;
             // 🆕 طبقة حماية احتياطية - بنعيد حقن نفس فحص الضغط لحظة ما الصفحة تخلص تحميل
             // (حدث منفصل عن preShowScript)، عشان حتى لو حصل أي ظرف نادر منع الطبقة الأولى
             // من الشغل صح، الطبقة دي تمسك الموضوع
@@ -3045,6 +3106,7 @@
         lpVisibleBrowserListeners.forEach((l) => { try { l.remove(); } catch (e) {} });
         lpVisibleBrowserListeners = [];
         lpVisibleBrowserId = null;
+        lpBrowserSessionActive = false;
     }  
 
     // 🆕 استعلام لنوميناتيم (OpenStreetMap) - بيرجع أكبر عدد ممكن من النتائج المطابقة في أي
