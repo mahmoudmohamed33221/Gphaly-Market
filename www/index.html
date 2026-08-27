@@ -1690,7 +1690,7 @@
     // 🆕 خطوات جوه مودال تحديد الموقع نفسه - غير محجّبة (blocking:false) عشان
     // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
     const GP_LOCATION_STEPS = [
-        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
+        { selector: '#lp-locate-fab', blocking: true, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
         { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بفتح قفل تحريك الخريطة (الزرار تحت أيقونة القمر الصناعي) وسحب الخريطة بإيدك لحد ما تحطه فوقها، أو الأسهل: بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
     ];
     const GP_SAVE_STEPS = [
@@ -1718,7 +1718,7 @@
     // عن خطوات موقع بيت العميل، لأن هنا بنشجّعه يستخدم البحث الخارجي في جوجل ماب
     // أكتر لو المحل مش موجود في نتائج البحث العادية
     const GP_ORDER_LOCATION_STEPS = [
-        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك.' },
+        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك، أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد محل معيّن بالظبط.' },
         { selector: '#lp-open-gmaps-btn', blocking: false, showNav: false, text: 'أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد موقع محل معيّن بالظبط.' },
         { selector: '#lp-manual-paste-fab', blocking: false, showNav: false, text: 'كويس! دلوقتي دوس هنا عشان نودّيك لنفس مكان اللينك اللي نسخته من جوجل ماب.' },
         { selector: '#lp-confirm-btn', blocking: false, showNav: false, text: 'لو المكان صح، دوس هنا عشان تأكّد موقع المحل.' }
@@ -1782,6 +1782,7 @@
     // السلسلة أصلاً (تسجيل عميل جديد، أو طلب جديد)، حتى لو إحنا دلوقتي جوه مرحلة
     // location المشتركة بين الاتنين
     function endOnboardingTutorial(markSeen) {
+        if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
         gpTutActive = false;
         if (markSeen) {
             const isOrderCtx = ['order', 'orderReview', 'orderTracking'].includes(gpTutFlow) || (gpTutFlow === 'location' && gpTutLocationCtx === 'order');
@@ -1828,7 +1829,7 @@
         const lpLocateFab = document.getElementById('lp-locate-fab');
         if (lpLocateFab) lpLocateFab.addEventListener('click', () => {
             if (!gpTutActive || gpTutFlow !== 'location' || gpTutStepIndex !== 0) return;
-            if (gpTutLocationCtx === 'order') { gpTutStepIndex = 1; gpTutRenderStep(false); }
+            if (gpTutLocationCtx === 'order') gpTutOrderSkipToConfirmAfterLocate();
             else gpTutWaitForBlueDotThenAdvance();
         });
 
@@ -1888,14 +1889,38 @@
         if (gpTutActive && gpTutFlow === 'location') gpTutRenderStep(true);
     }
 
+    // 🆕 بننتظر دورة "تحديد الموقع" كاملة تحصل فعليًا (شاشة التحميل تظهر ثم تختفي)
+    // بدل ما نكتفي بوجود نقطة زرقاء قديمة من تحديد تلقائي سابق - عشان الهنت
+    // التاني مايظهرش قبل ما تحديد الموقع الحقيقي يخلص فعلاً
     function gpTutWaitForBlueDotThenAdvance() {
-        let tries = 0;
+        let tries = 0, sawBlock = false;
         const iv = setInterval(() => {
             tries++;
             if (!gpTutActive || gpTutFlow !== 'location') { clearInterval(iv); return; }
-            if (document.querySelector('.lp-blue-dot')) { clearInterval(iv); gpTutStepIndex = 1; gpTutRenderStep(false); }
-            else if (tries > 50) { clearInterval(iv); }
-        }, 300);
+            const block = document.getElementById('lp-block-overlay');
+            const blockShown = !!(block && block.classList.contains('show'));
+            if (blockShown) sawBlock = true;
+            if (sawBlock && !blockShown && document.querySelector('.lp-blue-dot')) {
+                clearInterval(iv); gpTutStepIndex = 1; gpTutRenderStep(false);
+            } else if (tries > 150) { clearInterval(iv); }
+        }, 250);
+    }
+
+    // 🆕 في سياق تحديد موقع المحل: لو العميل استخدم "اذهب لموقعك الحالي الآن" بدل
+    // بحث جوجل، بننتظر نفس دورة التحديد الكاملة وبعدين نقفز على طول لخطوة تأكيد
+    // الموقع (نتخطى خطوات جوجل مابس اللي مالهاش لازمة في الحالة دي)
+    function gpTutOrderSkipToConfirmAfterLocate() {
+        let tries = 0, sawBlock = false;
+        const iv = setInterval(() => {
+            tries++;
+            if (!gpTutActive || gpTutFlow !== 'location') { clearInterval(iv); return; }
+            const block = document.getElementById('lp-block-overlay');
+            const blockShown = !!(block && block.classList.contains('show'));
+            if (blockShown) sawBlock = true;
+            if (sawBlock && !blockShown && document.querySelector('.lp-blue-dot')) {
+                clearInterval(iv); gpTutStepIndex = 3; gpTutRenderStep(false);
+            } else if (tries > 150) { clearInterval(iv); }
+        }, 250);
     }
 
     // 🆕 بعد ما مودال الخريطة يتقفل، بنفرّع حسب مين اللي فتحه: لو تسجيل عميل جديد
@@ -2109,13 +2134,13 @@
             maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
             maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
         } else {
-            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنعتّم الشاشة كلها تعتيم
-            // خفيف بس للفت الانتباه، بس من غير ما نمنع أي حاجة - كل شيء يفضل قابل للضغط
-            const dim = `left:0;top:0;width:${vw}px;height:${vh}px;pointer-events:none;background:rgba(0,0,0,0.65);`;
-            maskTop.style.cssText = dim;
-            maskBottom.style.cssText = 'width:0;height:0;pointer-events:none;';
-            maskLeft.style.cssText = 'width:0;height:0;pointer-events:none;';
-            maskRight.style.cssText = 'width:0;height:0;pointer-events:none;';
+            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنفس تقنية الهول الحقيقي
+            // (تعتيم كل حاجة ما عدا مستطيل الهدف بالظبط) بس بـ pointer-events:none
+            // على كل القطع، عشان الهول يبان نضيف صح، ومع ذلك كل حاجة تفضل قابلة للضغط
+            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:none;`;
+            maskBottom.style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:none;`;
+            maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
+            maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
         }
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.id === 'location-box-store' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
 
@@ -2161,7 +2186,12 @@
             const inputEl = document.getElementById(step.id);
             if (inputEl && (inputEl.tagName === 'INPUT' || inputEl.tagName === 'TEXTAREA')) {
                 setTimeout(() => { try { inputEl.focus({ preventScroll: true }); } catch (e) { inputEl.focus(); } }, 80);
+            } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                // 🆕 الخطوة الجديدة مش خانة كتابة (سيلكت/زرار) - نقفل الكيبورد لو كان فاضل مفتوح من خانة قبلها
+                document.activeElement.blur();
             }
+        } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
         }
     }
 
@@ -2971,14 +3001,14 @@
 
     // 🆕 نفس سكريبت الضغط التلقائي (على رسالة "افتح التطبيق" وعلى زرار "موقعك الجغرافي")
     // مشترك بين الفتحة الخفية (التسخين) والفتحة الظاهرة - نفس الكود بالظبط في المكانين
-    const LP_PRE_SHOW_SCRIPT = "(function(){function fc(el){try{var r=el.getBoundingClientRect();var cx=r.left+r.width/2,cy=r.top+r.height/2;['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(ty){var ev;try{ev=new MouseEvent(ty,{bubbles:true,cancelable:true,view:window,clientX:cx,clientY:cy});}catch(e){ev=document.createEvent('MouseEvent');ev.initEvent(ty,true,true);}el.dispatchEvent(ev);});}catch(e2){}try{el.click();}catch(e3){}}function tc(){try{var texts=['الاستمرار على الويب','استمرار على الويب','مواصلة استخدام الويب','متابعة الاستخدام على الويب','Continue in browser','Continue to web','Stay in browser','Use web version','Continue on web','Continue using web'];var els=document.querySelectorAll('a,button,div,span,[role=\\\"button\\\"]');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(texts.indexOf(t)!==-1){var el=els[i];var clk=el.closest?el.closest('button,a,[role=\\\"button\\\"],[tabindex]'):null;fc(clk||el);return true;}}}catch(e){}return false;}var locClicked=false;function tl(){if(locClicked)return true;try{var sels=['button[aria-label*=\\\"موقع\\\"]','button[aria-label*=\\\"الموقع\\\"]','button[title*=\\\"موقع\\\"]','button[aria-label*=\\\"Location\\\"]','button[aria-label*=\\\"location\\\"]','button[jsaction*=\\\"geolocat\\\"]'];for(var s=0;s<sels.length;s++){var btn=document.querySelector(sels[s]);if(btn){fc(btn);locClicked=true;return true;}}}catch(e){}return false;}function loop(){var a=tc(),b=tl();return a&&b;}function startObs(){var target=document.body||document.documentElement;if(!target){setTimeout(startObs,50);return;}if(loop())return;try{var obs=new MutationObserver(function(){if(loop()){try{obs.disconnect();}catch(e3){}}});obs.observe(target,{childList:true,subtree:true});setTimeout(function(){try{obs.disconnect();}catch(e4){}},20000);}catch(e2){}}startObs();var pc=0;var pt=setInterval(function(){pc++;if(loop()||pc>40){clearInterval(pt);}},500);})();";
+    const LP_PRE_SHOW_SCRIPT = "(function(){function fc(el){try{var r=el.getBoundingClientRect();var cx=r.left+r.width/2,cy=r.top+r.height/2;['pointerdown','mousedown','pointerup','mouseup','click'].forEach(function(ty){var ev;try{ev=new MouseEvent(ty,{bubbles:true,cancelable:true,view:window,clientX:cx,clientY:cy});}catch(e){ev=document.createEvent('MouseEvent');ev.initEvent(ty,true,true);}el.dispatchEvent(ev);});}catch(e2){}try{el.click();}catch(e3){}}function tc(){if(window.__gpTutSkipAutoContinue)return false;try{var texts=['الاستمرار على الويب','استمرار على الويب','مواصلة استخدام الويب','متابعة الاستخدام على الويب','Continue in browser','Continue to web','Stay in browser','Use web version','Continue on web','Continue using web'];var els=document.querySelectorAll('a,button,div,span,[role=\\\"button\\\"]');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').trim();if(texts.indexOf(t)!==-1){var el=els[i];var clk=el.closest?el.closest('button,a,[role=\\\"button\\\"],[tabindex]'):null;fc(clk||el);return true;}}}catch(e){}return false;}var locClicked=false;function tl(){if(locClicked)return true;try{var sels=['button[aria-label*=\\\"موقع\\\"]','button[aria-label*=\\\"الموقع\\\"]','button[title*=\\\"موقع\\\"]','button[aria-label*=\\\"Location\\\"]','button[aria-label*=\\\"location\\\"]','button[jsaction*=\\\"geolocat\\\"]'];for(var s=0;s<sels.length;s++){var btn=document.querySelector(sels[s]);if(btn){fc(btn);locClicked=true;return true;}}}catch(e){}return false;}function loop(){var a=tc(),b=tl();return a&&b;}function startObs(){var target=document.body||document.documentElement;if(!target){setTimeout(startObs,50);return;}if(loop())return;try{var obs=new MutationObserver(function(){if(loop()){try{obs.disconnect();}catch(e3){}}});obs.observe(target,{childList:true,subtree:true});setTimeout(function(){try{obs.disconnect();}catch(e4){}},20000);}catch(e2){}}startObs();var pc=0;var pt=setInterval(function(){pc++;if(loop()||pc>40){clearInterval(pt);}},500);})();";
 
     // 🆕 تعليم بصري بيتحقن جوه صفحة جوجل مابس نفسها (لما بيتفتح للعميل من ضمن تعليم
     // "طلب جديد")، بيعتّم الشاشة كلها ما عدا شريط البحث الأول، وبعدين (بعد ما يختار
     // مكان ويتغير عنوان الصفحة) يعتّم كل حاجة ما عدا منطقة الدبوس في النص، ويقوله
     // يعمل ضغطة مطولة عليه وبعدين يدوس "مشاركة". مبني بحساب مواقع تقريبية عامة
     // (مش عن طريق البحث جوه كود جوجل نفسه) عشان يفضل شغال حتى لو جوجل غيّر تصميمه
-    const LP_ORDER_TUTORIAL_SCRIPT = "(function(){try{if(window.__gpTutBrowserOverlayInjected)return;window.__gpTutBrowserOverlayInjected=true;var stage=1;var wrap=document.createElement('div');wrap.id='gpTutBrowserOverlay';wrap.style.cssText='position:fixed;inset:0;z-index:999999;pointer-events:none;';document.documentElement.appendChild(wrap);function mkDiv(){var d=document.createElement('div');d.style.cssText='position:fixed;background:rgba(0,0,0,0.62);pointer-events:none;transition:all .2s ease;';wrap.appendChild(d);return d;}var mTop=mkDiv(),mBottom=mkDiv(),mLeft=mkDiv(),mRight=mkDiv();var tip=document.createElement('div');tip.style.cssText='position:fixed;left:12px;right:12px;z-index:1000000;background:#111;color:#fff;border:1px solid rgba(212,175,55,0.6);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,0.6);direction:rtl;text-align:right;font-family:sans-serif;pointer-events:auto;';wrap.appendChild(tip);var txt=document.createElement('div');tip.appendChild(txt);var btnRow=document.createElement('div');btnRow.style.cssText='margin-top:10px;display:flex;justify-content:flex-end;';var nextBtn=document.createElement('button');nextBtn.textContent='التالي';nextBtn.type='button';nextBtn.style.cssText='background:linear-gradient(135deg,#D4AF37,#B8860B);color:#111;font-weight:800;font-size:13px;padding:8px 18px;border:none;border-radius:999px;';btnRow.appendChild(nextBtn);tip.appendChild(btnRow);function setText(t){txt.textContent=t;}function paintRect(rect){var vw=window.innerWidth,vh=window.innerHeight,pad=8;mTop.style.left='0px';mTop.style.top='0px';mTop.style.width=vw+'px';mTop.style.height=Math.max(0,rect.top-pad)+'px';mBottom.style.left='0px';mBottom.style.top=(rect.bottom+pad)+'px';mBottom.style.width=vw+'px';mBottom.style.height=Math.max(0,vh-(rect.bottom+pad))+'px';mLeft.style.left='0px';mLeft.style.top=(rect.top-pad)+'px';mLeft.style.width=Math.max(0,rect.left-pad)+'px';mLeft.style.height=(rect.height+pad*2)+'px';mRight.style.left=(rect.right+pad)+'px';mRight.style.top=(rect.top-pad)+'px';mRight.style.width=Math.max(0,vw-(rect.right+pad))+'px';mRight.style.height=(rect.height+pad*2)+'px';}function placeTip(rect,below){var vh=window.innerHeight,pad=8;if(below){tip.style.top=(rect.bottom+pad+10)+'px';tip.style.bottom='auto';}else{tip.style.bottom=(vh-(rect.top-pad)+10)+'px';tip.style.top='auto';}}function findSearchInput(){var inputs=document.querySelectorAll('input');for(var i=0;i<inputs.length;i++){var el=inputs[i];var r=el.getBoundingClientRect();if(r.width>60&&r.height>18&&r.top>=0&&r.top<window.innerHeight*0.35){return el;}}return inputs[0]||null;}function findShareButton(){var all=document.querySelectorAll('button,a,div[role=button],[aria-label]');for(var i=0;i<all.length;i++){var el=all[i];var label=((el.getAttribute('aria-label')||'')+' '+(el.textContent||'')).trim();if(/مشارك|^share$|share this/i.test(label)){var r=el.getBoundingClientRect();if(r.width>4&&r.height>4)return el;}}return null;}var currentTarget=null;function trackAndPaint(){if(!currentTarget)return;var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;if(!r)return;paintRect(r);}setInterval(trackAndPaint,300);window.addEventListener('scroll',trackAndPaint,true);window.addEventListener('resize',trackAndPaint);function goStage1(){stage=1;var input=findSearchInput();currentTarget=input||{top:0,bottom:64,left:0,right:window.innerWidth,height:64};var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;paintRect(r);placeTip(r,true);setText('اكتب اسم المحل المطلوب وعنوانه، مثال: بلبن مصر الجديدة الكوربة، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){try{var el=findSearchInput();if(el){el.focus();['keydown','keypress','keyup'].forEach(function(ty){var ev=null;try{ev=new KeyboardEvent(ty,{bubbles:true,cancelable:true,key:'Enter',keyCode:13,which:13});}catch(e){}if(ev)el.dispatchEvent(ev);});var form=el.closest?el.closest('form'):null;if(form){try{form.requestSubmit?form.requestSubmit():form.submit();}catch(e){}}}}catch(e){}setTimeout(goStage2,900);};}function goStage2(){stage=2;var vw=window.innerWidth,vh=window.innerHeight;var cx=vw/2,cy=vh*0.42,w=140,h=180;currentTarget={top:cy-h/2,bottom:cy+h/2,left:cx-w/2,right:cx+w/2,height:h};paintRect(currentTarget);placeTip(currentTarget,false);setText('دوس ضغطة مطولة على الدبوس اللي ظهر في مكان المحل، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){goStage3();};}function goStage3(){stage=3;nextBtn.style.display='none';var tries=0;var iv=setInterval(function(){tries++;var btn=findShareButton();if(btn){clearInterval(iv);currentTarget=btn;var r=btn.getBoundingClientRect();paintRect(r);placeTip(r,false);setText('دلوقتي دوس على زرار مشاركة عشان يتنسخ لينك المكان.');}else if(tries>40){clearInterval(iv);var vw=window.innerWidth,vh=window.innerHeight;currentTarget={top:vh*0.62,bottom:vh*0.62+56,left:vw*0.1,right:vw*0.9,height:56};paintRect(currentTarget);placeTip(currentTarget,false);setText('لو ظهرلك شريط تحت فيه خيارات، دوس على مشاركة عشان يتنسخ لينك المكان.');}},300);}goStage1();}catch(e){}})();";
+    const LP_ORDER_TUTORIAL_SCRIPT = "(function(){try{if(window.__gpTutBrowserOverlayInjected)return;window.__gpTutBrowserOverlayInjected=true;var stage=0;var wrap=document.createElement('div');wrap.id='gpTutBrowserOverlay';wrap.style.cssText='position:fixed;inset:0;z-index:999999;pointer-events:none;';document.documentElement.appendChild(wrap);function mkDiv(){var d=document.createElement('div');d.style.cssText='position:fixed;background:rgba(0,0,0,0.62);pointer-events:none;transition:all .2s ease;';wrap.appendChild(d);return d;}var mTop=mkDiv(),mBottom=mkDiv(),mLeft=mkDiv(),mRight=mkDiv();var tip=document.createElement('div');tip.style.cssText='position:fixed;left:12px;right:12px;z-index:1000000;background:#111;color:#fff;border:1px solid rgba(212,175,55,0.6);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,0.6);direction:rtl;text-align:right;font-family:sans-serif;pointer-events:auto;';wrap.appendChild(tip);var txt=document.createElement('div');tip.appendChild(txt);var btnRow=document.createElement('div');btnRow.style.cssText='margin-top:10px;display:flex;justify-content:flex-end;';var nextBtn=document.createElement('button');nextBtn.textContent='التالي';nextBtn.type='button';nextBtn.style.cssText='background:linear-gradient(135deg,#D4AF37,#B8860B);color:#111;font-weight:800;font-size:13px;padding:8px 18px;border:none;border-radius:999px;';btnRow.appendChild(nextBtn);tip.appendChild(btnRow);function setText(t){txt.textContent=t;}function showRing(){mTop.style.pointerEvents='none';mBottom.style.pointerEvents='none';mLeft.style.pointerEvents='none';mRight.style.pointerEvents='none';}function hideAllMasks(){mTop.style.cssText='width:0;height:0;';mBottom.style.cssText='width:0;height:0;';mLeft.style.cssText='width:0;height:0;';mRight.style.cssText='width:0;height:0;';}function paintRect(rect){var vw=window.innerWidth,vh=window.innerHeight,pad=8;mTop.style.left='0px';mTop.style.top='0px';mTop.style.width=vw+'px';mTop.style.height=Math.max(0,rect.top-pad)+'px';mBottom.style.left='0px';mBottom.style.top=(rect.bottom+pad)+'px';mBottom.style.width=vw+'px';mBottom.style.height=Math.max(0,vh-(rect.bottom+pad))+'px';mLeft.style.left='0px';mLeft.style.top=(rect.top-pad)+'px';mLeft.style.width=Math.max(0,rect.left-pad)+'px';mLeft.style.height=(rect.height+pad*2)+'px';mRight.style.left=(rect.right+pad)+'px';mRight.style.top=(rect.top-pad)+'px';mRight.style.width=Math.max(0,vw-(rect.right+pad))+'px';mRight.style.height=(rect.height+pad*2)+'px';}function placeTip(rect,below){var vh=window.innerHeight,pad=8;if(below){tip.style.top=(rect.bottom+pad+10)+'px';tip.style.bottom='auto';}else{tip.style.bottom=(vh-(rect.top-pad)+10)+'px';tip.style.top='auto';}}function unionRect(a,b){if(!a)return b;if(!b)return a;return{top:Math.min(a.top,b.top),left:Math.min(a.left,b.left),right:Math.max(a.right,b.right),bottom:Math.max(a.bottom,b.bottom),get width(){return this.right-this.left;},get height(){return this.bottom-this.top;}};}function textMatches(el,list){var t=((el.getAttribute&&el.getAttribute('aria-label'))||'')+' '+(el.textContent||'');t=t.trim();for(var i=0;i<list.length;i++){if(t===list[i]||t.indexOf(list[i])!==-1)return true;}return false;}function findContinueButton(){var texts=['الاستمرار على الويب','استمرار على الويب','مواصلة استخدام الويب','متابعة الاستخدام على الويب','Continue in browser','Continue to web','Stay in browser','Use web version','Continue on web','Continue using web'];var els=document.querySelectorAll('a,button,div,span,[role=button]');for(var i=0;i<els.length;i++){if(textMatches(els[i],texts)){var el=els[i];var clk=el.closest?el.closest('button,a,[role=button],[tabindex]'):null;var target=clk||el;var r=target.getBoundingClientRect();if(r.width>4&&r.height>4)return target;}}return null;}function findSearchInput(){var inputs=document.querySelectorAll('input');for(var i=0;i<inputs.length;i++){var el=inputs[i];var r=el.getBoundingClientRect();if(r.width>60&&r.height>18&&r.top>=0&&r.top<window.innerHeight*0.35){return el;}}return inputs[0]||null;}function findSuggestionsList(inputEl){if(!inputEl)return null;var inputRect=inputEl.getBoundingClientRect();var candidates=document.querySelectorAll('ul,div[role=listbox],div[role=list]');var best=null;for(var i=0;i<candidates.length;i++){var el=candidates[i];var r=el.getBoundingClientRect();if(r.width<40||r.height<20)continue;if(r.top<inputRect.bottom-5)continue;if(r.top-inputRect.bottom>140)continue;if(el.children&&el.children.length>=1){if(!best||r.top<best.getBoundingClientRect().top)best=el;}}return best;}function findMapElement(){var vw=window.innerWidth,vh=window.innerHeight;var all=document.querySelectorAll('canvas,div');var best=null,bestArea=0;for(var i=0;i<all.length;i++){var el=all[i];var r=el.getBoundingClientRect();var area=r.width*r.height;if(area>bestArea&&r.width>vw*0.5&&r.height>vh*0.35&&r.top<vh*0.6){bestArea=area;best=el;}}return best;}function findShareButton(){var all=document.querySelectorAll('button,a,div[role=button],[aria-label]');for(var i=0;i<all.length;i++){var el=all[i];var label=((el.getAttribute('aria-label')||'')+' '+(el.textContent||'')).trim();if(/مشارك|^share$|share this/i.test(label)){var r=el.getBoundingClientRect();if(r.width>4&&r.height>4)return el;}}return null;}var currentTarget=null,currentExtra=null;function trackAndPaint(){if(!currentTarget)return;var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;if(!r||!r.width)return;var combined=r;if(typeof currentExtra==='function'){var extraEl=currentExtra();if(extraEl){var er=extraEl.getBoundingClientRect?extraEl.getBoundingClientRect():extraEl;combined=unionRect(r,er);}}paintRect(combined);}setInterval(trackAndPaint,300);window.addEventListener('scroll',trackAndPaint,true);window.addEventListener('resize',trackAndPaint);function goStage0(){stage=0;var btn=findContinueButton();if(!btn){goStage1();return;}currentTarget=btn;currentExtra=null;var r=btn.getBoundingClientRect();paintRect(r);placeTip(r,true);setText('دوس هنا عشان تكمل وتستخدم الموقع.');nextBtn.style.display='none';var obs=new MutationObserver(function(){var stillThere=document.body.contains(btn);if(!stillThere){try{obs.disconnect();}catch(e){}setTimeout(goStage1,400);}});try{obs.observe(document.body,{childList:true,subtree:true});}catch(e){}btn.addEventListener('click',function(){try{obs.disconnect();}catch(e){}setTimeout(goStage1,400);});setTimeout(function(){try{obs.disconnect();}catch(e){}if(stage===0)goStage1();},15000);}function goStage1(){if(stage>=1)return;stage=1;var input=findSearchInput();currentTarget=input||{top:0,bottom:64,left:0,right:window.innerWidth,height:64};currentExtra=function(){return findSuggestionsList(findSearchInput());};trackAndPaint();var r=currentTarget.getBoundingClientRect?currentTarget.getBoundingClientRect():currentTarget;placeTip(r,true);setText('اكتب اسم المحل المطلوب وعنوانه، مثال: بلبن مصر الجديدة الكوربة، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){try{var el=findSearchInput();if(el){el.focus();['keydown','keypress','keyup'].forEach(function(ty){var ev=null;try{ev=new KeyboardEvent(ty,{bubbles:true,cancelable:true,key:'Enter',keyCode:13,which:13});}catch(e){}if(ev)el.dispatchEvent(ev);});var form=el.closest?el.closest('form'):null;if(form){try{form.requestSubmit?form.requestSubmit():form.submit();}catch(e){}}}}catch(e){}setTimeout(goStage2,900);};}function goStage2(){stage=2;currentExtra=null;var mapEl=findMapElement();if(mapEl){currentTarget=mapEl;var r=mapEl.getBoundingClientRect();paintRect(r);placeTip(r,false);}else{var vw=window.innerWidth,vh=window.innerHeight;currentTarget={top:vh*0.2,bottom:vh*0.85,left:vw*0.05,right:vw*0.95,height:vh*0.65};paintRect(currentTarget);placeTip(currentTarget,false);}setText('دوس ضغطة مطولة على مكان المحل المطلوب على الخريطة، وبعدين دوس التالي.');nextBtn.style.display='block';nextBtn.onclick=function(){goStage3();};}function goStage3(){stage=3;nextBtn.style.display='none';var tries=0;var iv=setInterval(function(){tries++;var btn=findShareButton();if(btn){clearInterval(iv);currentTarget=btn;var r=btn.getBoundingClientRect();paintRect(r);placeTip(r,false);setText('دلوقتي دوس على زرار مشاركة عشان يتنسخ لينك المكان.');btn.addEventListener('click',function(){setTimeout(goStage4,300);});}else if(tries>50){clearInterval(iv);var vw=window.innerWidth,vh=window.innerHeight;currentTarget={top:vh*0.6,bottom:vh*0.6+56,left:vw*0.1,right:vw*0.9,height:56};paintRect(currentTarget);placeTip(currentTarget,false);setText('لو ظهرلك شريط تحت فيه خيارات، دوس على مشاركة عشان يتنسخ لينك المكان.');}},300);}function goStage4(){stage=4;hideAllMasks();nextBtn.style.display='none';tip.style.left='16px';tip.style.right='16px';tip.style.top='16px';tip.style.bottom='auto';setText('تمام، اتنسخ اللينك! دلوقتي دوس على علامة الإغلاق (X) اللي فوق عشان تقفل المتصفح وترجع لتطبيقنا.');}goStage0();}catch(e){}})();";
 
     // 🆕 "فتحة تسخين" اتشالت - كانت بتفتح جلسة منفصلة تمامًا عن الجلسة الظاهرة، والاحتمال
     // الأقوى إن الكوكيز مبتتشاركش بين الاتنين (كل جلسة بكوكيز خاصة بيها)، وده السبب إن
@@ -3027,9 +3057,12 @@
             // مخفي للأبد)، فرجعنا للأصل الأضمن. سكريبت الحماية بيدوس على رسالة "افتح
             // التطبيق" وزرار "موقعك الجغرافي" أول ما يظهروا (بضغطة حقيقية) - ممكن يبان
             // فلاش خفيف جدًا للرسالة قبل ما تتقفل، لكن ده أفضل من إخفاء المتصفح للأبد
+            const injectTutorialNow = gpTutInjectBrowserTutorial;
+            gpTutInjectBrowserTutorial = false;
+            const preScript = injectTutorialNow ? ("window.__gpTutSkipAutoContinue=true;" + LP_PRE_SHOW_SCRIPT) : LP_PRE_SHOW_SCRIPT;
             const opened = await InAppBrowser.openWebView({
                 url: targetUrl, preventDeeplink: true, customUserAgent: LP_BROWSER_USER_AGENT,
-                preShowScript: LP_PRE_SHOW_SCRIPT, preShowScriptInjectionTime: 'documentStart', isPresentAfterPageLoad: true
+                preShowScript: preScript, preShowScriptInjectionTime: 'documentStart', isPresentAfterPageLoad: true
             });
             const webviewId = opened && opened.id;
             lpVisibleBrowserId = webviewId;
@@ -3037,9 +3070,10 @@
             // 🆕 طبقة حماية احتياطية - بنعيد حقن نفس فحص الضغط لحظة ما الصفحة تخلص تحميل
             // (حدث منفصل عن preShowScript)، عشان حتى لو حصل أي ظرف نادر منع الطبقة الأولى
             // من الشغل صح، الطبقة دي تمسك الموضوع
-            const injectTutorialNow = gpTutInjectBrowserTutorial;
-            gpTutInjectBrowserTutorial = false;
             InAppBrowser.addListener('browserPageLoaded', () => {
+                if (injectTutorialNow) {
+                    InAppBrowser.executeScript({ id: webviewId, code: "window.__gpTutSkipAutoContinue=true;" }).catch(function(){});
+                }
                 InAppBrowser.executeScript({ id: webviewId, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
                 if (injectTutorialNow) {
                     InAppBrowser.executeScript({ id: webviewId, code: LP_ORDER_TUTORIAL_SCRIPT }).catch(function(){});
