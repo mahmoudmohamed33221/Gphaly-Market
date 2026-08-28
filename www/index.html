@@ -3021,6 +3021,14 @@
     // "مشاركة/نسخ اللينك" جوه جوجل ماب، بنلقط اللينك تلقائيًا، نقفل المتصفح، ونلصقه في
     // صندوق البحث ونبحث عنه لوحدنا من غير ما العميل يحتاج يرجع وييلزقه بإيده
     async function openLinkInGoogleMaps() {
+        // 🔧 تحصين إضافي: بنحدد هنا نفسه (جوه نفس الدالة اللي بتفتح المتصفح فعليًا) لو
+        // المفروض نحقن التعليم البصري، بدل ما نعتمد بس على ترتيب تنفيذ مستمع onclick
+        // التاني (اللي بيسجل في gpTutBindGlobalListenersOnce) - ده كان بيشتغل صح في
+        // الغالب حسب ترتيب تسجيل المستمعين، لكن الاعتماد على الترتيب ده هش وممكن ينكسر
+        // بسهولة (مثلاً لو حد غيّر مكان أي كود تاني بالغلط)، فبنأكد العلم هنا كمان مباشرة
+        if (gpTutActive && gpTutFlow === 'location' && gpTutLocationCtx === 'order') {
+            gpTutInjectBrowserTutorial = true;
+        }
         if (!isNativeApp()) {
             if (lpDetectedGmapsLink) window.open(lpDetectedGmapsLink, '_blank');
             return;
@@ -3060,25 +3068,31 @@
             const injectTutorialNow = gpTutInjectBrowserTutorial;
             gpTutInjectBrowserTutorial = false;
             const preScript = injectTutorialNow ? ("window.__gpTutSkipAutoContinue=true;" + LP_PRE_SHOW_SCRIPT) : LP_PRE_SHOW_SCRIPT;
+            // 🐛🔧 الباجة المكتشفة: الكود القديم كان بيسجل مستمع 'browserPageLoaded' بعد
+            // ما openWebView تخلص (يعني بعد ما الصفحة تبدأ تحمّل فعليًا) - ده Race Condition
+            // حقيقي: لو حدث "الصفحة خلصت تحميل" حصل قبل ما نخلص تسجيل المستمع (زي ما بيحصل
+            // فعليًا على أجهزة سريعة/شبكة سريعة)، الحدث بيضيع للأبد ومفيش أي حقن يحصل خالص -
+            // مش هايلايت ولا تعتيم ولا هنت، بالظبط زي اللي كان بيحصل معاك. الحل: نسجل
+            // المستمع الأول قبل ما نفتح المتصفح خالص (بالظبط زي resolveViaHiddenBrowser
+            // اللي شغالة صح تحت) - ده بيضمن إن المستمع يكون جاهز قبل حتى ما نطلب فتح الصفحة
+            let webviewId = null;
+            const pageLoadedListener = await InAppBrowser.addListener('browserPageLoaded', () => {
+                if (injectTutorialNow) {
+                    InAppBrowser.executeScript({ id: webviewId || undefined, code: "window.__gpTutSkipAutoContinue=true;" }).catch(function(){});
+                }
+                InAppBrowser.executeScript({ id: webviewId || undefined, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
+                if (injectTutorialNow) {
+                    InAppBrowser.executeScript({ id: webviewId || undefined, code: LP_ORDER_TUTORIAL_SCRIPT }).catch(function(){});
+                }
+            });
+            lpVisibleBrowserListeners.push(pageLoadedListener);
             const opened = await InAppBrowser.openWebView({
                 url: targetUrl, preventDeeplink: true, customUserAgent: LP_BROWSER_USER_AGENT,
                 preShowScript: preScript, preShowScriptInjectionTime: 'documentStart', isPresentAfterPageLoad: true
             });
-            const webviewId = opened && opened.id;
+            webviewId = opened && opened.id;
             lpVisibleBrowserId = webviewId;
             lpBrowserSessionActive = true;
-            // 🆕 طبقة حماية احتياطية - بنعيد حقن نفس فحص الضغط لحظة ما الصفحة تخلص تحميل
-            // (حدث منفصل عن preShowScript)، عشان حتى لو حصل أي ظرف نادر منع الطبقة الأولى
-            // من الشغل صح، الطبقة دي تمسك الموضوع
-            InAppBrowser.addListener('browserPageLoaded', () => {
-                if (injectTutorialNow) {
-                    InAppBrowser.executeScript({ id: webviewId, code: "window.__gpTutSkipAutoContinue=true;" }).catch(function(){});
-                }
-                InAppBrowser.executeScript({ id: webviewId, code: LP_PRE_SHOW_SCRIPT }).catch(function(){});
-                if (injectTutorialNow) {
-                    InAppBrowser.executeScript({ id: webviewId, code: LP_ORDER_TUTORIAL_SCRIPT }).catch(function(){});
-                }
-            }).then((l) => lpVisibleBrowserListeners.push(l)).catch(function(){});
             startLpClipboardWatch();
         } catch (e) { /* لو فشل الفتح، مفيش حاجة تانية نعملها هنا */ }
     }
