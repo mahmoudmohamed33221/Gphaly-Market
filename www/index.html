@@ -807,12 +807,12 @@
                 <div class="bg-[var(--bg-deep)]/60 p-4 rounded-xl border border-[var(--border)] space-y-3">  
                     <span class="text-xs text-[var(--gold-light)] font-bold block"><i class="fas fa-store-alt ml-1"></i>تفاصيل المحل</span>  
                     <div class="input-container">  
-                        <label class="text-[var(--gold)] text-sm font-semibold">اسم المحل <span class="text-red-500">*</span></label>  
+                        <label class="text-[var(--muted)] text-xs">اسم المحل <span class="text-red-500">*</span></label>  
                         <input type="text" id="u_store_name" class="modal-input" placeholder="اكتب اسم المحل المطلوب" oninput="clearError(this)">  
                         <span class="error-msg" id="err-u_store_name"></span>  
                     </div>  
                     <div class="input-container">  
-                        <label class="text-[var(--gold)] text-sm font-semibold">عنوان المحل <span class="text-red-500">*</span></label>  
+                        <label class="text-[var(--muted)] text-xs">عنوان المحل <span class="text-red-500">*</span></label>  
                         <input type="text" id="u_store_address" class="modal-input" placeholder="مثال: مصر الجديدة الكوربة" oninput="clearError(this)">  
                         <span class="error-msg" id="err-u_store_address"></span>  
                     </div>  
@@ -1718,20 +1718,16 @@
     // عن خطوات موقع بيت العميل، لأن هنا بنشجّعه يستخدم البحث الخارجي في جوجل ماب
     // أكتر لو المحل مش موجود في نتائج البحث العادية
     const GP_ORDER_LOCATION_STEPS = [
-        { selector: '#lp-locate-fab', extraId: 'lp-open-gmaps-btn', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك، أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد محل معيّن بالظبط.' },
+        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك، أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد محل معيّن بالظبط.' },
         { selector: '#lp-open-gmaps-btn', blocking: false, showNav: false, text: 'أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد موقع محل معيّن بالظبط.' },
         { selector: '#lp-manual-paste-fab', blocking: false, showNav: false, text: 'كويس! دلوقتي دوس هنا عشان نودّيك لنفس مكان اللينك اللي نسخته من جوجل ماب.' },
         { selector: '#lp-confirm-btn', blocking: false, showNav: false, text: 'لو المكان صح، دوس هنا عشان تأكّد موقع المحل.' }
     ];
-    // 🆕 خطوة وسيطة بس - بتظهر لو العميل استخدم "اذهب لموقعك الحالي الآن" (مش بحث
-    // جوجل) في تحديد موقع المحل، عشان يظبط الدبوس بالظبط على مكان المحل القريب منه
-    const GP_ORDER_DRAG_TO_STORE_STEP = { selector: '.lp-center-pin', blocking: false, showNav: true, text: 'بما إن المحل قريب من منطقتك، افتح قفل تحريك الخريطة (الزرار فوق أيقونة القمر الصناعي) وحرّك الخريطة لحد ما الدبوس الأحمر يوصل بالظبط لمكان المحل، وبعدين دوس "التالي".' };
     const GP_ORDER_REVIEW_STEPS = [
         { id: 'order-review-actions', text: 'راجع بياناتك كويس، وبعدين دوس "تم التأكد وإرسال الطلب" عشان نبعت طلبك على طول. ولو حابب تعدّل أي حاجة، تقدر من الأزرار التانية هنا الأول.' }
     ];
     const GP_ORDER_TRACKING_STEPS = [
-        { selector: '#active-orders-list .menu-card', text: 'تمام، طلبك اتبعت! تقدر تراقب طلبك من بداية الطلب لحد ما يوصلك بالكامل من هنا.' },
-        { selector: '#active-orders-list .mk-details-header', showNav: false, text: 'دوس هنا عشان تعرف تفاصيل طلبك بالكامل في أي وقت.' }
+        { selector: '#active-orders-list .mk-details-header', text: 'تمام، طلبك اتبعت! تقدر تشوف كل تفاصيل طلبك في أي وقت من القائمة المنسدلة دي.' }
     ];
 
     let gpTutActive = false;
@@ -1883,16 +1879,6 @@
         if (finalSubmitBtn) finalSubmitBtn.addEventListener('click', () => {
             if (gpTutActive && gpTutFlow === 'orderReview') { gpTutHideUI(); gpTutStartOrderTrackingPhase(); }
         });
-
-        // مرحلة orderTracking - الخطوة الأخيرة (إجبارية): العميل دوس على القائمة
-        // المنسدلة (عنصر ديناميكي بيتعمل كل مرة من جديد، فبنستخدم تفويض الأحداث
-        // على الحاوية الثابتة اللي حواليه)
-        const activeOrdersList = document.getElementById('active-orders-list');
-        if (activeOrdersList) activeOrdersList.addEventListener('click', (e) => {
-            if (!gpTutActive || gpTutFlow !== 'orderTracking' || gpTutStepIndex !== 1) return;
-            const header = e.target.closest ? e.target.closest('.mk-details-header') : null;
-            if (header) endOnboardingTutorial(true);
-        });
     }
 
     // 🆕 بولّينج بسيط: نستنى النقطة الزرقاء تتحدد فعليًا (نتيجة GPS حقيقية) قبل
@@ -1932,12 +1918,7 @@
             const blockShown = !!(block && block.classList.contains('show'));
             if (blockShown) sawBlock = true;
             if (sawBlock && !blockShown && document.querySelector('.lp-blue-dot')) {
-                clearInterval(iv);
-                // 🆕 خطوة وسيطة: نطلب منه يظبط الدبوس بالظبط على مكان المحل، وبعد "التالي"
-                // ننتقل لهنت زرار التأكيد النهائي
-                gpTutSteps = [GP_ORDER_DRAG_TO_STORE_STEP, GP_ORDER_LOCATION_STEPS[3]];
-                gpTutStepIndex = 0;
-                gpTutRenderStep(false);
+                clearInterval(iv); gpTutStepIndex = 3; gpTutRenderStep(false);
             } else if (tries > 150) { clearInterval(iv); }
         }, 250);
     }
@@ -2147,43 +2128,30 @@
         const blocking = step.blocking !== false;
         const maskTop = document.getElementById('gp-tut-mask-top'), maskBottom = document.getElementById('gp-tut-mask-bottom');
         const maskLeft = document.getElementById('gp-tut-mask-left'), maskRight = document.getElementById('gp-tut-mask-right');
-
-        // 🆕 لو الخطوة عندها هدف إضافي (extraId/extraSelector)، بنحسب مستطيل موحّد
-        // يشمل الهدفين مع بعض، عشان الهول (الفتحة الصافية من غير تعتيم) يغطيهم
-        // سوا، مش بس الهدف الأساسي
-        const extraEl = step.extraId ? document.getElementById(step.extraId) : (step.extraSelector ? document.querySelector(step.extraSelector) : null);
-        const extraRect = extraEl ? extraEl.getBoundingClientRect() : null;
-        let holeRect = rect;
-        if (extraRect) {
-            holeRect = {
-                left: Math.min(rect.left, extraRect.left), top: Math.min(rect.top, extraRect.top),
-                right: Math.max(rect.right, extraRect.right), bottom: Math.max(rect.bottom, extraRect.bottom)
-            };
-            holeRect.width = holeRect.right - holeRect.left; holeRect.height = holeRect.bottom - holeRect.top;
-        }
-
         if (blocking) {
-            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, holeRect.top - pad)}px;pointer-events:auto;`;
-            maskBottom.style.cssText = `left:0;top:${holeRect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (holeRect.bottom + pad))}px;pointer-events:auto;`;
-            maskLeft.style.cssText = `left:0;top:${holeRect.top - pad}px;width:${Math.max(0, holeRect.left - pad)}px;height:${holeRect.height + pad * 2}px;pointer-events:auto;`;
-            maskRight.style.cssText = `left:${holeRect.right + pad}px;top:${holeRect.top - pad}px;width:${Math.max(0, vw - (holeRect.right + pad))}px;height:${holeRect.height + pad * 2}px;pointer-events:auto;`;
+            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:auto;`;
+            maskBottom.style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:auto;`;
+            maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
+            maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
         } else {
             // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنفس تقنية الهول الحقيقي
             // (تعتيم كل حاجة ما عدا مستطيل الهدف بالظبط) بس بـ pointer-events:none
             // على كل القطع، عشان الهول يبان نضيف صح، ومع ذلك كل حاجة تفضل قابلة للضغط
-            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, holeRect.top - pad)}px;pointer-events:none;`;
-            maskBottom.style.cssText = `left:0;top:${holeRect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (holeRect.bottom + pad))}px;pointer-events:none;`;
-            maskLeft.style.cssText = `left:0;top:${holeRect.top - pad}px;width:${Math.max(0, holeRect.left - pad)}px;height:${holeRect.height + pad * 2}px;pointer-events:none;`;
-            maskRight.style.cssText = `left:${holeRect.right + pad}px;top:${holeRect.top - pad}px;width:${Math.max(0, vw - (holeRect.right + pad))}px;height:${holeRect.height + pad * 2}px;pointer-events:none;`;
+            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:none;`;
+            maskBottom.style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:none;`;
+            maskLeft.style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
+            maskRight.style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
         }
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.id === 'location-box-store' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
 
         // 🆕 هالة تانية اختيارية (لو الخطوة عايزة تأشّر على عنصر إضافي كمان، زي زرار
         // "تحديد مكان التوصيل تلقائي" جمب شرح النقطة الزرقاء)
         const ring2 = document.getElementById('gp-tut-ring2');
-        if (extraRect) {
+        const extraEl = step.extraId ? document.getElementById(step.extraId) : (step.extraSelector ? document.querySelector(step.extraSelector) : null);
+        if (extraEl) {
+            const r2 = extraEl.getBoundingClientRect();
             ring2.style.display = 'block';
-            ring2.style.cssText = `display:block;left:${extraRect.left - pad}px;top:${extraRect.top - pad}px;width:${extraRect.width + pad * 2}px;height:${extraRect.height + pad * 2}px;border-radius:14px;`;
+            ring2.style.cssText = `display:block;left:${r2.left - pad}px;top:${r2.top - pad}px;width:${r2.width + pad * 2}px;height:${r2.height + pad * 2}px;border-radius:14px;`;
         } else {
             ring2.style.display = 'none';
         }
@@ -2194,14 +2162,14 @@
         tooltip.style.width = 'auto';
         // 🆕 الأفضلية بقت إن الهنت يظهر فوق العنصر المضيء، وميرجعش يظهر تحته إلا لو
         // مفيش مساحة كفاية فوق فعلاً (وكان فيه مساحة كفاية تحت)
-        const spaceAbove = holeRect.top - pad;
-        const spaceBelow = vh - (holeRect.bottom + pad);
+        const spaceAbove = rect.top - pad;
+        const spaceBelow = vh - (rect.bottom + pad);
         const showBelow = spaceAbove < 240 && spaceBelow > 240;
         if (showBelow) {
-            tooltip.style.top = (holeRect.bottom + pad + 14) + 'px';
+            tooltip.style.top = (rect.bottom + pad + 14) + 'px';
             tooltip.style.bottom = 'auto';
         } else {
-            tooltip.style.bottom = (vh - (holeRect.top - pad) + 14) + 'px';
+            tooltip.style.bottom = (vh - (rect.top - pad) + 14) + 'px';
             tooltip.style.top = 'auto';
         }
 
@@ -2216,13 +2184,8 @@
         // عشان العميل يقدر يكتب على طول من غير ما يحتاج يدوس على الخانة بنفسه
         if (step.id && !step.selector) {
             const inputEl = document.getElementById(step.id);
-            // 🆕 استثناء: خطوة "الأصناف" حاويتها فيها زرار "أضف صنف" كمان، فبنفتح
-            // الكيبورد على أول خانة صنف جواها بدل ما نتجاهل الخطوة دي بالكامل
-            const focusTarget = (step.id === 'order-items-section')
-                ? document.querySelector('#items-container .item-name')
-                : inputEl;
-            if (focusTarget && (focusTarget.tagName === 'INPUT' || focusTarget.tagName === 'TEXTAREA')) {
-                setTimeout(() => { try { focusTarget.focus({ preventScroll: true }); } catch (e) { focusTarget.focus(); } }, 80);
+            if (inputEl && (inputEl.tagName === 'INPUT' || inputEl.tagName === 'TEXTAREA')) {
+                setTimeout(() => { try { inputEl.focus({ preventScroll: true }); } catch (e) { inputEl.focus(); } }, 80);
             } else if (document.activeElement && typeof document.activeElement.blur === 'function') {
                 // 🆕 الخطوة الجديدة مش خانة كتابة (سيلكت/زرار) - نقفل الكيبورد لو كان فاضل مفتوح من خانة قبلها
                 document.activeElement.blur();
@@ -2609,13 +2572,9 @@
         lpDragLockHintShown = true;
         const pad = 8;
         const rect = target.getBoundingClientRect();
-        const vw = window.innerWidth, vh = window.innerHeight;
-        // 🆕 هول تعتيم حقيقي حوالين زرار القفل بالظبط (مش شيل التعتيم بالكامل) -
-        // بره الهول معتم، وجوّاه صافي 100%، وبرضو pointer-events:none في كل مكان
-        document.getElementById('gp-tut-mask-top').style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:none;`;
-        document.getElementById('gp-tut-mask-bottom').style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:none;`;
-        document.getElementById('gp-tut-mask-left').style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
-        document.getElementById('gp-tut-mask-right').style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:none;`;
+        ['gp-tut-mask-top', 'gp-tut-mask-bottom', 'gp-tut-mask-left', 'gp-tut-mask-right'].forEach(id => {
+            document.getElementById(id).style.cssText = 'width:0;height:0;pointer-events:none;';
+        });
         document.getElementById('gp-tut-ring2').style.display = 'none';
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:50%;`;
         const tooltip = document.getElementById('gp-tut-tooltip');
