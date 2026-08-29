@@ -1691,7 +1691,8 @@
     // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
     const GP_LOCATION_STEPS = [
         { selector: '#lp-locate-fab', blocking: true, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
-        { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', text: 'النقطة الزرقاء دي هي موقعك الحالي الفعلي دلوقتي. وكل اللي عليك تعمله إنك تخلي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوق النقطة الزرقاء دي عشان تأكد موقعك - إما بفتح قفل تحريك الخريطة (الزرار تحت أيقونة القمر الصناعي) وسحب الخريطة بإيدك لحد ما تحطه فوقها، أو الأسهل: بالضغط على زرار "تحديد مكان التوصيل تلقائي لمكاني الحالي الآن" تحت وهو هيثبته لوحده على طول.' }
+        { selector: '.lp-blue-dot', blocking: false, showNav: false, fixedBelowId: 'lp-open-gmaps-btn', text: 'النقطة الزرقاء دي موقعك الحالي الفعلي. خلّي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوقها.' },
+        { selector: '#lp-auto-set-btn', blocking: false, showNav: false, fixedBelowId: 'lp-open-gmaps-btn', text: 'أسهل طريقة: دوس الزرار ده وهو هيثبّت الدبوس فوق موقعك تلقائيًا.' }
     ];
     const GP_SAVE_STEPS = [
         { id: 'btn-save-profile', showNav: false, text: 'تمام كده! دلوقتي دوس هنا عشان تحفظ بياناتك وتبدأ تستخدم التطبيق.' }
@@ -2175,7 +2176,12 @@
         const spaceAbove = holeRect.top - pad;
         const spaceBelow = vh - (holeRect.bottom + pad);
         const showBelow = spaceAbove < 240 && spaceBelow > 240;
-        if (showBelow) {
+        const fixedAnchor = step.fixedBelowId ? document.getElementById(step.fixedBelowId) : null;
+        if (fixedAnchor) {
+            const ar = fixedAnchor.getBoundingClientRect();
+            tooltip.style.top = (ar.bottom + 14) + 'px';
+            tooltip.style.bottom = 'auto';
+        } else if (showBelow) {
             tooltip.style.top = (holeRect.bottom + pad + 14) + 'px';
             tooltip.style.bottom = 'auto';
         } else {
@@ -2569,41 +2575,54 @@
     // 🆕 القفل بيوقف "dragging" العادي (سحب بإصبع واحد)، وكمان "touchZoom" و
     // "doubleClickZoom" لأن الاتنين دول بيقدروا يحركوا مركز الخريطة (بالبنش بإصبعين،
     // أو بالدبل تاب) حتى لو dragging نفسه متقفل
-    let lpDragLockHintShown = false; // 🆕 بيترجع false كل ما المودال يتفتح من جديد
+    let lpDragLockHintActive = false; // 🆕 true بس طول ما فلاش "افتح القفل" ظاهر دلوقتي (مش "اتعرض قبل كده")
+    let lpDragLockHintTimer = null;
 
-    // 🆕 هنت سريع بيظهر أول ما العميل يحاول يسحب الخريطة وهي مقفولة - بيأشر على
-    // زرار القفل نفسه ويقوله يفتحه الأول. بيختفي لوحده بعد كام ثانية، ومبيظهرش لو
-    // فيه تعليم تاني شغال فعلاً عشان مايتعارضش معاه
+    // 🆕 هنت سريع بيظهر أول ما العميل يحاول يسحب الخريطة وهي مقفولة - بيعتّم الشاشة
+    // كلها ويأشر على زرار القفل بس عشان يفتحه الأول. بيفضل يشتغل في أي وقت وأي عدد
+    // مرات (مش مرة واحدة بس)، وحتى لو فيه هنت تعليمي تاني شغال فعلاً دلوقتي - بيقاطعه
+    // مؤقتًا لمدة 3 ثواني وبعدين يرجّع نفس الهنت التعليمي القديم زي ما كان بالظبط
     function showLpDragLockHint() {
-        if (lpDragLockHintShown || gpTutActive) return;
+        if (lpDragLockHintActive) return; // فلاش شغال فعلاً - مانبدأش واحد فوق التاني
         const target = document.getElementById('lp-drag-toggle');
         const root = document.getElementById('gp-tut-root');
         if (!target || !root) return;
-        lpDragLockHintShown = true;
-        const pad = 8;
+        lpDragLockHintActive = true;
+        const wasTutActive = gpTutActive; // هنرجعله زي ما كان بعد 3 ثواني
+        const pad = 10;
         const rect = target.getBoundingClientRect();
-        ['gp-tut-mask-top', 'gp-tut-mask-bottom', 'gp-tut-mask-left', 'gp-tut-mask-right'].forEach(id => {
-            document.getElementById(id).style.cssText = 'width:0;height:0;pointer-events:none;';
-        });
+        const vw = window.innerWidth, vh = window.innerHeight;
+        document.getElementById('gp-tut-mask-top').style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, rect.top - pad)}px;pointer-events:auto;`;
+        document.getElementById('gp-tut-mask-bottom').style.cssText = `left:0;top:${rect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (rect.bottom + pad))}px;pointer-events:auto;`;
+        document.getElementById('gp-tut-mask-left').style.cssText = `left:0;top:${rect.top - pad}px;width:${Math.max(0, rect.left - pad)}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
+        document.getElementById('gp-tut-mask-right').style.cssText = `left:${rect.right + pad}px;top:${rect.top - pad}px;width:${Math.max(0, vw - (rect.right + pad))}px;height:${rect.height + pad * 2}px;pointer-events:auto;`;
         document.getElementById('gp-tut-ring2').style.display = 'none';
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:50%;`;
         const tooltip = document.getElementById('gp-tut-tooltip');
         tooltip.style.left = '16px'; tooltip.style.right = '16px'; tooltip.style.width = 'auto';
-        tooltip.style.bottom = (window.innerHeight - (rect.top - pad) + 10) + 'px'; tooltip.style.top = 'auto';
+        tooltip.style.bottom = (vh - (rect.top - pad) + 10) + 'px'; tooltip.style.top = 'auto';
         document.getElementById('gp-tut-tooltip-step').textContent = '';
-        document.getElementById('gp-tut-tooltip-text').textContent = 'حركة الخريطة مقفولة دلوقتي. دوس هنا الأول عشان تفتحها وتقدر تسحبها بإيدك.';
+        document.getElementById('gp-tut-tooltip-text').textContent = 'حركة الخريطة مقفولة. دوس هنا الأول عشان تفتحها.';
         document.getElementById('gp-tut-navbar').style.display = 'none';
         document.getElementById('gp-tut-skip').style.display = 'none';
         root.style.display = 'block';
-        setTimeout(() => {
-            if (!gpTutActive) root.style.display = 'none';
+        if (lpDragLockHintTimer) clearTimeout(lpDragLockHintTimer);
+        lpDragLockHintTimer = setTimeout(() => {
+            lpDragLockHintActive = false;
+            lpDragLockHintTimer = null;
             document.getElementById('gp-tut-navbar').style.display = 'flex';
             document.getElementById('gp-tut-skip').style.display = 'flex';
-        }, 3500);
+            if (wasTutActive && gpTutActive) {
+                // كان فيه هنت تعليمي شغال - نرجّعه بالظبط زي ما كان بدل ما نسيب محتوى الفلاش القديم
+                gpTutRenderStep(true);
+            } else {
+                root.style.display = 'none';
+            }
+        }, 3000);
     }
 
     // 🆕 بيراقب لمسة/سحبة العميل على مساحة الخريطة، ولو حس بمحاولة سحب حقيقية وهي
-    // مقفولة، يورّي هنت القفل فورًا (مرة واحدة بس لكل ما المودال يتفتح)
+    // مقفولة، يورّي هنت القفل فورًا - في أي وقت، مش مرة واحدة بس لكل ما المودال يتفتح
     function lpSetupDragLockHintListeners() {
         const mapEl = document.getElementById('locationPickerMap');
         if (!mapEl || mapEl.dataset.dragHintBound) return;
