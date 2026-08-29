@@ -744,8 +744,8 @@
         <p class="text-[var(--muted)] text-xs text-center mb-1">راجع بياناتك كويس قبل ما تأكد الإرسال</p>
         <div id="order-review-content" class="space-y-3 text-sm"></div>
         <div class="flex flex-col gap-3 pt-2" id="order-review-actions">
-            <button type="button" onclick="openProfileEdit('order-review')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#22C3EE,#0EA5E9);"><i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل</button>
-            <button type="button" onclick="switchPage('order')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#FBA94C,#F97316);"><i class="fas fa-edit ml-2"></i>تعديل بيانات الطلب</button>
+            <button type="button" id="btn-edit-customer-review" onclick="openProfileEdit('order-review')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#22C3EE,#0EA5E9);"><i class="fas fa-user-edit ml-2"></i>تعديل بيانات العميل</button>
+            <button type="button" id="btn-edit-order-review" onclick="switchPage('order')" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#FBA94C,#F97316);"><i class="fas fa-edit ml-2"></i>تعديل بيانات الطلب</button>
             <button type="button" id="btn-final-submit" onclick="submitOrderToServer()" class="w-full font-bold py-3 rounded-xl text-white shadow-lg" style="background:linear-gradient(145deg,#34D399,#10B981);"><i class="fas fa-check-circle ml-2"></i>تم التأكد وإرسال الطلب</button>
         </div>
     </div>
@@ -1691,8 +1691,7 @@
     // العميل يفضل حر يستخدم كل حاجة في الخريطة (سحب/بحث/الأزرار) من غير ما نمنعه
     const GP_LOCATION_STEPS = [
         { selector: '#lp-locate-fab', blocking: true, showNav: false, text: 'دلوقتي دوس هنا الأول عشان نقدر نحدد موقعك الحالي الفعلي بدقة.' },
-        { selector: '.lp-blue-dot', blocking: false, showNav: false, fixedBelowId: 'lp-open-gmaps-btn', text: 'النقطة الزرقاء دي موقعك الحالي الفعلي. خلّي الدبوس الأحمر (في نص الشاشة) يبقى بالظبط فوقها.' },
-        { selector: '#lp-auto-set-btn', blocking: false, showNav: false, fixedBelowId: 'lp-open-gmaps-btn', text: 'أسهل طريقة: دوس الزرار ده وهو هيثبّت الدبوس فوق موقعك تلقائيًا.' }
+        { selector: '.lp-blue-dot', blocking: false, showNav: false, extraId: 'lp-auto-set-btn', fixedBelowId: 'lp-open-gmaps-btn', text: 'النقطة الزرقاء دي موقعك الحالي. خلّي الدبوس الأحمر يبقى فوقها، أو دوس زرار "تحديد تلقائي" وهيتثبّت لوحده.' }
     ];
     const GP_SAVE_STEPS = [
         { id: 'btn-save-profile', showNav: false, text: 'تمام كده! دلوقتي دوس هنا عشان تحفظ بياناتك وتبدأ تستخدم التطبيق.' }
@@ -1719,16 +1718,18 @@
     // عن خطوات موقع بيت العميل، لأن هنا بنشجّعه يستخدم البحث الخارجي في جوجل ماب
     // أكتر لو المحل مش موجود في نتائج البحث العادية
     const GP_ORDER_LOCATION_STEPS = [
-        { selector: '#lp-locate-fab', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل المطلوب جنب منزلك.' },
-        { selector: '#lp-open-gmaps-btn', blocking: false, showNav: false, text: 'أو دوس على زرار "افتح خرائط جوجل" لو عايز تحدد محل معيّن بالظبط.' },
-        { selector: '#lp-manual-paste-fab', blocking: false, showNav: false, text: 'كويس! دلوقتي دوس هنا عشان نودّيك لنفس مكان اللينك اللي نسخته من جوجل ماب.' },
-        { selector: '#lp-confirm-btn', blocking: false, showNav: false, text: 'لو المكان صح، دوس هنا عشان تأكّد موقع المحل.' }
+        { selector: '#lp-locate-fab', extraId: 'lp-open-gmaps-btn', blocking: false, showNav: false, text: 'دوس على زرار "اذهب لموقعك الحالي الآن" لو المحل جنب منزلك، أو "افتح خرائط جوجل" لو عايز تحدد محل معيّن بالظبط.' },
+        { selector: '#lp-manual-paste-fab', blocking: false, showNav: true, text: 'اضغط على الزرار ده لو موقع الخريطة لسه ما اتغيّرش للمكان المطلوب.' },
+        { selector: '#lp-confirm-btn', blocking: false, showNav: true, hideNextBtn: true, text: 'لو المكان صح، دوس هنا عشان تأكّد موقع المحل.' }
     ];
     const GP_ORDER_REVIEW_STEPS = [
-        { id: 'order-review-actions', text: 'راجع بياناتك كويس، وبعدين دوس "تم التأكد وإرسال الطلب" عشان نبعت طلبك على طول. ولو حابب تعدّل أي حاجة، تقدر من الأزرار التانية هنا الأول.' }
+        { id: 'btn-edit-customer-review', text: 'لو حابب تعدّل بيانات العميل (الاسم، التليفون، العنوان)، تقدر من هنا.' },
+        { id: 'btn-edit-order-review', text: 'ولو حابب تعدّل حاجة في الطلب نفسه (المحل، الأصناف)، تقدر من هنا.' },
+        { id: 'btn-final-submit', hideNextBtn: true, text: 'لو كل حاجة تمام، دوس هنا عشان تأكّد وتبعت طلبك على طول.' }
     ];
     const GP_ORDER_TRACKING_STEPS = [
-        { selector: '#active-orders-list .mk-details-header', text: 'تمام، طلبك اتبعت! تقدر تشوف كل تفاصيل طلبك في أي وقت من القائمة المنسدلة دي.' }
+        { selector: '#active-orders-list .mk-details-header', blocking: false, showNav: false, text: 'تمام، طلبك اتبعت! دوس هنا عشان تشوف تفاصيل طلبك بالكامل.' },
+        { selector: '#active-orders-list .menu-card', text: 'تقدر تتابع طلبك لايف من وقت الطلب لحد ما تستلمه من المندوب، من خلال الكارت ده.' }
     ];
 
     let gpTutActive = false;
@@ -1919,7 +1920,7 @@
             const blockShown = !!(block && block.classList.contains('show'));
             if (blockShown) sawBlock = true;
             if (sawBlock && !blockShown && document.querySelector('.lp-blue-dot')) {
-                clearInterval(iv); gpTutStepIndex = 3; gpTutRenderStep(false);
+                clearInterval(iv); gpTutStepIndex = 2; gpTutRenderStep(false);
             } else if (tries > 150) { clearInterval(iv); }
         }, 250);
     }
@@ -1948,7 +1949,7 @@
                 if (!modal || !modal.classList.contains('show')) return; // العميل قفل المودال خالص - نسيبها بهدوء
                 gpTutFlow = 'location';
                 gpTutSteps = GP_ORDER_LOCATION_STEPS;
-                gpTutStepIndex = 2; // نكمل من خطوة "دوس على زرار اللصق"
+                gpTutStepIndex = 1; // نكمل من خطوة "دوس على زرار اللصق"
                 gpTutActive = true;
                 setTimeout(() => gpTutRenderStep(false), 200);
             } else if (tries > 400) { clearInterval(iv); }
@@ -2193,6 +2194,8 @@
         document.getElementById('gp-tut-tooltip-text').textContent = step.text;
         const navEl = document.getElementById('gp-tut-navbar');
         if (navEl) navEl.style.display = (step.showNav === false) ? 'none' : 'flex';
+        const nextBtnEl = document.getElementById('gp-tut-btn-next');
+        if (nextBtnEl) nextBtnEl.style.display = step.hideNextBtn ? 'none' : '';
         const btnBack = document.getElementById('gp-tut-btn-back');
         if (gpTutStepIndex === 0) btnBack.setAttribute('disabled', 'disabled'); else btnBack.removeAttribute('disabled');
         document.getElementById('gp-tut-btn-next-label').textContent = (gpTutStepIndex === gpTutSteps.length - 1) ? 'فهمت' : 'التالي';
@@ -4530,6 +4533,7 @@
         const body = document.getElementById('mkdtl-' + id); const arrow = document.getElementById('mkarr-' + id);
         if (body) body.classList.toggle('open', !!mkDetailsOpenState[id]);
         if (arrow) arrow.classList.toggle('open', !!mkDetailsOpenState[id]);
+        if (gpTutActive && gpTutFlow === 'orderTracking' && gpTutStepIndex === 0) { gpTutStepIndex = 1; setTimeout(() => gpTutRenderStep(false), 250); }
     }
     function buildDetailsBoxHtml(o, uid) {
         const hasNotes = !!(o.notes && o.notes !== 'لا توجد ملاحظات' && o.notes.trim());
