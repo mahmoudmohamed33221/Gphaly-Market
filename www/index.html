@@ -523,6 +523,7 @@
        ========================================================================= */
     #gp-tut-root { display: none; }
     .gp-tut-mask { position: fixed; background: rgba(0,0,0,0.62); z-index: 8500; transition: all 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .gp-tut-mask-multi { position: fixed; inset: 0; background: rgba(0,0,0,0.62); z-index: 8500; display: none; -webkit-mask-image: url(#gp-tut-svg-mask-ref); mask-image: url(#gp-tut-svg-mask-ref); -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
     .gp-tut-ring { position: fixed; z-index: 8501; border: 2px solid var(--gold); box-shadow: 0 0 0 4px rgba(212,175,55,0.22), 0 0 30px rgba(212,175,55,0.45); pointer-events: none; transition: all 0.28s cubic-bezier(0.4,0,0.2,1); }
     .gp-tut-tooltip { position: fixed; z-index: 8502; background: linear-gradient(145deg, #000000, #0a0a0a); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem 1.1rem; box-shadow: 0 15px 40px rgba(0,0,0,0.7); transition: top 0.28s cubic-bezier(0.4,0,0.2,1), bottom 0.28s cubic-bezier(0.4,0,0.2,1); }
     .gp-tut-tooltip-step { font-size: 0.7rem; font-weight: 800; color: var(--gold); margin-bottom: 0.35rem; letter-spacing: 0.3px; }
@@ -945,6 +946,16 @@
     <div class="gp-tut-mask" id="gp-tut-mask-bottom"></div>
     <div class="gp-tut-mask" id="gp-tut-mask-left"></div>
     <div class="gp-tut-mask" id="gp-tut-mask-right"></div>
+    <div class="gp-tut-mask-multi" id="gp-tut-mask-multi"></div>
+    <svg width="0" height="0" style="position:absolute;">
+        <defs>
+            <mask id="gp-tut-svg-mask-ref" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+                <rect id="gp-tut-hole-bg" x="0" y="0" width="100%" height="100%" fill="white"></rect>
+                <rect id="gp-tut-hole-1" x="0" y="0" width="0" height="0" rx="14" fill="black"></rect>
+                <rect id="gp-tut-hole-2" x="0" y="0" width="0" height="0" rx="14" fill="black"></rect>
+            </mask>
+        </defs>
+    </svg>
     <div class="gp-tut-ring" id="gp-tut-ring"></div>
     <div class="gp-tut-ring" id="gp-tut-ring2" style="display:none;"></div>
     <div class="gp-tut-tooltip" id="gp-tut-tooltip">
@@ -2126,37 +2137,46 @@
         const pad = 8;
         const rect = target.getBoundingClientRect();
         const vw = window.innerWidth, vh = window.innerHeight;
-        const blocking = step.blocking !== false;
-        const maskTop = document.getElementById('gp-tut-mask-top'), maskBottom = document.getElementById('gp-tut-mask-bottom');
-        const maskLeft = document.getElementById('gp-tut-mask-left'), maskRight = document.getElementById('gp-tut-mask-right');
-        // 🆕 لازم نحدد العنصر الإضافي (لو موجود) *قبل* ما نحسب التعتيم، عشان نقدر نعتّم
-        // حوالين الاتنين سوا (مش حوالين الهدف الأساسي بس) - وإلا العنصر الإضافي كان
-        // بيتاخد حلقة زخرفية بس من غير ما التعتيم يتشال من جواه فعليًا
+        const maskMulti = document.getElementById('gp-tut-mask-multi');
+        // 🆕 لازم نحدد العنصر الإضافي (لو موجود) *قبل* ما نحسب التعتيم
         const ring2 = document.getElementById('gp-tut-ring2');
         const extraEl = step.extraId ? document.getElementById(step.extraId) : (step.extraSelector ? document.querySelector(step.extraSelector) : null);
         const r2 = extraEl ? extraEl.getBoundingClientRect() : null;
-        // 🐛🔧 كان التعتيم بيتحسب على "rect" بس (الهدف الأساسي)، حتى لو فيه extraEl -
-        // فالمنطقة اللي حوالين العنصر الإضافي كانت لسه متعتّمة رغم الحلقة الزخرفية
-        // حواليها. دلوقتي بنحسب "هول" التعتيم على أكبر مستطيل يغطي الاتنين سوا
+        // 🐛🔧 التصحيح الصح: لو فيه عنصر إضافي، المطلوب حتتين منفصلتين مفيهمش تعتيم
+        // (واحدة حوالين كل عنصر بالظبط) - مش حتة واحدة كبيرة مدمجة تغطي الاتنين
+        // والمسافة اللي بينهم كمان. التقنية القديمة (4 مستطيلات تعتيم) ينفع بيها هول
+        // واحد بس، فلو فيه عنصر إضافي بنستخدم SVG mask بدله عشان يقدر يعمل هولين
+        // منفصلين فعلاً، وبنسيب التقنية القديمة زي ما هي للحالة العادية (هدف واحد بس)
+        if (extraEl && r2) {
+            [document.getElementById('gp-tut-mask-top'), document.getElementById('gp-tut-mask-bottom'), document.getElementById('gp-tut-mask-left'), document.getElementById('gp-tut-mask-right')].forEach(m => { m.style.cssText = 'width:0;height:0;'; });
+            document.getElementById('gp-tut-hole-bg').setAttribute('width', vw);
+            document.getElementById('gp-tut-hole-bg').setAttribute('height', vh);
+            const h1 = document.getElementById('gp-tut-hole-1');
+            h1.setAttribute('x', rect.left - pad); h1.setAttribute('y', rect.top - pad);
+            h1.setAttribute('width', rect.width + pad * 2); h1.setAttribute('height', rect.height + pad * 2);
+            const h2 = document.getElementById('gp-tut-hole-2');
+            h2.setAttribute('x', r2.left - pad); h2.setAttribute('y', r2.top - pad);
+            h2.setAttribute('width', r2.width + pad * 2); h2.setAttribute('height', r2.height + pad * 2);
+            maskMulti.style.display = 'block';
+            maskMulti.style.pointerEvents = (step.blocking !== false) ? 'auto' : 'none';
+        } else {
+            maskMulti.style.display = 'none';
+            const holeRectSolo = rect;
+            const maskTop = document.getElementById('gp-tut-mask-top'), maskBottom = document.getElementById('gp-tut-mask-bottom');
+            const maskLeft = document.getElementById('gp-tut-mask-left'), maskRight = document.getElementById('gp-tut-mask-right');
+            const pe = (step.blocking !== false) ? 'auto' : 'none';
+            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, holeRectSolo.top - pad)}px;pointer-events:${pe};`;
+            maskBottom.style.cssText = `left:0;top:${holeRectSolo.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (holeRectSolo.bottom + pad))}px;pointer-events:${pe};`;
+            maskLeft.style.cssText = `left:0;top:${holeRectSolo.top - pad}px;width:${Math.max(0, holeRectSolo.left - pad)}px;height:${holeRectSolo.height + pad * 2}px;pointer-events:${pe};`;
+            maskRight.style.cssText = `left:${holeRectSolo.right + pad}px;top:${holeRectSolo.top - pad}px;width:${Math.max(0, vw - (holeRectSolo.right + pad))}px;height:${holeRectSolo.height + pad * 2}px;pointer-events:${pe};`;
+        }
+        // 🆕 لسه محتاجين "holeRect" (اتحاد المنطقتين) لحساب مكان أنسب للتووللتيب بس،
+        // مش للتعتيم نفسه
         const holeRect = r2 ? {
             top: Math.min(rect.top, r2.top), left: Math.min(rect.left, r2.left),
             bottom: Math.max(rect.bottom, r2.bottom), right: Math.max(rect.right, r2.right)
         } : rect;
         holeRect.height = holeRect.bottom - holeRect.top;
-        if (blocking) {
-            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, holeRect.top - pad)}px;pointer-events:auto;`;
-            maskBottom.style.cssText = `left:0;top:${holeRect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (holeRect.bottom + pad))}px;pointer-events:auto;`;
-            maskLeft.style.cssText = `left:0;top:${holeRect.top - pad}px;width:${Math.max(0, holeRect.left - pad)}px;height:${holeRect.height + pad * 2}px;pointer-events:auto;`;
-            maskRight.style.cssText = `left:${holeRect.right + pad}px;top:${holeRect.top - pad}px;width:${Math.max(0, vw - (holeRect.right + pad))}px;height:${holeRect.height + pad * 2}px;pointer-events:auto;`;
-        } else {
-            // 🆕 خطوات "غير محجّبة" (زي جوه مودال الخريطة): بنفس تقنية الهول الحقيقي
-            // (تعتيم كل حاجة ما عدا مستطيل الهدف بالظبط) بس بـ pointer-events:none
-            // على كل القطع، عشان الهول يبان نضيف صح، ومع ذلك كل حاجة تفضل قابلة للضغط
-            maskTop.style.cssText = `left:0;top:0;width:${vw}px;height:${Math.max(0, holeRect.top - pad)}px;pointer-events:none;`;
-            maskBottom.style.cssText = `left:0;top:${holeRect.bottom + pad}px;width:${vw}px;height:${Math.max(0, vh - (holeRect.bottom + pad))}px;pointer-events:none;`;
-            maskLeft.style.cssText = `left:0;top:${holeRect.top - pad}px;width:${Math.max(0, holeRect.left - pad)}px;height:${holeRect.height + pad * 2}px;pointer-events:none;`;
-            maskRight.style.cssText = `left:${holeRect.right + pad}px;top:${holeRect.top - pad}px;width:${Math.max(0, vw - (holeRect.right + pad))}px;height:${holeRect.height + pad * 2}px;pointer-events:none;`;
-        }
         document.getElementById('gp-tut-ring').style.cssText = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;border-radius:${(step.id === 'location-box-customer' || step.id === 'location-box-store' || step.selector === '.lp-blue-dot') ? '18px' : '14px'};`;
 
         // 🆕 هالة تانية اختيارية (لو الخطوة عايزة تأشّر على عنصر إضافي كمان، زي زرار
