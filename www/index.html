@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">  
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">  
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>  
+    <!-- 🆕 خرائط جوجل بتتحمّل ديناميكيًا (مش من هنا) عشان الـ API key يتظبط بشكل واحد بس
+    جوه الكود (المتغير GOOGLE_PLACES_API_KEY) بدل ما يتكرر في مكانين -->
     <!-- 🆕 البلجن ده لازم ملفه يتحمّل صراحة عشان "يسجّل نفسه" في Capacitor.Plugins، لأن
          التطبيق ده HTML عادي من غير أداة تجميع (Webpack/Vite) بتعمل الاستيراد لوحدها -->
     <script src="https://unpkg.com/@capgo/capacitor-inappbrowser@8.13.2/dist/plugin.js"></script>  
@@ -1744,6 +1744,12 @@
     ];
 
     let gpTutActive = false;
+    let gpTutLpMapMoveListeners = []; // 🆕 handles خرائط جوجل لمستمعي تحرك/تكبير الخريطة (بدل .on/.off بتاعة Leaflet)
+    function gpTutBindLpMapMoveListeners() {
+        if (!lpMap) return;
+        gpTutLpMapMoveListeners.forEach(l => google.maps.event.removeListener(l));
+        gpTutLpMapMoveListeners = [lpMap.addListener('center_changed', gpTutOnLpMapMove), lpMap.addListener('zoom_changed', gpTutOnLpMapMove)];
+    }
     let gpTutStepIndex = 0;
     let gpTutBound = false;
     let gpTutFlow = 'register'; // register | location | save | navProfile | editProfileHint | order | orderReview | orderTracking
@@ -2057,10 +2063,7 @@
             // تمركز تلقائي بعد أول تحديد GPS) عشان الهالة تفضل ملتصقة بالنقطة
             // الزرقاء بالظبط لحظة بلحظة، مش بس وقت ما الخطوة تفتح لأول مرة
             if (lpMap) {
-                lpMap.off('move', gpTutOnLpMapMove);
-                lpMap.off('zoom', gpTutOnLpMapMove);
-                lpMap.on('move', gpTutOnLpMapMove);
-                lpMap.on('zoom', gpTutOnLpMapMove);
+                gpTutBindLpMapMoveListeners();
             }
             setTimeout(() => gpTutRenderStep(false), 150);
         };
@@ -2573,21 +2576,19 @@
     // أو أكدت مكان بعيد عن مكانك الفعلي.
     // =========================================================================
     let lpMap = null, lpTarget = null; // lpTarget: 'customer' أو 'store'
-    let lpStreetLayer = null, lpSatelliteLayer = null, lpIsSatelliteView = false; // 🆕 لتبديل صورة القمر الصناعي
+    let lpIsSatelliteView = false; // 🆕 لتبديل صورة القمر الصناعي
     let lpDragLocked = true; // 🆕 تحريك الخريطة يدويًا مقفول دايمًا كوضع افتراضي كل ما الخريطة تتفتح
 
     // 🆕 بيبدّل بين الخريطة الرسومية (Voyager) وصور القمر الصناعي الحقيقية - العميل ممكن
     // يحتاجها لو حاسس إن اسم الشارع أو مكان الدبوس مش مطابق للواقع بالظبط
     function toggleLpSatelliteView() {
-        if (!lpMap || !lpStreetLayer || !lpSatelliteLayer) return;
+        if (!lpMap) return;
         lpIsSatelliteView = !lpIsSatelliteView;
         if (lpIsSatelliteView) {
-            lpMap.removeLayer(lpStreetLayer);
-            lpSatelliteLayer.addTo(lpMap);
+            lpMap.setMapTypeId(google.maps.MapTypeId.HYBRID);
             document.getElementById('lp-sat-toggle-icon').className = 'fas fa-map';
         } else {
-            lpMap.removeLayer(lpSatelliteLayer);
-            lpStreetLayer.addTo(lpMap);
+            lpMap.setMapTypeId(google.maps.MapTypeId.ROADMAP);
             document.getElementById('lp-sat-toggle-icon').className = 'fas fa-satellite';
         }
     }
@@ -2668,15 +2669,12 @@
     function setLpDragLocked(locked) {
         lpDragLocked = locked;
         if (lpMap) {
-            if (locked) {
-                lpMap.dragging.disable();
-                lpMap.touchZoom.disable();
-                lpMap.doubleClickZoom.disable();
-            } else {
-                lpMap.dragging.enable();
-                lpMap.touchZoom.enable();
-                lpMap.doubleClickZoom.enable();
-            }
+            lpMap.setOptions({
+                draggable: !locked,
+                gestureHandling: locked ? 'none' : 'greedy',
+                disableDoubleClickZoom: locked,
+                scrollwheel: !locked
+            });
         }
         const icon = document.getElementById('lp-drag-toggle-icon');
         if (icon) icon.className = locked ? 'fas fa-lock' : 'fas fa-lock-open';
@@ -2712,19 +2710,61 @@
     const LP_DEFAULT_CENTER = [30.0444, 31.2357]; // مركز افتراضي لو لسه محدش حدد حاجة ومفيش صلاحية موقع
     const LP_FIRST_FIX_TIMEOUT_MS = 15000;
 
-    const LP_BLUE_DOT_ICON = L.divIcon({ className: '', html: '<div class="lp-blue-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+    // 🆕 بديل خرائط جوجل لـ L.divIcon القديم - overlay مخصوص بيرسم نفس الـ div بالظبط
+    // (بنفس كلاس lp-blue-dot اللي نظام الشرح التعليمي بيدور عليه) فوق خرائط جوجل، وعنده
+    // نفس دوال Leaflet (setLatLng/getLatLng) عشان باقي الكود يفضل شغال من غير أي تعديل
+    // 🐛🔧 لازم نأجّل الوراثة من google.maps.OverlayView.prototype لحد ما مكتبة خرائط
+    // جوجل فعلاً تكون اتحمّلت (loadGooglePlacesApi) - لو حاولنا نعمل كده وقت تحميل
+    // الصفحة نفسها (زي ما كان أول مرة)، google.maps مش موجودة لسه خالص وهيبوظ السكريبت كله
+    let _lpBlueDotOverlayReady = false;
+    function LpBlueDotOverlay(lat, lng) {
+        _setupLpBlueDotOverlayClass();
+        this._lat = lat; this._lng = lng; this._div = null;
+        this.setMap(lpMap);
+    }
+    function _setupLpBlueDotOverlayClass() {
+        if (_lpBlueDotOverlayReady) return;
+        LpBlueDotOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+        LpBlueDotOverlay.prototype.onAdd = function () {
+            const div = document.createElement('div');
+            div.className = 'lp-blue-dot';
+            div.style.position = 'absolute';
+            div.style.pointerEvents = 'none';
+            this._div = div;
+            this.getPanes().overlayLayer.appendChild(div);
+        };
+        LpBlueDotOverlay.prototype.draw = function () {
+            if (!this._div) return;
+            const proj = this.getProjection();
+            if (!proj) return;
+            const pos = proj.fromLatLngToDivPixel(new google.maps.LatLng(this._lat, this._lng));
+            this._div.style.left = (pos.x - 9) + 'px';
+            this._div.style.top = (pos.y - 9) + 'px';
+        };
+        LpBlueDotOverlay.prototype.onRemove = function () {
+            if (this._div && this._div.parentNode) this._div.parentNode.removeChild(this._div);
+            this._div = null;
+        };
+        LpBlueDotOverlay.prototype.setLatLng = function (latlng) {
+            this._lat = latlng[0]; this._lng = latlng[1]; this.draw();
+        };
+        LpBlueDotOverlay.prototype.getLatLng = function () {
+            return { lat: this._lat, lng: this._lng };
+        };
+        _lpBlueDotOverlayReady = true;
+    }
 
     // 🆕 مشكلة كانت موجودة: لما قايمة نتائج البحث بتبقى فيها أماكن كتير وتحاول تنزل فيها
-    // (تسكرول)، اللمسة كانت بتوصل للخريطة اللي تحتها وتحركها هي بدل ما تسكرول في القايمة،
-    // لأن Leaflet بيسمع للمس على الصفحة كلها عشان يسحب الخريطة. الحل: نمنع أي لمسة/سحب/زوم
-    // بتبدأ من جوه قايمة النتائج أو صندوق استيراد جوجل ماب من إنها توصل لطبقة الخريطة خالص
+    // (تسكرول)، اللمسة كانت بتوصل للخريطة اللي تحتها وتحركها هي بدل ما تسكرول في القايمة.
+    // الحل: نمنع أي لمسة/سحب/زوم بتبدأ من جوه قايمة النتائج أو صندوق البحث من إنها توصل
+    // لطبقة الخريطة خالص
     function setupLpOverlayEventIsolation() {  
         const elements = [document.getElementById('lp-search-results'), document.querySelector('.lp-search-box')];  
         elements.forEach(el => {  
             if (!el) return;  
-            L.DomEvent.disableClickPropagation(el);  
-            L.DomEvent.disableScrollPropagation(el);  
-            L.DomEvent.on(el, 'touchstart touchmove touchend', L.DomEvent.stopPropagation);  
+            ['touchstart', 'touchmove', 'touchend', 'wheel', 'click', 'dblclick'].forEach(evt => {
+                el.addEventListener(evt, e => e.stopPropagation(), { passive: evt.indexOf('touch') === 0 });
+            });
         });  
     }  
 
@@ -2788,30 +2828,34 @@
         document.getElementById('lp-search-clear').style.display = 'none';  
         hideLpBlock();  
         document.getElementById('location-picker-modal').classList.add('show');  
-        setTimeout(() => {  
+        setTimeout(async () => {  
+            await loadGooglePlacesApi(); // 🆕 لازم خرائط جوجل تكون اتحمّلت الأول قبل ما نستخدم google.maps
             if (!lpMap) {  
-                lpMap = L.map('locationPickerMap', { zoomControl: false, attributionControl: false }).setView(LP_DEFAULT_CENTER, 15);  
-                // 🆕 طبقة ألوان "Voyager" - أقرب تصميم مجاني لشكل جوجل ماب (ألوان، تفاصيل
-                // شوارع ومحلات وأرقام مباني)، بدون أي مفتاح API أو اشتراك
-                // 🔧 اتغيّرت من CARTO Voyager لمصدر OpenStreetMap المباشر - نفس المصدر
-                // بالظبط اللي شغال في تطبيق الريدر، عشان الاتنين يبانوا بنفس الشكل تمامًا
-                lpStreetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19
-                }).addTo(lpMap);  
-                // 🆕 طبقة صور قمر صناعي حقيقية (مجانية بدون مفتاح API) - بديل للخريطة
-                // الرسومية لحظة ما رسم الشوارع يكون غير دقيق في منطقة معيّنة (زي فرق بيانات
-                // OpenStreetMap عن الواقع)؛ بالصورة الحقيقية تقدر تتأكد بعينك من المبنى نفسه
-                lpSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 20,
-                    attribution: 'Esri'
-                });  
-                // 🆕 زرار الزووم بقى تحت يمين الخريطة، بعيد عن صندوق البحث فوق عشان يبقى واضح
-                L.control.zoom({ position: 'bottomright' }).addTo(lpMap);  
-                setupLpOverlayEventIsolation();  
+                lpMap = new google.maps.Map(document.getElementById('locationPickerMap'), {
+                    center: { lat: LP_DEFAULT_CENTER[0], lng: LP_DEFAULT_CENTER[1] },
+                    zoom: 15,
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                    zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+                    gestureHandling: 'greedy',
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                });
+                // 🆕 شيمز (compatibility shims) بنفس أسماء دوال Leaflet القديمة، عشان باقي
+                // الكود في الملف (فيه أكتر من ١٠ استخدام لـ setView/getCenter) يفضل شغال
+                // من غير ما نحتاج نلمس كل سطر لوحده
+                lpMap.setView = function (latlng, zoom) {
+                    this.setCenter({ lat: latlng[0], lng: latlng[1] });
+                    if (zoom != null) this.setZoom(zoom);
+                };
+                const _origGetCenter = lpMap.getCenter.bind(lpMap);
+                lpMap.getCenter = function () {
+                    const c = _origGetCenter();
+                    return { lat: c.lat(), lng: c.lng() };
+                };
+                setupLpOverlayEventIsolation();
             }  
-            lpMap.invalidateSize();  
+            google.maps.event.trigger(lpMap, 'resize');  
             setLpDragLocked(true); // 🆕 كل ما الخريطة تتفتح، تحريكها اليدوي يرجع مقفول من الأول
-            lpDragLockHintShown = false; // 🆕 يقدر يظهر تاني كل ما المودال يتفتح من جديد
             lpSetupDragLockHintListeners();
             const latId = target === 'store' ? 'u_store_lat' : 'u_customer_lat';  
             const lngId = target === 'store' ? 'u_store_lng' : 'u_customer_lng';  
@@ -2898,7 +2942,7 @@
     function showOrUpdateBlueDot(lat, lng) {  
         if (!lpMap) return;  
         if (lpBlueDotMarker) { lpBlueDotMarker.setLatLng([lat, lng]); }  
-        else { lpBlueDotMarker = L.marker([lat, lng], { icon: LP_BLUE_DOT_ICON, interactive: false }).addTo(lpMap); }  
+        else { lpBlueDotMarker = new LpBlueDotOverlay(lat, lng); }  
     }  
 
     // 🆕 بدء متابعة حية ومستمرة لموقعك الفعلي بالـ GPS (watchPosition) - بتفضل شغالة
@@ -3234,7 +3278,7 @@
     // من غير ما تحط مفتاح، البحث هيفضل شغال عادي بالمصادر المجانية (نوميناتيم + Overpass)
     // زي دلوقتي بالظبط، من غير أي كسر أو خطأ.
     // =========================================================================
-    const GOOGLE_PLACES_API_KEY = '';  
+    const GOOGLE_PLACES_API_KEY = 'AIzaSyAYMzt9F2dGFvGchq_IdbOwJ6clZegrfro';  
 
     let googlePlacesReadyPromise = null, googlePlacesService = null;  
 
